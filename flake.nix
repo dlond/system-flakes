@@ -55,6 +55,7 @@
 	  casks = [
 	    "ghostty"
 	    "1password"
+	    "vlc"
 	  ];
 	  masApps = {
 	    "AdGuard" = 1440147259;

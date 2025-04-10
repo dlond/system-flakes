@@ -32,7 +32,9 @@
 	    pkgs.zoxide
 	    pkgs.bat
 	    pkgs.ripgrep
+	    pkgs.fd
 	    pkgs.wget
+	    pkgs.tree
 	    pkgs.oh-my-posh
 	    pkgs.go
 	    pkgs.rustup

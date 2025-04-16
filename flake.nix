@@ -37,7 +37,6 @@
 	    pkgs.wget
 	    pkgs.tree
 	    pkgs.oh-my-posh
-	    pkgs.nix-direnv
 	    pkgs.go
 	    pkgs.rustup
 	    pkgs.nodejs
@@ -96,6 +95,10 @@
 
 	# Enable alternative shell support in nix-darwin.
 	# programs.fish.enable = true;
+
+	# install direnv and nix_direnv according to:
+	# https://github.com/nix-community/nix-direnv
+	programs.direnv.enable = true;
 
 	# Set Git commit hash for darwin-version.
 	system.configurationRevision = self.rev or self.dirtyRev or null;

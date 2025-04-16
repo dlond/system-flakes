@@ -25,6 +25,7 @@
 	environment.systemPackages =
 	  [ 
 	    pkgs.git
+	    pkgs.gh
 	    pkgs.neovim
 	    pkgs.tmux
 	    pkgs.stow
@@ -36,6 +37,7 @@
 	    pkgs.wget
 	    pkgs.tree
 	    pkgs.oh-my-posh
+	    pkgs.nix-direnv
 	    pkgs.go
 	    pkgs.rustup
 	    pkgs.nodejs
@@ -52,26 +54,27 @@
 	  enable = true;
 	  taps = [];
 	  brews = [
-	    "mas"
+	    # "mas"
 	  ];
 	  casks = [
 	    "ghostty"
 	    "1password"
+	    "1password-cli"
 	    "vlc"
 	  ];
-	  masApps = {
-	    "AdGuard" = 1440147259;
-	    "Messenger" = 1480068668;
-	    "Logic Pro" = 634148309;
-	    # "MainStage" = 634159523;
-	    "Final Cut Pro" = 424389933;
-	    # "Motion" = 434290957;
-	    # "Compressor" = 424390742;
-	    "Numbers" = 409203825;
-	  };
-	  onActivation.cleanup = "zap";
-	  onActivation.autoUpdate = true;
-	  onActivation.upgrade = true;
+	  # masApps = {
+	  #   "AdGuard" = 1440147259;
+	  #   "Messenger" = 1480068668;
+	  #   "Logic Pro" = 634148309;
+	  #   # "MainStage" = 634159523;
+	  #   "Final Cut Pro" = 424389933;
+	  #   # "Motion" = 434290957;
+	  #   # "Compressor" = 424390742;
+	  #   "Numbers" = 409203825;
+	  # };
+	  onActivation.cleanup = "uninstall";
+	  onActivation.autoUpdate = false;
+	  onActivation.upgrade = false;
 	};
 
 	fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];

@@ -1,0 +1,6 @@
+# Nix build results / artifacts
+result
+result-* # result-bin, result-dev, etc
+
+# Add other things like secrets directory if not already present
+secrets/

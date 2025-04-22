@@ -1,131 +1,69 @@
 {
-  description = "My nix-darwin system flake";
+  description = "My multi-system Nix configuration flake";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    # Darwin Inputs
     nix-darwin.url = "github:LnL7/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
     mac-app-util.url = "github:hraban/mac-app-util";
+
+    # Home Manager?
+    # home-manager.url = "github:nix-community/home-manager";
+    # home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Linux Inputs
+    # nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = inputs@{
-    self,
-    nix-darwin,
-    nixpkgs,
-    nix-homebrew,
-    mac-app-util,
-    }:
+  outputs = inputs@{ self, nixpkgs, nix-darwin, nix-homebrew, mac-app-util, ... }:
     let
-      configuration = { pkgs, ... }: {
-	nixpkgs.config.allowUnfree = true;
+      # Define supported systems for packages, checks, etc.
+      # Add "aarch64-linux", "x86_64-linux" etc if needed
+      supportedSystems = [ "aarch64-darwin" "x86_64-darwin" ];
 
-	# List packages installed in system profile. To search by name, run:
-	# $ nix-env -qaP | grep wget
-	environment.systemPackages =
-	  [ 
-	    pkgs.git
-	    pkgs.gh
-	    pkgs.neovim
-	    pkgs.tmux
-	    pkgs.stow
-	    pkgs.fzf
-	    pkgs.zoxide
-	    pkgs.bat
-	    pkgs.ripgrep
-	    pkgs.fd
-	    pkgs.wget
-	    pkgs.tree
-	    pkgs.oh-my-posh
-	    pkgs.go
-	    pkgs.rustup
-	    pkgs.nodejs
+      # Helper function to generate nixpkgs instances for each system
+      forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
+      
+      # Custom pakages usable across systems
+      # pkgs = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlays.default ]; });
 
-	    pkgs.gnupg
-	    pkgs.tor
-
-	    pkgs.raycast
-	    pkgs.whatsapp-for-mac
-	    pkgs.ollama
-	  ];
-
-	homebrew = {
-	  enable = true;
-	  taps = [];
-	  brews = [
-	    # "mas"
-	  ];
-	  casks = [
-	    "ghostty"
-	    "1password"
-	    "1password-cli"
-	    "vlc"
-	  ];
-	  # masApps = {
-	  #   "AdGuard" = 1440147259;
-	  #   "Messenger" = 1480068668;
-	  #   "Logic Pro" = 634148309;
-	  #   # "MainStage" = 634159523;
-	  #   "Final Cut Pro" = 424389933;
-	  #   # "Motion" = 434290957;
-	  #   # "Compressor" = 424390742;
-	  #   "Numbers" = 409203825;
-	  # };
-	  onActivation.cleanup = "uninstall";
-	  onActivation.autoUpdate = false;
-	  onActivation.upgrade = false;
-	};
-
-	fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
-
-	# Can't get this shit to work (didn't really try!)
-	# system.defaults = {
-	#   NSGlobalDomain.AppleInterfaceStyle = "Dark";
-	#   finder.FXPreferredViewStyle = "clmv";
-	#   loginwindow.GuestEnabled = false;
-	#   trackpad.Clicking = true;
-	#   dock.autohide = false;
-	# };
-
-	# Use touchID for sudo
-	security.pam.services.sudo_local.touchIdAuth = true;
-
-	# Necessary for using flakes on this system.
-	nix.settings.experimental-features = "nix-command flakes";
-
-	# Enable alternative shell support in nix-darwin.
-	# programs.fish.enable = true;
-
-	# install direnv and nix_direnv according to:
-	# https://github.com/nix-community/nix-direnv
-	programs.direnv.enable = true;
-
-	# Set Git commit hash for darwin-version.
-	system.configurationRevision = self.rev or self.dirtyRev or null;
-
-	# Used for backwards compatibility, please read the changelog before changing.
-	# $ darwin-rebuild changelog
-	system.stateVersion = 6;
-
-	# The platform the configuration will be used on.
-	nixpkgs.hostPlatform = "aarch64-darwin";
-      };
     in
-      {
-      # Build darwin flake using:
-      # $ darwin-rebuild build --flake .#mbp
+    {
+      # Overlays can be defined in overlays/ directory
+      # overlays.default = import ./overlays;
+
+      # NixOS configurations (add later for RPi, Jetson, Cloud VM)
+      # nixosConfigurations.rpi = nixpkgs.lib.nixosSystem {
+      #   system = "aarch64-linux";
+      #   specialArgs = { inherit inputs; } # Pass down inputs
+      #   modules = [ ./hosts/rpi/default.nix ];
+      # };
+
+      # Darwin configurations
       darwinConfigurations."mbp" = nix-darwin.lib.darwinSystem {
-	modules = [
-	  configuration
-	  nix-homebrew.darwinModules.nix-homebrew {
-	    nix-homebrew = {
-	      enable = true;
-	      enableRosetta = true;
-	      user = "dlond";
-	    };
-	  }
-	  mac-app-util.darwinModules.default
-	];
+        system = "aarch64-darwin";
+        specialArgs = { inherit inputs; }; # Pass down inputs
+        modules = [
+          # Import the main configuration for the mbp host
+          ./hosts/mbp/default.nix
+
+          # Include Home Manager module if you use it for user config
+          # home-manager.darwinModules.home-manager {
+          #   # Configuration options for home-manager itself
+          #   # homeManagerArgs = { ... };
+          # }
+        ];
       };
+
+      # Home Manager configurations (if managing separately)
+      # homeConfigurations."your-username@mbp" = home-manager.lib.homeManagerConfiguration {
+      #   pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+      #   extraSpecialArgs = { inherit inputs; };
+      #   modules = [ ./home/users/dlond/default.nix ];
+      # };
     };
 }
+

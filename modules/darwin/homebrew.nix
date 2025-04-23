@@ -30,6 +30,7 @@ in
         "1password"
         "1password-cli"
         "vlc"
+        "balenaetcher"
       ];
       # masApps = { ... }; # Keep your masApps definition here if using 'mas' brew
 

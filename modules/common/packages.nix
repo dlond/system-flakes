@@ -14,6 +14,7 @@
       gh
       neovim
       tmux
+      screen
       stow
       fzf
       zoxide

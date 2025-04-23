@@ -47,7 +47,7 @@
     # HM-managed package path.
 
     # Theme
-    theme = ../../files/omp/my_catppuccin.toml;
+    #theme = ../../files/omp/my_catppuccin.toml;
   };
 
 programs.fzf = {

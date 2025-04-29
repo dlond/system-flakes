@@ -6,4 +6,15 @@
   # Leave it empty like this for now, or add common settings later.
   # For example:
   # programs.git.userName = "dlond"; # If name is same everywhere
+  programs.bat = {
+    enable = true;
+    config = {
+      theme = "Catppuccin Mocha";
+    };
+  };
+
+  xdg.configFile."bat/themes" = {
+    source = ./files/bat/themes;
+    recursive = true;
+  };
 }

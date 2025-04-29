@@ -82,5 +82,33 @@
     source = ../../files/.config/nvim;
     recursive = true;
   };
+
+  programs.git = {
+    enable = true;
+    userName = "dlond";
+    userEmail = "dlond@me.com";
+
+    signing = {
+      key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
+      format = "ssh";
+      signer = if pkgs.stdenv.isDarwin then "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" else "<linux-helper>";
+    };
+
+    aliases = {
+      co = "checkout";
+      br = "branch";
+      ci = "commit";
+      st = "status";
+      unstage = "reset HEAD --";
+      last = "log -1 HEAD";
+    };
+
+    extraConfig = {
+      init.defaultBranch = "main";
+      core.editor = "nvim";
+      color.ui = true;
+      push.default = "current";
+    };
+  };
   # Other configs
 }

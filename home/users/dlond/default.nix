@@ -3,7 +3,8 @@
 {
   imports = [
     ../../common.nix
-    ./mac.nix # (if pkgs.stdenv.isDarwin then ./mac.nix else ./linux.nix)
+    ./mac.nix
+    ./linux.nix
   ];
 
   # Home Manager needs a state version. Put it in the main user entry point.
@@ -46,17 +47,77 @@
   # Enable Zsh management via Home Manager
   programs.zsh = {
     enable = true;
-    # initContent = ''
-    #   # Initialize Oh My Posh
-    #   if command -v oh-my-posh > /dev/null; then
-    #     eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
-    #   fi
-    # '';
+
+    shellAliases = {
+      tree = "tree -C";
+      cat = "bat";
+      ls = "ls -G";
+      ll = "ls -lah";
+      vim = "nvim";
+      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
+    };
+
+    history = {
+      size = 5000;
+      save = 5000;
+      path = "$HOME/.zsh_history";
+      extended = true;
+      share = true;
+      ignoreSpace = true;
+      ignoreAllDups = true;
+      saveNoDups = true;
+      findNoDups = true;
+    };
+
+    sessionVariables = {
+      EDITOR = "nvim";
+      DIRENV_LOG_FORMAT = "";
+    };
+
+    syntaxHighlighting.enable = true;
+    autosuggestion.enable = true;
+    completionInit = "autoload -U compinit && compinit -u";
+
+    initContent = ''
+
+      bindkey -e
+      # bindkey '^y' autosuggest-accept
+      bindkey '^p' history-search-backward
+      bindkey '^n' history-search-forward
+
+      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+      zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+      zstyle ':completion:*' menu no
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+      setopt globdots
+
+      ZINIT_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+      if [ ! -d "$ZINIT_HOME" ]; then
+        mkdir -p "$(dirname $ZINIT_HOME)"
+        git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME" || {
+          echo "Error: Failed to clone zinit." >&2
+        }
+      fi
+      if [ -f "$ZINIT_HOME/zinit.zsh" ]; then
+        source "''${ZINIT_HOME}/zinit.zsh"
+        zinit light Aloxaf/fzf-tab
+        zinit snippet OMZP::git
+        zinit cdreplay -q
+      else
+        echo "Error: zinit.zsh not found." >&2
+      fi
+
+      # Initialize Oh My Posh like this for now
+      if command -v oh-my-posh > /dev/null; then
+        eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
+      fi
+    '';
   };
 
-  home.file.".zshrc" = {
-    source = ../../files/zshrc;
-  };
+  # home.file.".zshrc" = {
+  #   source = ../../files/zshrc;
+  # };
 
   programs.fzf = {
     enable = true;

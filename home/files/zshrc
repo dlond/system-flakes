@@ -115,9 +115,3 @@ if command -v oh-my-posh > /dev/null; then
   # Use the theme file managed by Home Manager via xdg.configFile
   eval "$(oh-my-posh init zsh --config "${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml")"
 fi
-# # Initialize Oh My Posh
-# # Check if the command exists before trying to run it
-# if command -v oh-my-posh >/dev/null; then
-# 	# Use the theme file managed by Home Manager via xdg.configFile
-# 	eval "$(oh-my-posh init zsh --config '${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml')"
-# fi

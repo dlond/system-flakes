@@ -41,13 +41,13 @@
   # Enable Zsh management via Home Manager
   programs.zsh = {
     enable = true;
-
-    initContent = ''
-      # Initialize Oh My Posh
-      if command -v oh-my-posh > /dev/null; then
-        eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
-      fi
-    '';
+    #
+    # initContent = ''
+    #   # Initialize Oh My Posh
+    #   if command -v oh-my-posh > /dev/null; then
+    #     eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
+    #   fi
+    # '';
   };
 
   home.file.".zshrc" = {
@@ -91,7 +91,7 @@
     signing = {
       key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
       format = "ssh";
-      signer = if pkgs.stdenv.isDarwin then "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" else "<linux-helper>";
+      # signer = if pkgs.stdenv.isDarwin then "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" else "<linux-helper>";
     };
 
     aliases = {

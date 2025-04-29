@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  # This file is for configuration options specific to 'dlond'
-  # ONLY when on macOS.
-  # Leave it empty for now.
+  programs.git = {
+    signing.signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
+  };
 }

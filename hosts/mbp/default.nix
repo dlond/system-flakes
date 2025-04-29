@@ -19,7 +19,7 @@
   ];
 
   # Specific settings for this host 'mpb'
-  networking.hostName = "mbp"; 
+  networking.hostName = "mbp";
 
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
@@ -31,6 +31,7 @@
   users.users.dlond = {
     name = "dlond";
     home = "/Users/dlond/";
+    shell = "${pkgs.zsh}/bin/zsh";
     # Add groups, shell, etc. if needed
   };
 

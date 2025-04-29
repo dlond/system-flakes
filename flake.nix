@@ -3,16 +3,17 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+
+    # Home Manager
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # Darwin Inputs
     nix-darwin.url = "github:LnL7/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
     mac-app-util.url = "github:hraban/mac-app-util";
-
-    # Home Manager?
-    # home-manager.url = "github:nix-community/home-manager";
-    # home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # Linux Inputs
     # nixos-hardware.url = "github:NixOS/nixos-hardware/master";
@@ -26,7 +27,7 @@
 
       # Helper function to generate nixpkgs instances for each system
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
-      
+
       # Custom pakages usable across systems
       # pkgs = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlays.default ]; });
 
@@ -50,11 +51,20 @@
           # Import the main configuration for the mbp host
           ./hosts/mbp/default.nix
 
-          # Include Home Manager module if you use it for user config
-          # home-manager.darwinModules.home-manager {
-          #   # Configuration options for home-manager itself
-          #   # homeManagerArgs = { ... };
-          # }
+          # Home Manager
+          inputs.home-manager.darwinModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupFileExtension = "bak";
+
+              users.dlond = import ./home/users/dlond/default.nix;
+            };
+
+            # Optionally pass extra arguments to home.nix if neeeded
+            # home-manager.extraSpecialArgs = { inherit inputs; };
+          }
         ];
       };
 

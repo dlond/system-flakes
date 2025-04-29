@@ -31,39 +31,56 @@
     go
     rustup
     nodejs
+    nixpkgs-fmt
   ];
+
+  xdg.configFile."omp/my_catppuccin.toml" = {
+    source = ../../files/omp/my_catppuccin.toml;
+  };
 
   # Enable Zsh management via Home Manager
   programs.zsh = {
     enable = true;
-	dotzshrc.source = ../../files/zshrc;
+
+    initContent = ''
+      # Initialize Oh My Posh
+      if command -v oh-my-posh > /dev/null; then
+        eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
+      fi
+    '';
+  };
+
+  home.file.".zshrc" = {
+    source = ../../files/zshrc;
   };
 
   # Enable and configure Oh My Posh
-  programs.oh-my-posh = {
-    enable = true;
-    # This automatically enables integration for shells enabled via HM (like Zsh above).
-    # It will ensure the correct 'oh-my-posh init zsh' command runs using the
-    # HM-managed package path.
+  # programs.oh-my-posh = {
+  #   enable = true;
+  #   theme = ../../files/omp/my_catppuccin.toml;
+  # };
 
-    # Theme
-    #theme = ../../files/omp/my_catppuccin.toml;
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
   };
 
-programs.fzf = {
-	enable = true;
-	enableZshIntegration = true;
-};
-  
-programs.zoxide = {
-	enable = true;
-	enableZshIntegration = true;
-};
-  
-programs.direnv = {
-	enable = true;
-	enableZshIntegration = true;
-	nix-direnv.enable = true;
-};
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.direnv = {
+    enable = true;
+    enableZshIntegration = true;
+    nix-direnv.enable = true;
+  };
+
+  xdg.configFile."nvim" = {
+    # Source points to the nvim config dir WITHIN your nix config repo
+    # Path is relative to this nxi file
+    source = ../../files/.config/nvim;
+    recursive = true;
+  };
   # Other configs
 }

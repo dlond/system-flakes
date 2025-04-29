@@ -54,15 +54,15 @@ final_space = true
       revert_icon = ' '
       tag_icon = ' '
 
-  [[blocks.segments]]
-    style = 'plain'
-    template = '  {{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }} '
-    foreground = 'p:lavender'
-    type = 'python'
-
-    [blocks.segments.properties]
-      display_mode = 'environment'
-      fetch_virtual_env = true
+  # [[blocks.segments]]
+  #   style = 'plain'
+  #   template = '  {{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }} '
+  #   foreground = 'p:lavender'
+  #   type = 'python'
+  #
+  #   [blocks.segments.properties]
+  #     display_mode = 'environment'
+  #     fetch_virtual_env = true
 
 [[blocks]]
   type = 'rprompt'

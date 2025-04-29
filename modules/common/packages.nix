@@ -9,33 +9,13 @@
     # CONSIDER: Many of these are user tools and might be better managed
     #           via Home Manager (home.packages) for better separation.
     environment.systemPackages = with pkgs; [
-      # CLI Tools
-      git
-      gh
-      neovim
-      tmux
-      screen
-      stow
-      fzf
-      zoxide
-      bat
-      ripgrep
-      fd
+      # Basic Utilities
+      curl
       wget
       tree
-      oh-my-posh
 
-      # Development Languages/Tools
-      go
-      rustup
-      nodejs
-
-      # Security/Privacy
-      gnupg
+      # Services / Daemons / GUI Apps
       tor
-
-      # GUI apps (Installed via Nixpkgs - could be in a separate darwin/gui-apps.nix)
-      # Or potentially managed via homebrew casks if prefered
       raycast
       whatsapp-for-mac
       ollama

@@ -35,10 +35,16 @@ return {
       -- You can use 'stop_after_first' to run the first available formatter from the list
       -- javascript = { "prettierd", "prettier", stop_after_first = true },
       tex = { 'latexindent', 'tex-fmt' },
+      nix = { 'nixpkgs-fmt' },
     },
     formatters = {
       black = {
         prepend_args = { '--fast' },
+      },
+      ['nixpkgs-fmt'] = {
+        command = 'nixpkgs-fmt',
+        args = { '$FILENAME' },
+        stdin = true,
       },
     },
   },

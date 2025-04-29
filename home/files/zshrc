@@ -98,9 +98,6 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 setopt globdots
 
 # Shell integrations
-#eval "$(fzf --zsh)"
-#eval "$(zoxide init --cmd cd zsh)"
-#eval "$(direnv hook zsh)"
 export DIRENV_LOG_FORMAT=""
 
 # Aliases
@@ -112,3 +109,15 @@ alias vim='nvim'
 alias sf='fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'
 export EDITOR=nvim
 
+# Initialize Oh My Posh
+# Check if the command exists before trying to run it
+if command -v oh-my-posh > /dev/null; then
+  # Use the theme file managed by Home Manager via xdg.configFile
+  eval "$(oh-my-posh init zsh --config "${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml")"
+fi
+# # Initialize Oh My Posh
+# # Check if the command exists before trying to run it
+# if command -v oh-my-posh >/dev/null; then
+# 	# Use the theme file managed by Home Manager via xdg.configFile
+# 	eval "$(oh-my-posh init zsh --config '${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml')"
+# fi

@@ -1,4 +1,4 @@
-{ pkgs, config, lib, system, ... }:
+{ pkgs, config, lib, system, inputs, ... }:
 
 {
   imports = [
@@ -35,110 +35,8 @@
     nixpkgs-fmt
   ];
 
-  # Enable and configure Oh My Posh
-  xdg.configFile."omp/my_catppuccin.toml" = {
-    source = ../../files/omp/my_catppuccin.toml;
-  };
-
-  programs.oh-my-posh = {
-    enable = true;
-  };
-
-  # Enable Zsh management via Home Manager
-  programs.zsh = {
-    enable = true;
-
-    shellAliases = {
-      tree = "tree -C";
-      cat = "bat";
-      ls = "ls -G";
-      ll = "ls -lah";
-      vim = "nvim";
-      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
-    };
-
-    history = {
-      size = 5000;
-      save = 5000;
-      path = "$HOME/.zsh_history";
-      extended = true;
-      share = true;
-      ignoreSpace = true;
-      ignoreAllDups = true;
-      saveNoDups = true;
-      findNoDups = true;
-    };
-
-    sessionVariables = {
-      EDITOR = "nvim";
-      DIRENV_LOG_FORMAT = "";
-    };
-
-    syntaxHighlighting.enable = true;
-    autosuggestion.enable = true;
-    completionInit = "autoload -U compinit && compinit -u";
-
-    initContent = ''
-
-      bindkey -e
-      bindkey '^y' autosuggest-accept
-      bindkey '^p' history-search-backward
-      bindkey '^n' history-search-forward
-
-      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-      zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-      zstyle ':completion:*' menu no
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
-      setopt globdots
-
-      ZINIT_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
-      if [ ! -d "$ZINIT_HOME" ]; then
-        mkdir -p "$(dirname $ZINIT_HOME)"
-        git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME" || {
-          echo "Error: Failed to clone zinit." >&2
-        }
-      fi
-      if [ -f "$ZINIT_HOME/zinit.zsh" ]; then
-        source "''${ZINIT_HOME}/zinit.zsh"
-        zinit light Aloxaf/fzf-tab
-        zinit snippet OMZP::git
-        zinit cdreplay -q
-      else
-        echo "Error: zinit.zsh not found." >&2
-      fi
-
-      # Initialize Oh My Posh like this for now
-      if command -v oh-my-posh > /dev/null; then
-        eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
-      fi
-    '';
-  };
-
-  # home.file.".zshrc" = {
-  #   source = ../../files/zshrc;
-  # };
-
-  programs.fzf = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
-  programs.zoxide = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
-  programs.direnv = {
-    enable = true;
-    enableZshIntegration = true;
-    nix-direnv.enable = true;
-  };
-
   xdg.configFile."nvim" = {
-    # Source points to the nvim config dir WITHIN your nix config repo
-    # Path is relative to this nix file
-    source = ../../files/.config/nvim;
+    source = inputs.nvim-config;
     recursive = true;
   };
 
@@ -233,5 +131,82 @@
       set -g @catppuccin_status_right_separator "█"
       set -g @catppuccin_directory_text "#{pane_current_path}"
     '';
+  };
+
+  programs.zsh = {
+    enable = true;
+
+    shellAliases = {
+      tree = "tree -C";
+      cat = "bat";
+      ls = "ls -G";
+      ll = "ls -lah";
+      vim = "nvim";
+      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
+    };
+
+    history = {
+      size = 5000;
+      save = 5000;
+      path = "$HOME/.zsh_history";
+      extended = true;
+      share = true;
+      ignoreSpace = true;
+      ignoreAllDups = true;
+      saveNoDups = true;
+      findNoDups = true;
+    };
+
+    sessionVariables = {
+      EDITOR = "nvim";
+      DIRENV_LOG_FORMAT = "";
+    };
+
+    syntaxHighlighting.enable = true;
+    autosuggestion.enable = true;
+    completionInit = "autoload -U compinit && compinit -u";
+
+    initContent = ''
+      setopt globdots
+
+      bindkey -e
+      bindkey '^y' autosuggest-accept
+      bindkey '^p' history-search-backward
+      bindkey '^n' history-search-forward
+
+      if [[ -n "$LS_COLORS" ]]; then
+        zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+      fi
+      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+      zstyle ':completion:*' menu no
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+
+      ZINIT_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+      if [ ! -d "$ZINIT_HOME" ]; then
+        mkdir -p "$(dirname $ZINIT_HOME)"
+        git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME" || {
+          echo "Error: Failed to clone zinit." >&2
+        }
+      fi
+      if [ -f "$ZINIT_HOME/zinit.zsh" ]; then
+        source "''${ZINIT_HOME}/zinit.zsh"
+        zinit light Aloxaf/fzf-tab
+        zinit snippet OMZP::git
+        zinit cdreplay -q
+      else
+        echo "Error: zinit.zsh not found." >&2
+      fi
+
+      # Initialize Oh My Posh like this for now
+      if command -v oh-my-posh > /dev/null; then
+        eval "$(oh-my-posh init zsh --config '${config.xdg.configHome}/omp/my_catppuccin.toml')"
+      fi
+    '';
+  };
+
+  # Enable and configure Oh My Posh
+  xdg.configFile."omp/my_catppuccin.toml" = {
+    source = ../../files/omp/my_catppuccin.toml;
   };
 }

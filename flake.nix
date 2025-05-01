@@ -15,11 +15,17 @@
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
     mac-app-util.url = "github:hraban/mac-app-util";
 
+    # neovim config
+    nvim-config = {
+      url = "github:dlond/nvim";
+      flake = false;
+    };
+
     # Linux Inputs
     # nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = inputs@{ self, nixpkgs, nix-darwin, nix-homebrew, mac-app-util, ... }:
+  outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config ... }:
     let
       # Define supported systems for packages, checks, etc.
       # Add "aarch64-linux", "x86_64-linux" etc if needed
@@ -58,6 +64,10 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               backupFileExtension = "bak";
+
+              # Pass inputs down to Home Manager modules if needed
+              # This ensures home/users/dlond/default.nix receives 'inputs'
+              extraSpecialArgs = { inherit inputs; };
 
               users.dlond = import ./home/users/dlond/default.nix;
             };

@@ -25,7 +25,7 @@
     # nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config ... }:
+  outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config, ... }:
     let
       # Define supported systems for packages, checks, etc.
       # Add "aarch64-linux", "x86_64-linux" etc if needed

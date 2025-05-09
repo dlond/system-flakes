@@ -19,7 +19,7 @@
     gh
     neovim
     tmux
-    screen
+    mosh
     fzf
     zoxide
     bat
@@ -27,6 +27,8 @@
     fd
     oh-my-posh
     gnupg
+    tree
+    ruff
 
     # Development Languages/Tools (User/Nvim Deps)
     go
@@ -143,6 +145,7 @@
       ll = "ls -lah";
       vim = "nvim";
       sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
+      bb = "pushd ~/system-flakes/ && darwin-rebuild switch --flake .#mbp && popd";
     };
 
     history = {

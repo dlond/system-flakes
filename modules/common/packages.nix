@@ -12,7 +12,6 @@
       # Basic Utilities
       curl
       wget
-      tree
 
       # Services / Daemons / GUI Apps
       tor

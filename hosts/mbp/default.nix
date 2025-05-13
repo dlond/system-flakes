@@ -12,7 +12,7 @@
 
     # Add the external modules here:
     inputs.nix-homebrew.darwinModules.nix-homebrew
-    inputs.mac-app-util.darwinModules.default
+    # inputs.mac-app-util.darwinModules.default
 
     # Add other custom modules as needed, e.g.:
     # ../../modules/darwin/gui-apps.nix # If you separate GUI apps
@@ -36,4 +36,8 @@
   };
 
   # Any other 'mbp' specific overrides or configurations go here
+  environment.etc."direnv/direnv.toml".text = ''
+    [global]
+    hide_env_diff = true
+  '';
 }

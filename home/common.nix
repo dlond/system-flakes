@@ -1,7 +1,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  # This file is for configuration options common to 'dlond'
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
@@ -16,6 +15,7 @@
     enable = true;
     enableZshIntegration = true;
     nix-direnv.enable = true;
+    config.global.hide_env_diff = true;
   };
 
   programs.bat = {
@@ -28,5 +28,16 @@
   xdg.configFile."bat/themes" = {
     source = ./files/bat/themes;
     recursive = true;
+  };
+
+  xdg.configFile."direnv/direnv.toml" = {
+    text = ''
+      # This is the content for ~/.config/direnv/direnv.toml
+      [global]
+      warn_timeout = 0
+      hide_env_diff = true
+      # Add any other global direnv settings here if needed
+    '';
+    # source = ./files/direnv/direnv.toml; if it gets big
   };
 }

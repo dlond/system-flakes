@@ -27,15 +27,13 @@
 
   outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config, ... }:
     let
-      # Define supported systems for packages, checks, etc.
       # Add "aarch64-linux", "x86_64-linux" etc if needed
       supportedSystems = [ "aarch64-darwin" "x86_64-darwin" ];
 
       # Helper function to generate nixpkgs instances for each system
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
 
-      # Custom pakages usable across systems
-      # pkgs = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlays.default ]; });
+      importModules = import ./lib/import-modules.nix;
 
     in
     {

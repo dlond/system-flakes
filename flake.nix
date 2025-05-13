@@ -33,7 +33,10 @@
       # Helper function to generate nixpkgs instances for each system
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
 
-      importModules = import ./lib/import-modules.nix;
+      lib = nixpkgs.lib // {
+        importModules = import ./lib/import-modules.nix { lib = nixpkgs.lib; };
+        hm = inputs.home-manager.lib.hm;
+      };
 
     in
     {
@@ -58,7 +61,9 @@
         in {
           inherit system;
 
-          specialArgs = { inherit inputs; };
+          specialArgs = {
+            inherit inputs lib;
+          };
 
           modules = [
             ./hosts/mbp/default.nix
@@ -69,7 +74,7 @@
               home-manager.backupFileExtension = "bak";
 
               home-manager.extraSpecialArgs = {
-                inherit pkgs inputs;
+                inherit pkgs inputs lib;
               };
 
               home-manager.users.dlond = import ./home/users/dlond;

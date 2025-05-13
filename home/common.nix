@@ -1,6 +1,8 @@
 { inputs, config, pkgs, lib, ... }:
 
 {
+  imports = [ ../modules/home/base.nix ];
+
   # Home Manager state version
   home.stateVersion = "24.05";
 

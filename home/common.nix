@@ -180,7 +180,6 @@
     # Environment variables
     sessionVariables = {
       EDITOR = "nvim";
-      DIRENV_LOG_FORMAT = "";
     };
 
     # Enable native HM plugins (Correct attribute names)
@@ -227,24 +226,12 @@
       else
         echo "Error: zinit.zsh not found." >&2
       fi
-
-      # Oh My Posh Initialization (Manual Method)
-      if command -v oh-my-posh > /dev/null; then
-        # Use config.xdg.configHome for robustness
-        eval "$(oh-my-posh init zsh --config "''${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml")"
-      fi
     ''; # End of initContent
   }; # End of programs.zsh
 
-  # --- Oh My Posh Theme Linking ---
-  # Needed for the manual init in programs.zsh.initContent
-  xdg.configFile."omp/my_catppuccin.toml" = {
-    source = ../../files/omp/my_catppuccin.toml; # Adjust path if needed
-  };
 
   # Note: Assumes fzf, zoxide, bat configs are in common.nix
   # If not, their programs.* blocks would need to be here or imported.
-
 
   programs.fzf = {
     enable = true;
@@ -256,16 +243,16 @@
     enableZshIntegration = true;
   };
 
-  programs.bat = {
-    enable = true;
-    config = {
-      theme = "Catppuccin Mocha";
-    };
-  };
-
-  xdg.configFile."bat/themes" = {
-    source = ./files/bat/themes;
-    recursive = true;
-  };
+  # programs.bat = {
+  #   enable = true;
+  #   config = {
+  #     theme = "Catppuccin Mocha";
+  #   };
+  # };
+  #
+  # xdg.configFile."bat/themes" = {
+  #   source = ./files/bat/themes;
+  #   recursive = true;
+  # };
 
 }

@@ -4,11 +4,11 @@
   # Import reusable modules
   imports = [
     ../../modules/common/global.nix
-    ../../modules/darwin/base.nix
     ../../modules/common/packages.nix
+    ../../modules/common/programs.nix
+    ../../modules/darwin/base.nix
     ../../modules/darwin/fonts.nix
     ../../modules/darwin/homebrew.nix
-    ../../modules/common/programs.nix
 
     # Add the external modules here:
     inputs.nix-homebrew.darwinModules.nix-homebrew
@@ -18,7 +18,7 @@
     # ../../modules/darwin/gui-apps.nix # If you separate GUI apps
   ];
 
-  # Specific settings for this host 'mpb'
+  # Specific settings for this host 'mbp'
   networking.hostName = "mbp";
 
   # The platform the configuration will be used on.

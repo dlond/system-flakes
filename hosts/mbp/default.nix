@@ -5,7 +5,6 @@
   imports = [
     ../../modules/common/global.nix
     ../../modules/common/packages.nix
-    ../../modules/common/programs.nix
     ../../modules/darwin/base.nix
     ../../modules/darwin/fonts.nix
     ../../modules/darwin/homebrew.nix

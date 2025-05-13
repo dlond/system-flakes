@@ -48,33 +48,35 @@
       # };
 
       # Darwin configurations
-      darwinConfigurations."mbp" = nix-darwin.lib.darwinSystem {
-        system = "aarch64-darwin";
-        specialArgs = { inherit inputs; }; # Pass down inputs
-        modules = [
-          # Import the main configuration for the mbp host
-          ./hosts/mbp/default.nix
+      darwinConfigurations.mbp = nix-darwin.lib.darwinSystem (
+        let
+          system = "aarch64-darwin";
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        in {
+          inherit system;
 
-          # Home Manager
-          inputs.home-manager.darwinModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              backupFileExtension = "bak";
+          specialArgs = { inherit inputs; };
 
-              # Pass inputs down to Home Manager modules if needed
-              # This ensures home/users/dlond/default.nix receives 'inputs'
-              extraSpecialArgs = { inherit inputs; };
+          modules = [
+            ./hosts/mbp/default.nix
+            inputs.home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.backupFileExtension = "bak";
 
-              users.dlond = import ./home/users/dlond/default.nix;
-            };
+              home-manager.extraSpecialArgs = {
+                inherit pkgs inputs;
+              };
 
-            # Optionally pass extra arguments to home.nix if neeeded
-            # home-manager.extraSpecialArgs = { inherit inputs; };
-          }
-        ];
-      };
+              home-manager.users.dlond = import ./home/users/dlond;
+            }
+          ];
+        }
+      );
 
       # Home Manager configurations (if managing separately)
       # homeConfigurations."your-username@mbp" = home-manager.lib.homeManagerConfiguration {

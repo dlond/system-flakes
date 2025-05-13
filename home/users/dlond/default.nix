@@ -1,5 +1,4 @@
-# Make sure 'inputs' is available in the function arguments
-{ pkgs, config, lib, system, inputs, ... }:
+{ inputs, pkgs, ... }:
 
 let
   isDarwin = pkgs.stdenv.isDarwin;
@@ -10,7 +9,6 @@ in {
     [ ../../common.nix ]
     ++ (if isDarwin then [ ./mac.nix ] else [])
     ++ (if isLinux then [ ./linux.nix ] else []);
-  ];
 
 } # End of HM configuration block
 

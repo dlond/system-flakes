@@ -1,4 +1,3 @@
-# Core macOS specific settings
 { config, lib, pkgs, inputs, ... }: # Access inputs via specialArgs
 
 {

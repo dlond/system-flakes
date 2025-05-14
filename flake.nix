@@ -36,7 +36,6 @@
 
         modules = [
           ./hosts/mbp/default.nix
-          ./modules/darwin/base.nix
 
           # Home Manager module
           home-manager.darwinModules.home-manager

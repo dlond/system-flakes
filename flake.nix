@@ -65,7 +65,7 @@
                 useUserPackages = false;
                 backupFileExtension = "bak";
 
-                users.dlond = import ./home/users/dlond;
+                users.dlond = import ./home/users/dlond { inherit pkgs; };
               };
             }
           ];

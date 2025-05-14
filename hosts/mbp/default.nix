@@ -16,6 +16,11 @@
     # ../../modules/darwin/gui-apps.nix # If you separate GUI apps
   ];
 
+  userAttrs.dlond = {
+    name = "dlond";
+    home = "/Users/dlond";
+  };
+
   # Specific settings for this host 'mbp'
   networking.hostName = "mbp";
 
@@ -26,7 +31,10 @@
   # system.configurationRevision comes from the base module now.
 
   # User account settings (can also be in a common/users.nix module)
-  # users.users.dlond config is managed by Home Manager
+  users.users.dlond = {
+    inherit (config.userAttrs.dlond) name home;
+    shell = "${pkgs.zsh}/bin/zsh";
+  };
 
   # Any other 'mbp' specific overrides or configurations go here
   environment.etc."direnv/direnv.toml".text = ''

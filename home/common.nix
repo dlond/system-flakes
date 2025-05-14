@@ -41,7 +41,7 @@
   # --- Neovim Configuration ---
   # Links the config from the separate flake input repo
   xdg.configFile."nvim" = {
-    source = nvim-config; # Points to github:dlond/nvim input
+    source = inputs.nvim-config; # Points to github:dlond/nvim input
     recursive = true;
   };
 

@@ -54,16 +54,13 @@
                 useGlobalPkgs = true;
                 useUserPackages = false;
                 backupFileExtension = "bak";
-
                 users.dlond = ./home/users/dlond;
               };
             }
           ];
 
           specialArgs = {
-            inherit inputs;
-            nvim-config = inputs.nvim-config;
-            lib = lib;
+            inherit inputs lib;
           };
         };
       };

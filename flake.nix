@@ -54,7 +54,7 @@
                 useGlobalPkgs = true;
                 useUserPackages = false;
                 backupFileExtension = "bak";
-                users.dlond = ./home/users/dlond;
+                users.dlond = import ./home/users/dlond;
               };
             }
           ];

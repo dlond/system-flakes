@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
   imports = [ ../modules/home/base.nix ];
@@ -41,7 +41,7 @@
   # --- Neovim Configuration ---
   # Links the config from the separate flake input repo
   xdg.configFile."nvim" = {
-    source = inputs.nvim-config; # Points to github:dlond/nvim input
+    source = nvim-config; # Points to github:dlond/nvim input
     recursive = true;
   };
 

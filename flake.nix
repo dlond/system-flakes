@@ -27,10 +27,9 @@
 
   outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config, ... }:
     let
-      inherit (inputs.home-manager.lib) hm;
-      myLib = nixpkgs.lib // {
+      lib = nixpkgs.lib // {
         importModules = import ./lib/import-modules.nix { lib = nixpkgs.lib; };
-        hm = hm;
+        hm = inputs.home-manager.lib.hm;
       };
     in {
       # Overlays can be defined in overlays/ directory
@@ -44,17 +43,8 @@
       # };
 
       # Darwin configurations
-      darwinConfigurations."mbp" = 
-        let
+      darwinConfigurations."mbp" = nix-darwin.lib.darwinSystem {
           system = "aarch64-darwin";
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-          };
-        in
-        nix-darwin.lib.darwinSystem {
-          inherit system pkgs;
-          lib = myLib;
 
           modules = [
             ./hosts/mbp/default.nix
@@ -65,14 +55,15 @@
                 useUserPackages = false;
                 backupFileExtension = "bak";
 
-                users.dlond = import ./home/users/dlond { inherit pkgs; };
+                users.dlond = ./home/users/dlond;
               };
             }
           ];
 
           specialArgs = {
             inherit inputs;
-            lib = nixpkgs.lib;
+            nvim-config = inputs.nvim-config;
+            lib = lib;
           };
         };
       };

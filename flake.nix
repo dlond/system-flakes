@@ -9,26 +9,34 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nix-darwin, home-manager, ... }:
+  outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, ... }:
     let
       system = "aarch64-darwin";
+
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
+
+      importModules = import ./lib/import-modules.nix {
+        inherit pkgs inputs;
+        lib = nixpkgs.lib;
+      };
+
+      lib = nixpkgs.lib // {
+        hm = home-manager.lib.hm;
+      };
+
     in {
       darwinConfigurations.mbp = nix-darwin.lib.darwinSystem {
         inherit system;
+        specialArgs = {
+          inherit inputs pkgs lib importModules;
+        };
 
         modules = [
-          # This defines the user account — needed for `home-manager.users.dlond`
-          {
-            users.users.dlond = {
-              name = "dlond";
-              home = "/Users/dlond";
-              shell = pkgs.zsh;
-            };
-          }
+          ./hosts/mbp/default.nix
+          ./modules/darwin/base.nix
 
           # Home Manager module
           home-manager.darwinModules.home-manager
@@ -41,10 +49,6 @@
             home-manager.users.dlond = import ./home/users/dlond;
           }
         ];
-
-        specialArgs = {
-          inherit pkgs;
-        };
       };
     };
 }

@@ -1,8 +1,9 @@
-{ lib }:
-
-dir:
-  builtins.attrValues (
-    builtins.mapAttrs (_: path: import (dir + "/${path}"))
-      (lib.filterAttrs (_: type: type == "regular") (builtins.readDir dir))
-  )
+{ lib }: dir:
+  map (f: dir + (/ + f)) (
+    builtins.attrNames (
+      lib.filterAttrs
+        (name: type: type == regular && lib.hasSuffix .nix name)
+        (builtins.readDir dir)
+    )
+  );
 

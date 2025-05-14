@@ -1,5 +1,5 @@
 { lib, ... }:
 
 {
-    imports = lib.importModules ./programs;
+    imports = import ./lib/import-modules.nix { inherit lib; } ./programs;
 }

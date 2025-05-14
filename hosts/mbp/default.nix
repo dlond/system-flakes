@@ -4,7 +4,6 @@
   # Import reusable modules
   imports = [
     ../../modules/common/global.nix
-    ../../modules/common/packages.nix
     ../../modules/darwin/base.nix
     ../../modules/darwin/fonts.nix
     ../../modules/darwin/homebrew.nix
@@ -27,12 +26,7 @@
   # system.configurationRevision comes from the base module now.
 
   # User account settings (can also be in a common/users.nix module)
-  users.users.dlond = {
-    name = "dlond";
-    home = "/Users/dlond/";
-    shell = "${pkgs.zsh}/bin/zsh";
-    # Add groups, shell, etc. if needed
-  };
+  # users.users.dlond config is managed by Home Manager
 
   # Any other 'mbp' specific overrides or configurations go here
   environment.etc."direnv/direnv.toml".text = ''

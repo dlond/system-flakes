@@ -1,11 +1,11 @@
 { config, lib, pkgs, inputs, ... }:
 
-let
-  # Get the primary username configured for the host
-  # This assumes you define users.users.username in your host config
-  # or a common users module. Fallback needed if not defined.
-  primaryUser = lib.mkDefault (builtins.head (builtins.attrNames config.users.users));
-in
+# let
+#   # Get the primary username configured for the host
+#   # This assumes you define users.users.username in your host config
+#   # or a common users module. Fallback needed if not defined.
+#   primaryUser = lib.mkDefault (builtins.head (builtins.attrNames config.users.users));
+# in
 {
   options = {};
 
@@ -15,7 +15,7 @@ in
     nix-homebrew = {
       enable = true;
       enableRosetta = true;
-      user = primaryUser;
+      # user = primaryUser;
     };
 
     # Configure Homebrew itself via nix-darwin's homebrew options

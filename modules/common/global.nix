@@ -1,4 +1,3 @@
-# Basic settings applicable to all systems (if possible)
 { config, lib, pkgs, ... }:
 
 {

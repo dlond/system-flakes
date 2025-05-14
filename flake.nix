@@ -27,23 +27,16 @@
 
   outputs = inputs@{ self, nixpkgs, nix-darwin, home-manager, nvim-config, ... }:
     let
-      # Add "aarch64-linux", "x86_64-linux" etc if needed
-      supportedSystems = [ "aarch64-darwin" "x86_64-darwin" ];
-
-      # Helper function to generate nixpkgs instances for each system
-      forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
-
-      lib = nixpkgs.lib // {
+      inherit (inputs.home-manager.lib) hm;
+      myLib = nixpkgs.lib // {
         importModules = import ./lib/import-modules.nix { lib = nixpkgs.lib; };
-        hm = inputs.home-manager.lib.hm;
+        hm = hm;
       };
-
-    in
-    {
+    in {
       # Overlays can be defined in overlays/ directory
       # overlays.default = import ./overlays;
 
-      # NixOS configurations (add later for RPi, Jetson, Cloud VM)
+      # NixOS configurations e.g.
       # nixosConfigurations.rpi = nixpkgs.lib.nixosSystem {
       #   system = "aarch64-linux";
       #   specialArgs = { inherit inputs; } # Pass down inputs
@@ -51,37 +44,38 @@
       # };
 
       # Darwin configurations
-      darwinConfigurations.mbp = nix-darwin.lib.darwinSystem (
+      darwinConfigurations."mbp" = 
         let
           system = "aarch64-darwin";
           pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
           };
-        in {
-          inherit system;
-
-          specialArgs = {
-            inherit inputs lib;
-          };
+        in
+        nix-darwin.lib.darwinSystem {
+          inherit system pkgs;
+          lib = myLib;
 
           modules = [
             ./hosts/mbp/default.nix
             inputs.home-manager.darwinModules.home-manager
             {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.backupFileExtension = "bak";
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = false;
+                backupFileExtension = "bak";
 
-              home-manager.extraSpecialArgs = {
-                inherit pkgs inputs lib;
+                users.dlond = import ./home/users/dlond;
               };
-
-              home-manager.users.dlond = import ./home/users/dlond;
             }
           ];
-        }
-      );
+
+          specialArgs = {
+            inherit inputs;
+            lib = nixpkgs.lib;
+          };
+        };
+      };
 
       # Home Manager configurations (if managing separately)
       # homeConfigurations."your-username@mbp" = home-manager.lib.homeManagerConfiguration {
@@ -89,6 +83,5 @@
       #   extraSpecialArgs = { inherit inputs; };
       #   modules = [ ./home/users/dlond/default.nix ];
       # };
-    };
 }
 

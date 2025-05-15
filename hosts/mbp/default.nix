@@ -1,10 +1,14 @@
-{ config, pkgs, lib, ... }:
-
+{ pkgs, ... }:
 {
-  users.users.dlond = {
-    name = "dlond";
-    home = "/Users/dlond";
-    shell = pkgs.zsh;
+  system.defaults = {
+    dock.authide = true;
   };
+
+  networking.hostName = "mbp";
+  users.users.dlond = {
+    home = "/Users/dlond";
+  };
+
+  services.nix-daemon.enable = true;
 }
 

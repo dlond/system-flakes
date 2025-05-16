@@ -1,34 +1,66 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   home.packages = with pkgs; [
-    git
-    gh
-    neovim
-    tmux
-    mosh
-    fzf
-    zoxide
+    # Core utilities
     bat
-    ripgrep
-    fd
-    oh-my-posh
+    curl
+    gnugrep
     gnupg
+    gnused
     tree
-    ruff
+    unzip
+    wget
 
+    # Dev tools
+    direnv
+    fd
+    fzf
+    gh
+    git
+    htop
+    mosh
+    neovim
+    ripgrep
+    tmux
+    zoxide
+
+    # Prompt
+    oh-my-posh
+
+    # Formatters / linters
+    alejandra
+    ruff
+    stylua
+
+    # LSPs
+    clangd
+    lua-language-server
+    nil
+    pywrite
+    
+    # Debuggers
+    delve
+
+    # Misc
     go
     rustup
     nodejs
     nixpkgs-fmt
   ];
 
+  home.file.".config/nvim/init.lua".source = inputs.nvim-config + "/init.lua";
+  home.file.".config/nvim/lua".source = inputs.nvim-config + "/lua";
+
   programs = {
-    zsh.enable = true;
     direnv = {
       enable = true;
       nix-direnv.enable = true;
     };
   };
 
-  home.stateVersio = "24.05";
+  imports = [
+  ];
+    
+
+  home.stateVersion = "24.05";
 }

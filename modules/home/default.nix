@@ -1,7 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
-    ./common.nix
+    (import ./common.nix { inherit pkgs inputs; })
   ];
 
   home.username = "dlond";

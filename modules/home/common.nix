@@ -33,10 +33,10 @@
     stylua
 
     # LSPs
-    clangd
+    # clangd
     lua-language-server
     nil
-    pywrite
+    # pywrite
     
     # Debuggers
     delve

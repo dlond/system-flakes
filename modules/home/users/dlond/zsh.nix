@@ -1,82 +1,72 @@
 { config, pkgs, ... }:
-{
-programs.zsh = {
-    enable = true;
 
-    # Common aliases (OS-specific 'clip' is in mac.nix/linux.nix)
+let
+  isDarwin = pkgs.stdenv.isDarwin;
+in {
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+
+    syntaxHighlighting.enable = true;
+    autosuggestion.enable = true;
+
+    initExtra = ''
+      # fzf-tab (not natively supported yet)
+      source ${pkgs.fetchFromGitHub {
+        owner = "Aloxaf";
+        repo = "fzf-tab";
+        rev = "master";
+        sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      }}/fzf-tab.plugin.zsh
+
+      # keybindings
+      bindkey -e
+      bindkey '^y' autosuggest-accept
+      bindkey '^p' history-search-backward
+      bindkey '^n' history-search-forward
+
+      # history
+      HISTSIZE=5000
+      HISTFILE=$HOME/.zsh_history
+      SAVEHIST=$HISTSIZE
+      HISTDUP=erase
+      setopt appendhistory sharehistory
+      setopt hist_ignore_space hist_ignore_all_dups hist_save_no_dups hist_ignore_dups hist_find_no_dups
+
+      # completion styles
+      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+      zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS}
+      zstyle ':completion:*' menu no
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+      setopt globdots
+
+      # direnv logs
+      export DIRENV_LOG_FORMAT=""
+
+      # oh-my-posh (if present)
+      if command -v oh-my-posh >/dev/null; then
+        eval "$(oh-my-posh init zsh --config "${XDG_CONFIG_HOME:-$HOME/.config}/omp/my_catppuccin.toml")"
+      fi
+    '';
+
     shellAliases = {
-      tree = "tree -C"; # Kept alias, tree command comes from this package
+      tree = "tree -C";
       cat = "bat";
       ls = "ls -G";
       ll = "ls -lah";
       vim = "nvim";
       sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
-      bb = "pushd ~/system-flakes && darwin-rebuild switch --flake .#mbp && popd";
+      clip = if isDarwin then "pbcopy" else "xclip -selection clipboard";
     };
+  };
 
-    history = {
-      size = 5000;
-      save = 5000;
-      path = "$HOME/.zsh_history";
-      extended = true;
-      share = true;
-      ignoreSpace = true;
-      ignoreAllDups = true;
-      saveNoDups = true;
-      findNoDups = true;
-    };
-
-    # Environment variables
-    sessionVariables = {
-      EDITOR = "nvim";
-      DIRENV_LOG_FORMAT = "";
-    };
-
-    # Enable native HM plugins (Correct attribute names)
-    syntaxHighlighting.enable = true;
-    autosuggestion.enable = true;
-
-    # Initialize completions
-    completionInit = "autoload -U compinit && compinit -u";
-
-    # initContent for zinit, keybindings, zstyle, options, OMP
-    # Use initContent as requested by user
-    initContent = ''
-      # Shell Options
-      setopt globdots
-
-      # Keybindings
-      bindkey -e
-      bindkey '^y' autosuggest-accept # For consistency
-      bindkey '^p' history-search-backward
-      bindkey '^n' history-search-forward
-
-      # Completion Styling
-      if [[ -n "$LS_COLORS" ]]; then
-        zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-      fi
-      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-      zstyle ':completion:*' menu no
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
-
-      # Zinit Plugin Manager Setup & Plugin Loading
-      ZINIT_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
-      if [ ! -d "$ZINIT_HOME" ]; then
-        mkdir -p "$(dirname $ZINIT_HOME)"
-        git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME" || {
-          echo "Error: Failed to clone zinit." >&2
-        }
-      fi
-      if [ -f "$ZINIT_HOME/zinit.zsh" ]; then
-        source "''${ZINIT_HOME}/zinit.zsh"
-        zinit light Aloxaf/fzf-tab
-        zinit snippet OMZP::git
-        zinit cdreplay -q
-      else
-        echo "Error: zinit.zsh not found." >&2
-      fi
-    '';
+  home.sessionVariables = {
+    EDITOR = "nvim";
+    PATH = lib.mkForce (if isDarwin then
+      "$(brew --prefix llvm)/bin:$PATH"
+    else
+      "$HOME/bin:$PATH");
   };
 }
 

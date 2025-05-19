@@ -11,7 +11,7 @@
     # Optionally, add nix-darwin/home-manager as overlays for Mac, or nixosConfigurations for Linux
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, ... }:
+  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs:
     let
       system = "aarch64-darwin";  # or x86_64-darwin for Intel Macs
       username = "dlond";         # change to your username
@@ -22,13 +22,16 @@
         modules = [
           ./hosts/mbp/default.nix
         ];
+	
+	specialArgs = { inherit inputs; };
       };
+
       homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs { inherit system; };
         modules = [
           ./home/dlond.nix
         ];
-        extraSpecialArgs = { inherit username; };
+        extraSpecialArgs = { inherit inputs username; };
       };
     };
 }

@@ -1,8 +1,10 @@
-{ pkgs, inputs, ... }: {
+{ pkgs, inputs, sharedCliPkgs, ... }: {
   imports = [
-    ../../modules/common.nix
+    ../../modules/cli-tools.nix
     inputs.home-manager.darwinModules.home-manager
   ];
+
+  environment.systemPackages = sharedCliPkgs;
 
   users.users.dlond = {
     home = "/Users/dlond";

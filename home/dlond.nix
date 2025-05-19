@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
   home.username = "dlond";
   home.homeDirectory = "/Users/dlond";
   home.stateVersion = "24.05";
@@ -15,7 +15,8 @@
     signing = {
       key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
       format = "ssh";
-      # OS-specific 'signer' is set in mac.nix / linux.nix
+    } // lib.mkIf pkgs.stdenv.isDarwin {
+        signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
     };
 
     # Common aliases and extraConfig could be moved to common.nix

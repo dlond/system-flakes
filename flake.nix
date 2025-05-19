@@ -2,12 +2,18 @@
   description = "Minimal nix-darwin + Home Manager setup";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
-    darwin.url = "github:LnL7/nix-darwin";
-    home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    darwin = {
+      url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Optionally, add nix-darwin/home-manager as overlays for Mac, or nixosConfigurations for Linux
   };
 

@@ -1,4 +1,8 @@
-{ pkgs, lib, ... }: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   home.username = "dlond";
   home.homeDirectory = "/Users/dlond";
   home.stateVersion = "24.05";
@@ -16,14 +20,17 @@
     userName = "dlond";
     userEmail = "dlond@me.com";
 
-    signing = {
-      key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
-      format = "ssh";
-    } // lib.mkIf pkgs.stdenv.isDarwin {
+    signing =
+      {
+        key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
+        format = "ssh";
+      }
+      // lib.mkIf pkgs.stdenv.isDarwin {
         signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
-    } // lib.mkIf pkgs.stdenv.isLinux {
+      }
+      // lib.mkIf pkgs.stdenv.isLinux {
         signer = "";
-    };
+      };
 
     # Common aliases and extraConfig could be moved to common.nix
     aliases = {
@@ -45,4 +52,3 @@
 
   # You can add other programs here
 }
-

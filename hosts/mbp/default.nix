@@ -1,4 +1,9 @@
-{ pkgs, inputs, sharedCliPkgs, ... }: {
+{
+  pkgs,
+  inputs,
+  sharedCliPkgs,
+  ...
+}: {
   imports = [
     ../../modules/cli-tools.nix
     inputs.home-manager.darwinModules.home-manager
@@ -24,4 +29,3 @@
 
   system.stateVersion = 6;
 }
-

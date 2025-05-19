@@ -18,9 +18,7 @@
 
   home-manager.users.dlond = import ../../home/dlond.nix;
 
-  system = {
-    primaryUser = "dlond";
-    defaults = {
+  system.defaults = {
       dock = {
         autohide = false;
         show-recents = false;
@@ -32,7 +30,6 @@
 	FXPreferredViewStyle = "clmv";
         NewWindowTarget = "Home";
       };
-    };
   };
 
   security.pam.services.sudo_local.touchIdAuth = true;

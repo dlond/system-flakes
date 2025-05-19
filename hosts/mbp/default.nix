@@ -9,23 +9,38 @@
     inputs.home-manager.darwinModules.home-manager
   ];
 
-  environment.systemPackages = sharedCliPkgs;
+  environment.systemPackages = 
+    sharedCliPkgs ++ (with pkgs; [
+      raycast
+    ]);
+
+  nix.settings.experimental-features = "nix-command flakes";
+
+  home-manager.users.dlond = import ../../home/dlond.nix;
+
+  system = {
+    primaryUser = "dlond";
+    defaults = {
+      dock = {
+        autohide = false;
+        show-recents = false;
+      };
+      finder = {
+        AppleShowAllExtensions = true;
+        AppleShowAllFiles = true;
+	FXRemoveOldTrashItems = true;
+	FXPreferredViewStyle = "clmv";
+        NewWindowTarget = "Home";
+      };
+    };
+  };
+
+  security.pam.services.sudo_local.touchIdAuth = true;
 
   users.users.dlond = {
     home = "/Users/dlond";
     shell = pkgs.zsh;
   };
-
-  programs.zsh.enable = true;
-
-  # nix-darwin-managed global Nix Settings
-  nix.settings = {
-    build-users-group = "nixbld";
-    experimental-features = "nix-command flakes";
-    ssl-cert-file = "/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt";
-  };
-
-  home-manager.users.dlond = import ../../home/dlond.nix;
 
   system.stateVersion = 6;
 }

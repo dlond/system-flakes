@@ -11,7 +11,12 @@
     oh-my-posh
   ];
 
-  programs.zsh.enable = true;
+  targets.darwin.applications.enable = true;
+
+  programs.zsh = {
+    enable = true;
+  };
+
   programs.neovim.enable = true;
 
   programs.git = {

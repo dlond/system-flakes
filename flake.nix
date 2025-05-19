@@ -28,6 +28,10 @@
   in {
     darwinConfigurations.mbp = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
+      pkgs = import nixpkgs {
+        system = "aarch64-darwin";
+        config.allowUnfree = true;
+      };
       modules = [
         ./hosts/mbp/default.nix
       ];
@@ -36,7 +40,7 @@
     };
 
     homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
-      pkgs = import nixpkgs {system = "aarch64-darwin";};
+      pkgs = import nixpkgs {system = "aarch64-darwin"; };
       modules = [
         ./home/dlond.nix
       ];

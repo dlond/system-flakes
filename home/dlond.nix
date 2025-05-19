@@ -3,6 +3,10 @@
   home.homeDirectory = "/Users/dlond";
   home.stateVersion = "24.05";
 
+  home.packages = with pkgs; [
+    oh-my-posh
+  ];
+
   programs.zsh.enable = true;
   programs.neovim.enable = true;
 
@@ -17,6 +21,8 @@
       format = "ssh";
     } // lib.mkIf pkgs.stdenv.isDarwin {
         signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
+    } // lib.mkIf pkgs.stdenv.isLinux {
+        signer = "";
     };
 
     # Common aliases and extraConfig could be moved to common.nix

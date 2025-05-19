@@ -11,8 +11,6 @@
     oh-my-posh
   ];
 
-  targets.darwin.applications.enable = true;
-
   programs.zsh = {
     enable = true;
   };
@@ -31,7 +29,7 @@
         format = "ssh";
       }
       // lib.mkIf pkgs.stdenv.isDarwin {
-        signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
+        signer = "/Applications/Nix Apps/1Password.app/Contents/MacOS/op-ssh-sign";
       }
       // lib.mkIf pkgs.stdenv.isLinux {
         signer = "";

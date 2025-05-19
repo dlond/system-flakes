@@ -12,13 +12,18 @@
   environment.systemPackages = 
     sharedCliPkgs ++ (with pkgs; [
       raycast
+      # whatsapp-for-mac
+      _1password-gui
     ]);
 
   nix.settings.experimental-features = "nix-command flakes";
 
   home-manager.users.dlond = import ../../home/dlond.nix;
 
-  system.defaults = {
+  system = {
+    primaryUser = "dlond";
+    stateVersion = 6;
+    defaults = {
       dock = {
         autohide = false;
         show-recents = false;
@@ -30,6 +35,7 @@
 	FXPreferredViewStyle = "clmv";
         NewWindowTarget = "Home";
       };
+    };
   };
 
   security.pam.services.sudo_local.touchIdAuth = true;
@@ -39,5 +45,4 @@
     shell = pkgs.zsh;
   };
 
-  system.stateVersion = 6;
 }

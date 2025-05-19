@@ -1,6 +1,7 @@
 {pkgs, ...}: {
   _module.args.sharedCliPkgs = with pkgs;
     [
+      _1password-cli
       alejandra
       bat
       fd

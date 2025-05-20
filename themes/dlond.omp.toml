@@ -63,9 +63,6 @@ final_space = true
     style = "plain"
     foreground = "p:lavender"
     template = '{{ if .Env.MY_DIRSTACK_COUNT }}{{ if gt (int .Env.MY_DIRSTACK_COUNT) 0 }}📚{{ .Env.MY_DIRSTACK_COUNT }}{{ end }}{{ end }} '
-    # template = '{{ if gt (int .Output) 0 }}📚{{ .Output }}{{ end }} '
-    # shell = "zsh"
-    # command = "echo $#dirstack"
 
   [[blocks.segments]]
     style = 'plain'

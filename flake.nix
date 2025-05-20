@@ -14,6 +14,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+
+    nvim-config = {
+      url = "github:dlond/nvim";
+      flake = false;
+    };
+
     # Optionally, add nix-darwin/home-manager as overlays for Mac, or nixosConfigurations for Linux
   };
 
@@ -22,6 +29,7 @@
     nixpkgs,
     darwin,
     home-manager,
+    nvim-config,
     ...
   } @ inputs: let
     username = "dlond";
@@ -36,15 +44,15 @@
         ./hosts/mbp/default.nix
       ];
 
-      specialArgs = {inherit inputs;};
+      specialArgs = {inherit inputs nvim-config;};
     };
 
     homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
-      pkgs = import nixpkgs {system = "aarch64-darwin"; };
+      pkgs = import nixpkgs {system = "aarch64-darwin";};
       modules = [
         ./home/dlond.nix
       ];
-      extraSpecialArgs = {inherit inputs username;};
+      extraSpecialArgs = {inherit inputs username nvim-config;};
     };
 
     homeConfigurations."${username}@linux" = home-manager.lib.homeManagerConfiguration {
@@ -57,7 +65,7 @@
         ./home/dlond.nix
         ({sharedCliPkgs, ...}: {home.packages = sharedCliPkgs;})
       ];
-      extraSpecialArgs = {inherit inputs;};
+      extraSpecialArgs = {inherit inputs nvim-config;};
     };
   };
 }

@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   lib,
   nvim-config,
   ...
@@ -15,7 +16,8 @@
   programs.zsh = {
     enable = true;
     shellAliases = {
-      "nix-up" = "pushd ~/system-flakes && sudo darwin-rebuild switch --flake .#$(scutil --get LocalHostName) && popd";
+      nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
+      hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
       clip = "pbcopy";
       tree = "tree -C";
       cat = "bat";
@@ -81,11 +83,6 @@
   };
   home.file."/.poshthemes/dlond.omp.toml".source = ../themes/dlond.omp.toml;
 
-  programs.fzf = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
   programs.neovim = {
     enable = true;
     vimAlias = true;
@@ -113,6 +110,22 @@
     ".config/nvim/README.md" = {
       source = nvim-config + "/README.md";
     };
+  };
+
+  xdg.configFile."ghostty/config" = {
+    text = ''
+      font-family = "JetBrains Mono Nerd Font"
+      font-size = 13
+      theme = dlond.ghostty
+
+      working-directory = "${config.home.homeDirectory}"
+      window-inherit-working-directory = false
+
+      keybind = global:option+space=toggle_quick_terminal
+    '';
+  };
+  xdg.configFile."ghostty/themes/dlond.ghostty" = {
+    source = ../themes/dlond.ghostty;
   };
 
   programs.git = {
@@ -149,6 +162,18 @@
       color.ui = true;
       push.default = "current";
     };
+  };
+
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    enableZshIntegration = true;
+    silent = true;
   };
 
   # You can add other programs here

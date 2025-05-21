@@ -17,6 +17,8 @@
       raycast
     ]);
 
+  fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
+
   nix-homebrew = {
     enable = true;
     user = "dlond";
@@ -31,15 +33,16 @@
     };
     taps = [];
     brews = [
+      "mas"
     ];
     casks = [
       "1password"
       "1password-cli"
       "ghostty"
+      "steam"
       "tor-browser"
       "vlc"
     ];
-    # masApps = { };
   };
 
   nix.settings.experimental-features = "nix-command flakes";

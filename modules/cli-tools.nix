@@ -20,8 +20,10 @@
       ruff
       rustup
       stylua
+      texlab
       tmux
       tree
+      tree-sitter
       zoxide
       zsh-fzf-tab
     ]

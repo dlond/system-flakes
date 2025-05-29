@@ -4,18 +4,23 @@
       alejandra
       bat
       clang-tools
+      cmake-language-server
+      eza
       fd
       fzf
       gh
       git
       gnupg
       go
+      lua
       lua-language-server
+      luarocks
       mosh
       neovim
       nixd
       nodejs_20
       pyright
+      python3Packages.debugpy
       ripgrep
       ruff
       rustup

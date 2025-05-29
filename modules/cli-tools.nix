@@ -12,7 +12,7 @@
       git
       gnupg
       go
-      lua
+      lua5_1
       lua-language-server
       luarocks
       mosh

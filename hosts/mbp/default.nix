@@ -60,7 +60,7 @@
       };
       finder = {
         AppleShowAllExtensions = true;
-        AppleShowAllFiles = true;
+        AppleShowAllFiles = false;
         FXRemoveOldTrashItems = true;
         FXPreferredViewStyle = "clmv";
         NewWindowTarget = "Home";

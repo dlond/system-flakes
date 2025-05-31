@@ -1,12 +1,17 @@
 {
-  pkgs,
   config,
+  pkgs,
   lib,
+  inputs,
+  username,
   nvim-config,
   ...
-}: {
-  home.username = "dlond";
-  home.homeDirectory = "/Users/dlond";
+}: let
+  theme = "Catppuccin Mocha";
+  themesDir = "${inputs.self}/themes/catppuccin";
+in {
+  home.username = "${username}";
+  home.homeDirectory = "/Users/${username}";
   home.stateVersion = "24.05";
 
   home.packages = with pkgs; [
@@ -15,13 +20,12 @@
 
   programs.zsh = {
     enable = true;
+    defaultKeymap = "viins";
     shellAliases = {
       nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
       hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
       clip = "pbcopy";
-      tree = "tree -C";
       cat = "bat";
-      ls = "ls -G";
       ll = "ls -lah";
       sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
     };
@@ -44,10 +48,13 @@
     plugins = [
       {
         name = "fzf-tab";
-        src = "${pkgs.zsh-fzf-tab}/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh";
+        src = pkgs.zsh-fzf-tab.src;
+      }
+      {
+        name = "vi-mode";
+        src = pkgs.zsh-vi-mode.src;
       }
     ];
-    completionInit = "autoload -U compinit && compinit -u";
 
     initContent = ''
       # Shell Options
@@ -55,7 +62,6 @@
       setopt PUSHD_SILENT
 
       # Keybindings
-      bindkey -e
       bindkey '^y' autosuggest-accept # For consistency
       bindkey '^p' history-search-backward
       bindkey '^n' history-search-forward
@@ -67,7 +73,6 @@
       zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
       zstyle ':completion:*' menu no
       zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
       _update_omp_dirstack_count() {
         export MY_DIRSTACK_COUNT=$#dirstack
@@ -78,10 +83,10 @@
       precmd_functions+=(_update_omp_dirstack_count)
 
       # Prompt
-      eval "$(oh-my-posh init zsh --config ~/.poshthemes/dlond.omp.toml)"
+      # eval "$(oh-my-posh init zsh --config ~/.poshthemes/dlond.omp.toml)"
     '';
   };
-  home.file."/.poshthemes/dlond.omp.toml".source = ../themes/dlond.omp.toml;
+  # home.file."/.poshthemes/dlond.omp.toml".source = ../themes/dlond.omp.toml;
 
   programs.neovim = {
     enable = true;
@@ -169,11 +174,30 @@
     enableZshIntegration = true;
   };
 
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+    options = ["--cmd cd"];
+  };
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
     enableZshIntegration = true;
     silent = true;
+  };
+
+  programs.oh-my-posh = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = builtins.fromJSON (builtins.readFile "${themesDir}/dlond.omp.json");
+  };
+
+  programs.bat = {
+    enable = true;
+    config = {
+      theme = "${theme}";
+    };
   };
 
   # You can add other programs here

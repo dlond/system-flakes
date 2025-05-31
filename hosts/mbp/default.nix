@@ -1,14 +1,15 @@
 {
   pkgs,
-  inputs,
   sharedCliPkgs,
   nvim-config,
+  home-manager,
+  nix-homebrew,
   ...
 }: {
   imports = [
     ../../modules/cli-tools.nix
-    inputs.home-manager.darwinModules.home-manager
-    inputs.nix-homebrew.darwinModules.nix-homebrew
+    home-manager.darwinModules.home-manager
+    nix-homebrew.darwinModules.nix-homebrew
   ];
 
   environment.systemPackages =

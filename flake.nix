@@ -29,6 +29,7 @@
     nixpkgs,
     darwin,
     home-manager,
+    nix-homebrew,
     nvim-config,
     ...
   } @ inputs: let
@@ -44,7 +45,9 @@
         ./hosts/mbp/default.nix
       ];
 
-      specialArgs = {inherit inputs nvim-config;};
+      specialArgs = {
+        inherit nvim-config home-manager nix-homebrew;
+      };
     };
 
     homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
@@ -52,7 +55,12 @@
       modules = [
         ./home/dlond.nix
       ];
-      extraSpecialArgs = {inherit inputs username nvim-config;};
+      extraSpecialArgs = {
+        # userConfig = {
+        inherit inputs username nvim-config;
+        # };
+        # inputs = inputs;
+      };
     };
 
     homeConfigurations."${username}@linux" = home-manager.lib.homeManagerConfiguration {

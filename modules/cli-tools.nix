@@ -5,6 +5,7 @@
       bat
       clang-tools
       cmake-language-server
+      curl
       eza
       fd
       fzf
@@ -12,8 +13,8 @@
       git
       gnupg
       go
-      lua5_1
       lua-language-server
+      lua5_1
       luarocks
       mosh
       neovim
@@ -29,8 +30,10 @@
       tmux
       tree
       tree-sitter
+      wget
       zoxide
       zsh-fzf-tab
+      zsh-vi-mode
     ]
     ++ lib.optionals pkgs.stdenv.isLinux [
       xclip

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "palette": {
+    "blue": "#89B4FA",
+    "closer": "p:os",
+    "lavender": "#B4BEFE",
+    "os": "#ACB0BE",
+    "pink": "#F5C2E7"
+  },
+  "secondary_prompt": {
+    "template": "\uf105\uf105 ",
+    "foreground": "p:closer"
+  },
+  "transient_prompt": {
+    "template": "\uf105 ",
+    "foreground": "p:closer"
+  },
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "template": "{{if .Env.IN_NIX_SHELL }}{{\"❄\"}} {{else}}{{.Icon}}{{end}} ",
+          "foreground": "p:os",
+          "type": "os",
+          "style": "plain"
+        },
+        {
+          "properties": {
+            "style": "full"
+          },
+          "template": "{{ .Path }} ",
+          "foreground": "p:blue",
+          "type": "path",
+          "style": "plain"
+        },
+        {
+          "properties": {
+            "branch_icon": "\ue725 ",
+            "cherry_pick_icon": "\ue29b ",
+            "commit_icon": "\uf417 ",
+            "fetch_status": false,
+            "fetch_upstream_icon": false,
+            "merge_icon": "\ue727 ",
+            "no_commits_icon": "\uf0c3 ",
+            "rebase_icon": "\ue728 ",
+            "revert_icon": "\uf0e2 ",
+            "tag_icon": "\uf412 "
+          },
+          "template": "{{ .HEAD }} ",
+          "foreground": "p:pink",
+          "type": "git",
+          "style": "plain"
+        }
+      ],
+      "newline": true
+    },
+    {
+      "type": "rprompt",
+      "overflow": "hidden",
+      "segments": [
+        {
+          "template": "{{ if .Env.MY_DIRSTACK_COUNT }}{{ if gt (int .Env.MY_DIRSTACK_COUNT) 0 }}📚{{ .Env.MY_DIRSTACK_COUNT }}{{ end }}{{ end }} ",
+          "foreground": "p:lavender",
+          "type": "text",
+          "style": "plain"
+        },
+        {
+          "properties": {
+            "threshold": 5000
+          },
+          "template": "{{ .FormattedMs }}",
+          "foreground": "p:blue",
+          "type": "executiontime",
+          "style": "plain"
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "template": "\uf105",
+          "foreground": "p:closer",
+          "type": "text",
+          "style": "plain"
+        }
+      ],
+      "newline": true
+    }
+  ],
+  "version": 3,
+  "final_space": true
+}

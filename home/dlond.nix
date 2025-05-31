@@ -6,10 +6,7 @@
   username,
   nvim-config,
   ...
-}: let
-  theme = "Catppuccin Mocha";
-  themesDir = "${inputs.self}/themes/catppuccin";
-in {
+}: {
   home.username = "${username}";
   home.homeDirectory = "/Users/${username}";
   home.stateVersion = "24.05";

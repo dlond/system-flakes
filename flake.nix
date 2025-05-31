@@ -46,7 +46,7 @@
       ];
 
       specialArgs = {
-        inherit nvim-config home-manager nix-homebrew;
+        inherit inputs username nvim-config home-manager nix-homebrew;
       };
     };
 

@@ -1,6 +1,8 @@
 {
   pkgs,
   sharedCliPkgs,
+  inputs,
+  username,
   nvim-config,
   home-manager,
   nix-homebrew,
@@ -48,7 +50,7 @@
 
   nix.settings.experimental-features = "nix-command flakes";
 
-  home-manager.extraSpecialArgs = {inherit nvim-config;};
+  home-manager.extraSpecialArgs = {inherit inputs username nvim-config;};
   home-manager.users.dlond = import ../../home/dlond.nix;
 
   system = {

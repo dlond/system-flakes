@@ -3,6 +3,7 @@
     [
       alejandra
       bat
+      boringtun
       clang-tools
       cmake-language-server
       curl
@@ -31,6 +32,7 @@
       tree
       tree-sitter
       wget
+      wireguard-tools
       zoxide
       zsh-fzf-tab
       zsh-vi-mode

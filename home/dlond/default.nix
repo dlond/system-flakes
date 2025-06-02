@@ -5,6 +5,7 @@
   inputs,
   username,
   nvim-config,
+  catppuccin-bat,
   ...
 }: {
   home.username = "${username}";
@@ -13,6 +14,10 @@
 
   home.packages = with pkgs; [
     oh-my-posh
+  ];
+
+  imports = [
+    ./modules/networking.mullvad.nix
   ];
 
   programs.zsh = {
@@ -39,6 +44,12 @@
     };
     sessionVariables = {
       EDITOR = "nvim";
+      # FZF_DEFAULT_OPTS = "\
+      #   --prompt=' '\
+      #   --color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4";
+      # FZF_COMPLETION_OPTS = "\
+      #   --prompt=' '\
+      #   --color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4";
     };
     syntaxHighlighting.enable = true;
     autosuggestion.enable = true;
@@ -78,12 +89,8 @@
         precmd_functions=()
       fi
       precmd_functions+=(_update_omp_dirstack_count)
-
-      # Prompt
-      # eval "$(oh-my-posh init zsh --config ~/.poshthemes/dlond.omp.toml)"
     '';
   };
-  # home.file."/.poshthemes/dlond.omp.toml".source = ../themes/dlond.omp.toml;
 
   programs.neovim = {
     enable = true;
@@ -169,6 +176,31 @@
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
+    defaultOptions = [
+      "--prompt=' '"
+      "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
+      "--bind=ctrl-y:accept"
+    ];
+    # completionOptions = [
+    #   "--prompt=' '"
+    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
+    #   "--bind=ctrl-y:accept"
+    # ];
+    # historyOptions = [
+    #   "--prompt=' '"
+    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
+    #   "--bind=ctrl-y:accept"
+    # ];
+    # fileOptions = [
+    #   "--prompt=' '"
+    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
+    #   "--bind=ctrl-y:accept"
+    # ];
+    # dirOptions = [
+    #   "--prompt=' '"
+    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
+    #   "--bind=ctrl-y:accept"
+    # ];
   };
 
   programs.zoxide = {
@@ -187,15 +219,35 @@
   programs.oh-my-posh = {
     enable = true;
     enableZshIntegration = true;
-    settings = builtins.fromJSON (builtins.readFile "${themesDir}/dlond.omp.json");
+    settings = builtins.fromJSON (builtins.readFile "${inputs.self}/themes/dlond.omp.json");
   };
 
   programs.bat = {
     enable = true;
+    themes = {
+      catppuccin = {
+        src = "${catppuccin-bat}/themes";
+        file = "Catppuccin Mocha.tmTheme";
+      };
+    };
     config = {
-      theme = "${theme}";
+      theme = "catppuccin";
     };
   };
 
-  # You can add other programs here
+  modules.networking.mullvad = {
+    enable = true;
+    privateKeyItem = "op://Personal/mullvad/private-key";
+    configFile = ''
+      [Interface]
+      Address = 10.74.65.138/32
+      DNS = 100.64.0.63
+
+      [Peer]
+      PublicKey = 94qIvXgF0OXZ4IcquoS7AO57OV6JswUFgdONgGiq+jo=
+      AllowedIPs = 0.0.0.0/0
+      Endpoint = 185.65.135.69:51820
+      PersistentKeepalive = 25
+    '';
+  };
 }

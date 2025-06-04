@@ -1,24 +1,45 @@
 {
   pkgs,
-  sharedCliPkgs,
+  lib,
   inputs,
   username,
   nvim-config,
+  catppuccin-bat,
   home-manager,
   nix-homebrew,
   ...
-}: {
+}: let
+  shared = import ../../lib/shared.nix {inherit pkgs lib;};
+in {
+  environment.systemPackages =
+    shared.sharedCliTools
+    ++ [pkgs.raycast];
+
   imports = [
-    ../../modules/cli-tools.nix
+    ./modules/system/security/killswitch.nix
     home-manager.darwinModules.home-manager
     nix-homebrew.darwinModules.nix-homebrew
   ];
 
-  environment.systemPackages =
-    sharedCliPkgs
-    ++ (with pkgs; [
-      raycast
-    ]);
+  modules.system.security.killswitch.enable = false;
+
+  system = {
+    primaryUser = "dlond";
+    stateVersion = 6;
+    defaults = {
+      dock = {
+        autohide = false;
+        show-recents = false;
+      };
+      finder = {
+        AppleShowAllExtensions = true;
+        AppleShowAllFiles = false;
+        FXRemoveOldTrashItems = true;
+        FXPreferredViewStyle = "clmv";
+        NewWindowTarget = "Home";
+      };
+    };
+  };
 
   fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
 
@@ -50,26 +71,8 @@
 
   nix.settings.experimental-features = "nix-command flakes";
 
-  home-manager.extraSpecialArgs = {inherit inputs username nvim-config;};
-  home-manager.users.dlond = import ../../home/dlond.nix;
-
-  system = {
-    primaryUser = "dlond";
-    stateVersion = 6;
-    defaults = {
-      dock = {
-        autohide = false;
-        show-recents = false;
-      };
-      finder = {
-        AppleShowAllExtensions = true;
-        AppleShowAllFiles = false;
-        FXRemoveOldTrashItems = true;
-        FXPreferredViewStyle = "clmv";
-        NewWindowTarget = "Home";
-      };
-    };
-  };
+  home-manager.extraSpecialArgs = {inherit inputs username nvim-config catppuccin-bat;};
+  home-manager.users.dlond = import ../../home/dlond/default.nix;
 
   security.pam.services.sudo_local.touchIdAuth = true;
 

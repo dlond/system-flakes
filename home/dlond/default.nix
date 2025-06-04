@@ -17,8 +17,10 @@
   ];
 
   imports = [
-    ./modules/networking.mullvad.nix
+    ./modules/networking/mullvad.nix
   ];
+
+  home.modules.networking.mullvad.enable = true;
 
   programs.zsh = {
     enable = true;
@@ -134,7 +136,7 @@
     '';
   };
   xdg.configFile."ghostty/themes/dlond.ghostty" = {
-    source = ../themes/dlond.ghostty;
+    source = ./themes/dlond.ghostty;
   };
 
   programs.git = {
@@ -219,7 +221,7 @@
   programs.oh-my-posh = {
     enable = true;
     enableZshIntegration = true;
-    settings = builtins.fromJSON (builtins.readFile "${inputs.self}/themes/dlond.omp.json");
+    settings = builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.readFile ./themes/dlond.omp.json));
   };
 
   programs.bat = {
@@ -233,21 +235,5 @@
     config = {
       theme = "catppuccin";
     };
-  };
-
-  modules.networking.mullvad = {
-    enable = true;
-    privateKeyItem = "op://Personal/mullvad/private-key";
-    configFile = ''
-      [Interface]
-      Address = 10.74.65.138/32
-      DNS = 100.64.0.63
-
-      [Peer]
-      PublicKey = 94qIvXgF0OXZ4IcquoS7AO57OV6JswUFgdONgGiq+jo=
-      AllowedIPs = 0.0.0.0/0
-      Endpoint = 185.65.135.69:51820
-      PersistentKeepalive = 25
-    '';
   };
 }

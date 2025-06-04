@@ -21,6 +21,11 @@
       flake = false;
     };
 
+    catppuccin-bat = {
+      url = "github:catppuccin/bat";
+      flake = false;
+    };
+
     # Optionally, add nix-darwin/home-manager as overlays for Mac, or nixosConfigurations for Linux
   };
 
@@ -31,6 +36,7 @@
     home-manager,
     nix-homebrew,
     nvim-config,
+    catppuccin-bat,
     ...
   } @ inputs: let
     username = "dlond";
@@ -46,20 +52,17 @@
       ];
 
       specialArgs = {
-        inherit inputs username nvim-config home-manager nix-homebrew;
+        inherit inputs username nvim-config catppuccin-bat home-manager nix-homebrew;
       };
     };
 
     homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
       pkgs = import nixpkgs {system = "aarch64-darwin";};
       modules = [
-        ./home/dlond.nix
+        ./home/dlond/default.nix
       ];
       extraSpecialArgs = {
-        # userConfig = {
-        inherit inputs username nvim-config;
-        # };
-        # inputs = inputs;
+        inherit inputs username nvim-config catppuccin-bat;
       };
     };
 
@@ -69,8 +72,8 @@
         config.allowUnfree = true;
       };
       modules = [
-        ./modules/cli-tools.nix
-        ./home/dlond.nix
+        ./lib/shared.nix
+        ./home/dlond/default.nix
         ({sharedCliPkgs, ...}: {home.packages = sharedCliPkgs;})
       ];
       extraSpecialArgs = {inherit inputs nvim-config;};

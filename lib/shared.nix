@@ -1,9 +1,13 @@
-{pkgs, ...}: {
-  _module.args.sharedCliPkgs = with pkgs;
+{
+  pkgs,
+  lib,
+  ...
+}: {
+  sharedCliTools = with pkgs;
     [
       alejandra
+      bash
       bat
-      boringtun
       clang-tools
       cmake-language-server
       curl
@@ -32,7 +36,6 @@
       tree
       tree-sitter
       wget
-      wireguard-tools
       zoxide
       zsh-fzf-tab
       zsh-vi-mode
@@ -40,4 +43,7 @@
     ++ lib.optionals pkgs.stdenv.isLinux [
       xclip
     ];
+
+  forDarwin = lib.mkIf pkgs.stdenv.isDarwin;
+  forLinux = lib.mkIf pkgs.stdenv.isLinux;
 }

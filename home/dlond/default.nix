@@ -17,10 +17,10 @@
   ];
 
   imports = [
-    ./modules/networking/mullvad.nix
+    ./modules/networking/mullvad-vpn.nix
   ];
 
-  home.modules.networking.mullvad.enable = true;
+  home.modules.networking.mullvadVpn.enable = true;
 
   programs.zsh = {
     enable = true;

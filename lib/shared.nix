@@ -5,6 +5,7 @@
 }: {
   sharedCliTools = with pkgs;
     [
+      age
       alejandra
       bash
       bat
@@ -25,17 +26,22 @@
       neovim
       nixd
       nodejs_20
+      openresolv
       pyright
       python3Packages.debugpy
       ripgrep
       ruff
       rustup
+      sops
       stylua
       texlab
       tmux
       tree
       tree-sitter
       wget
+      wireguard-go
+      wireguard-tools
+      yq
       zoxide
       zsh-fzf-tab
       zsh-vi-mode

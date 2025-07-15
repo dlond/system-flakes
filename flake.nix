@@ -1,10 +1,10 @@
 {
-  description = "Minimal nix-darwin + Home Manager setup";
+  description = "nix-darwin + home-manager for macOS, standalone home-manager for Linux";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-    darwin = {
+    nix-darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -14,7 +14,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    nix-homebrew = {
+      url = "github:zhaofengli/nix-homebrew";
+    };
 
     nvim-config = {
       url = "github:dlond/nvim";
@@ -26,57 +28,75 @@
       flake = false;
     };
 
-    # Optionally, add nix-darwin/home-manager as overlays for Mac, or nixosConfigurations for Linux
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    darwin,
-    home-manager,
-    nix-homebrew,
-    nvim-config,
-    catppuccin-bat,
-    ...
-  } @ inputs: let
+  outputs = inputs @ {self, ...}: let
     username = "dlond";
+    systems = {
+      darwin = "aarch64-darwin";
+      linux = "aarch64-linux";
+      linux_x86 = "x86_64-linux";
+    };
+    mkPkgs = import ./lib/mkPkgs.nix {inherit (inputs) nixpkgs;};
   in {
-    darwinConfigurations.mbp = darwin.lib.darwinSystem {
-      system = "aarch64-darwin";
-      pkgs = import nixpkgs {
-        system = "aarch64-darwin";
-        config.allowUnfree = true;
-      };
-      modules = [
-        ./hosts/mbp/default.nix
-      ];
+    #### macOS full-system (nix-darwin + HM)
+    darwinConfigurations.mbp = let
+      system = systems.darwin;
+      pkgs = mkPkgs system;
+    in
+      inputs.nix-darwin.lib.darwinSystem {
+        inherit system pkgs;
 
-      specialArgs = {
-        inherit inputs username nvim-config catppuccin-bat home-manager nix-homebrew;
-      };
-    };
+        ## Main modules
+        modules = [
+          inputs.sops-nix.darwinModules.sops
+          inputs.nix-homebrew.darwinModules.nix-homebrew
+          ./hosts/mbp/default.nix
+          inputs.home-manager.darwinModules.home-manager
 
-    homeConfigurations."${username}@mbp" = home-manager.lib.homeManagerConfiguration {
-      pkgs = import nixpkgs {system = "aarch64-darwin";};
-      modules = [
-        ./home/dlond/default.nix
-      ];
-      extraSpecialArgs = {
-        inherit inputs username nvim-config catppuccin-bat;
-      };
-    };
+          ## Per-host inline module
+          {
+            users.users.${username}.home = "/Users/${username}";
 
-    homeConfigurations."${username}@linux" = home-manager.lib.homeManagerConfiguration {
-      pkgs = import nixpkgs {
-        system = "x86_64-linux";
-        config.allowUnfree = true;
+            ## Home-Manager wiring
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+
+              ## Extra args for Home-Manager
+              extraSpecialArgs = {
+                inherit pkgs;
+                inherit (inputs) sops-nix nvim-config catppuccin-bat;
+              };
+              users.${username} = import ./home/users/${username};
+            };
+          }
+        ];
+
+        ## Extra args for nix-darwin modules
+        specialArgs = {
+          inherit pkgs username;
+          inherit (self) inputs;
+        };
       };
-      modules = [
-        ./lib/shared.nix
-        ./home/dlond/default.nix
-        ({sharedCliPkgs, ...}: {home.packages = sharedCliPkgs;})
-      ];
-      extraSpecialArgs = {inherit inputs nvim-config;};
-    };
+
+    #### Linux standalone Home-Manager
+    homeConfigurations."${username}@linux" = let
+      system = systems.linux;
+      pkgs = mkPkgs system;
+    in
+      inputs.home-manager.lib.homeManagerConfiguration {
+        modules = [
+          ./home/users/${username}
+        ];
+        extraSpecialArgs = {
+          inherit pkgs;
+          inherit (inputs) sops-nix nvim-config catppuccin-bat;
+        };
+      };
   };
 }

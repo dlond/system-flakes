@@ -2,25 +2,26 @@
   config,
   pkgs,
   lib,
-  inputs,
-  username,
+  sops-nix,
   nvim-config,
   catppuccin-bat,
   ...
 }: {
-  home.username = "${username}";
-  home.homeDirectory = "/Users/${username}";
-  home.stateVersion = "24.05";
+  home.stateVersion = "25.11";
+  home.username = "dlond";
+  home.homeDirectory = "/Users/dlond";
+
+  imports = [
+    sops-nix.homeManagerModules.sops
+    # ../../modules/secrets.nix
+    # ../../modules/networking/mullvad-vpn.nix
+  ];
+
+  programs.home-manager.enable = true;
 
   home.packages = with pkgs; [
     oh-my-posh
   ];
-
-  imports = [
-    ./modules/networking/mullvad-vpn.nix
-  ];
-
-  home.modules.networking.mullvadVpn.enable = true;
 
   programs.zsh = {
     enable = true;
@@ -28,10 +29,9 @@
     shellAliases = {
       nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
       hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
-      clip = "pbcopy";
       cat = "bat";
       ll = "ls -lah";
-      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | clip)+abort"'';
+      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | pbcopy)+abort"'';
     };
     history = {
       size = 5000;
@@ -46,12 +46,6 @@
     };
     sessionVariables = {
       EDITOR = "nvim";
-      # FZF_DEFAULT_OPTS = "\
-      #   --prompt=' '\
-      #   --color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4";
-      # FZF_COMPLETION_OPTS = "\
-      #   --prompt=' '\
-      #   --color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4";
     };
     syntaxHighlighting.enable = true;
     autosuggestion.enable = true;
@@ -72,7 +66,7 @@
       setopt PUSHD_SILENT
 
       # Keybindings
-      bindkey '^y' autosuggest-accept # For consistency
+      bindkey '^y' autosuggest-accept
       bindkey '^p' history-search-backward
       bindkey '^n' history-search-forward
 
@@ -92,6 +86,46 @@
       fi
       precmd_functions+=(_update_omp_dirstack_count)
     '';
+  };
+
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
+    defaultOptions = [
+      "--bind=ctrl-y:accept"
+    ];
+  };
+
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+    options = ["--cmd cd"];
+  };
+
+  programs.oh-my-posh = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.readFile ./themes/dlond.omp.json));
+  };
+
+  programs.bat = {
+    enable = true;
+    themes = {
+      catppuccin = {
+        src = "${catppuccin-bat}/themes";
+        file = "Catppuccin Mocha.tmTheme";
+      };
+    };
+    config = {
+      theme = "catppuccin";
+    };
+  };
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    enableZshIntegration = true;
+    silent = true;
   };
 
   programs.neovim = {
@@ -130,7 +164,6 @@
       theme = dlond.ghostty
 
       working-directory = "${config.home.homeDirectory}"
-      window-inherit-working-directory = false
 
       keybind = global:option+space=toggle_quick_terminal
     '';
@@ -175,65 +208,38 @@
     };
   };
 
-  programs.fzf = {
-    enable = true;
-    enableZshIntegration = true;
-    defaultOptions = [
-      "--prompt=' '"
-      "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
-      "--bind=ctrl-y:accept"
-    ];
-    # completionOptions = [
-    #   "--prompt=' '"
-    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
-    #   "--bind=ctrl-y:accept"
-    # ];
-    # historyOptions = [
-    #   "--prompt=' '"
-    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
-    #   "--bind=ctrl-y:accept"
-    # ];
-    # fileOptions = [
-    #   "--prompt=' '"
-    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
-    #   "--bind=ctrl-y:accept"
-    # ];
-    # dirOptions = [
-    #   "--prompt=' '"
-    #   "--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8,fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC,marker:#B4BEFE,fg+:#CDD6F4,prompt:#ACB0BE,hl+:#F38BA8,selected-bg:#45475A,border:#313244,label:#CDD6F4"
-    #   "--bind=ctrl-y:accept"
-    # ];
-  };
+  sops.age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
 
-  programs.zoxide = {
-    enable = true;
-    enableZshIntegration = true;
-    options = ["--cmd cd"];
-  };
+  # sops = {
+  #   age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
+  #
+  #   secrets."wireguard-mullvad-private-key" = {
+  #     sopsFile = ../../../secrets/wireguard.yaml;
+  #     path = "${config.home.homeDirectory}/.secrets/wireguard/private-key";
+  #     mode = "0600";
+  #   };
+  # };
+  # home.modules.networking.mullvadVpn.enable = true;
 
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
-    enableZshIntegration = true;
-    silent = true;
-  };
+  # sops = {
+  #   defaultSopsFile = ../../../secrets/wireguard.yaml;
+  #   # age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
+  #   secrets = {
+  #     privateKey = {};
+  #     address = {};
+  #     dns = {};
+  #     publicKey = {};
+  #     allowedIPs = {};
+  #     endpoint = {};
+  #   };
+  # };
 
-  programs.oh-my-posh = {
-    enable = true;
-    enableZshIntegration = true;
-    settings = builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.readFile ./themes/dlond.omp.json));
-  };
-
-  programs.bat = {
-    enable = true;
-    themes = {
-      catppuccin = {
-        src = "${catppuccin-bat}/themes";
-        file = "Catppuccin Mocha.tmTheme";
-      };
-    };
-    config = {
-      theme = "catppuccin";
-    };
-  };
+  # sops = {
+  #   defaultSopsFile = ../../../secrets/wireguard.yaml;
+  #   age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
+  # };
+  #
+  # sops.secrets."wireguard-mullvad-private-key" = {
+  #   mode = "0400";
+  # };
 }

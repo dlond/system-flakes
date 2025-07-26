@@ -9,11 +9,14 @@
       alejandra
       bash
       bat
+      brave
       clang-tools
       cmake-language-server
       curl
+      delta
       eza
       fd
+      firefox
       fzf
       gh
       git
@@ -26,7 +29,7 @@
       neovim
       nixd
       nodejs_20
-      openresolv
+      obsidian
       pyright
       python3Packages.debugpy
       ripgrep
@@ -39,8 +42,6 @@
       tree
       tree-sitter
       wget
-      wireguard-go
-      wireguard-tools
       yq
       zoxide
       zsh-fzf-tab

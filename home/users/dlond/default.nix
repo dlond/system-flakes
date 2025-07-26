@@ -6,15 +6,15 @@
   nvim-config,
   catppuccin-bat,
   ...
-}: {
+}: let
+  my_bindings = "ctrl-n:down,ctrl-p:up,ctrl-y:accept";
+in {
   home.stateVersion = "25.11";
   home.username = "dlond";
   home.homeDirectory = "/Users/dlond";
 
   imports = [
     sops-nix.homeManagerModules.sops
-    # ../../modules/secrets.nix
-    # ../../modules/networking/mullvad-vpn.nix
   ];
 
   programs.home-manager.enable = true;
@@ -31,7 +31,12 @@
       hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
       cat = "bat";
       ll = "ls -lah";
-      sf = ''fzf -m --preview="bat --color=always {}" --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | pbcopy)+abort"'';
+      sf = ''
+        fzf -m --preview="bat --color=always {}"
+        --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | pbcopy)+abort
+      '';
+      firefox = ''open -a "Firefox" --args'';
+      ndiff = "nvim -d";
     };
     history = {
       size = 5000;
@@ -47,7 +52,10 @@
     sessionVariables = {
       EDITOR = "nvim";
     };
-    syntaxHighlighting.enable = true;
+    syntaxHighlighting = {
+      enable = true;
+      highlighters = ["main"];
+    };
     autosuggestion.enable = true;
     plugins = [
       {
@@ -61,22 +69,23 @@
     ];
 
     initContent = ''
-      # Shell Options
+      # shell options
       setopt globdots
-      setopt PUSHD_SILENT
+      setopt pushd_silent
 
-      # Keybindings
+      # keybindings
       bindkey '^y' autosuggest-accept
       bindkey '^p' history-search-backward
       bindkey '^n' history-search-forward
 
-      # Completion Styling
+      # completion styling
       if [[ -n "$LS_COLORS" ]]; then
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
       fi
+      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-p:up,ctrl-n:down,ctrl-y:accept'
       zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
       zstyle ':completion:*' menu no
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color $realpath'
 
       _update_omp_dirstack_count() {
         export MY_DIRSTACK_COUNT=$#dirstack
@@ -92,7 +101,7 @@
     enable = true;
     enableZshIntegration = true;
     defaultOptions = [
-      "--bind=ctrl-y:accept"
+      "--bind=${my_bindings}"
     ];
   };
 
@@ -209,37 +218,4 @@
   };
 
   sops.age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
-
-  # sops = {
-  #   age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
-  #
-  #   secrets."wireguard-mullvad-private-key" = {
-  #     sopsFile = ../../../secrets/wireguard.yaml;
-  #     path = "${config.home.homeDirectory}/.secrets/wireguard/private-key";
-  #     mode = "0600";
-  #   };
-  # };
-  # home.modules.networking.mullvadVpn.enable = true;
-
-  # sops = {
-  #   defaultSopsFile = ../../../secrets/wireguard.yaml;
-  #   # age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
-  #   secrets = {
-  #     privateKey = {};
-  #     address = {};
-  #     dns = {};
-  #     publicKey = {};
-  #     allowedIPs = {};
-  #     endpoint = {};
-  #   };
-  # };
-
-  # sops = {
-  #   defaultSopsFile = ../../../secrets/wireguard.yaml;
-  #   age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
-  # };
-  #
-  # sops.secrets."wireguard-mullvad-private-key" = {
-  #   mode = "0400";
-  # };
 }

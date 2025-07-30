@@ -7,6 +7,7 @@
 }: {
   programs.tmux = {
     enable = true;
+    shell = "${pkgs.zsh}/bin/zsh";
     terminal = "tmux-256color";
     historyLimit = 100000;
     prefix = "C-a";
@@ -44,18 +45,22 @@
 
     # --- ALL raw tmux.conf commands go into ONE extraConfig string ---
     extraConfig =
+      # ensure default shell is Zsh and spawn it as a login shell
+      ''
+        set -g default-shell ${pkgs.zsh}/bin/zsh
+        set -g default-command "${pkgs.zsh}/bin/zsh -l"
+      ''
       # Make sure to use lib.optionalString to convert the conditional to a string
-      lib.optionalString (config.programs.tmux.prefix == "C-a") ''
+      + lib.optionalString (config.programs.tmux.prefix == "C-a") ''
         unbind C-b
       ''
       + lib.optionalString (config.programs.tmux.keyMode == "vi") ''
         bind -T copy-mode-vi 'v' send-keys -X begin-selection
-        bind -T copy-mode-vi 'y' send-keys -X copy-selection-and-cancel
-        bind -T copy-mode-vi MouseDragEnd1Pane copy-selection-and-cancel
         # For macOS
         bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
         # For Linux (uncomment if you're also using Linux with xclip)
         # bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -i -selection clipboard"
+        bind -T copy-mode-vi MouseDragEnd1Pane copy-selection
       ''
       + ''
         # Options that are not directly exposed by Home Manager's programs.tmux module
@@ -65,8 +70,8 @@
         set -g renumber-windows on
 
         # Automatic renaming
-        setw -g automatic-rename off # disable automatic rename
-        set -g automatic-rename-forced off # for forced automatic rename
+        # setw -g automatic-rename off # disable automatic rename
+        # set -g automatic-rename-forced off # for forced automatic rename
 
         # Bindings
         bind r source-file ~/.config/tmux/tmux.conf \; display-message "~/.config/tmux/tmux.conf reloaded!"

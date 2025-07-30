@@ -32,8 +32,6 @@ in {
     enable = true;
     defaultKeymap = "viins";
     shellAliases = {
-      # nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
-      # hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
       ls = "eza"; # they said not to YOLO
       ll = "eza -l --header --git --icons";
       la = "eza -la --header --git --icons";

@@ -7,7 +7,7 @@
   catppuccin-bat,
   ...
 }: let
-  my_bindings = "ctrl-n:down,ctrl-p:up,ctrl-y:accept";
+  my_fzf_bindings = "ctrl-n:down,ctrl-p:up,ctrl-y:accept";
 in {
   home.stateVersion = "25.11";
   home.username = "dlond";
@@ -15,9 +15,14 @@ in {
 
   imports = [
     sops-nix.homeManagerModules.sops
+    ../../modules/install-scripts.nix
   ];
 
   programs.home-manager.enable = true;
+  my.scripts = {
+    enable = true;
+    root = ./scripts;
+  };
 
   home.packages = with pkgs; [
     oh-my-posh
@@ -27,8 +32,8 @@ in {
     enable = true;
     defaultKeymap = "viins";
     shellAliases = {
-      nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
-      hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
+      # nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
+      # hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
       cat = "bat";
       ll = "ls -lah";
       sf = ''
@@ -82,7 +87,7 @@ in {
       if [[ -n "$LS_COLORS" ]]; then
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
       fi
-      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-p:up,ctrl-n:down,ctrl-y:accept'
+      zstyle ':fzf-tab:*' fzf-bindings '${my_fzf_bindings}'
       zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
       zstyle ':completion:*' menu no
       zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color $realpath'
@@ -101,7 +106,7 @@ in {
     enable = true;
     enableZshIntegration = true;
     defaultOptions = [
-      "--bind=${my_bindings}"
+      "--bind=${my_fzf_bindings}"
     ];
   };
 

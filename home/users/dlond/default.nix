@@ -19,7 +19,6 @@ in {
     ../../modules/install-scripts.nix
   ];
 
-  programs.home-manager.enable = true;
   my.scripts = {
     enable = true;
     root = ./scripts;

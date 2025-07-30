@@ -34,8 +34,12 @@ in {
     shellAliases = {
       # nn = "sudo darwin-rebuild switch --flake ~/system-flakes";
       # hh = "home-manager switch --flake ~/system-flakes#dlond@mbp";
+      ls = "eza"; # they said not to YOLO
+      ll = "eza -l --header --git --icons";
+      la = "eza -la --header --git --icons";
+      lh = "eza -la --header --git --icons --group-directories-first | grep '^\.'";
+      tree = "eza --tree";
       cat = "bat";
-      ll = "ls -lah";
       sf = ''
         fzf -m --preview="bat --color=always {}"
         --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | pbcopy)+abort

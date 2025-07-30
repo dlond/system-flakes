@@ -56,6 +56,6 @@ in {
       })
       scripts;
 
-    programs.zsh.initExtra = zshInitLines;
+    programs.zsh.initContent = zshInitLines;
   };
 }

@@ -15,6 +15,7 @@ in {
 
   imports = [
     sops-nix.homeManagerModules.sops
+    ./tmux.nix
     ../../modules/install-scripts.nix
   ];
 

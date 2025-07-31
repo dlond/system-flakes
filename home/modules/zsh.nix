@@ -76,6 +76,10 @@
       zstyle ':completion:*' menu no
       zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color $realpath'
 
+      autoload -z edit-command-line
+      zle -N edit-command-line
+      bindkey -M vicmd v edit-command-line
+
       _update_omp_dirstack_count() {
         export MY_DIRSTACK_COUNT=$#dirstack
       }

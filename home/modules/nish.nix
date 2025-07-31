@@ -57,6 +57,30 @@
         fi
       }
 
+      show_usage() {
+        echo "nish - Nix system management helper"
+        echo
+        echo "Usage: nish [OPTIONS] COMMAND"
+        echo
+        echo "Commands:"
+        echo "  build       Build system configuration without switching"
+        echo "  switch      Apply system configuration changes (requires sudo)"
+        echo "  hm          Switch Home Manager configuration only"
+        echo "  status      Show flake check, git status, and current profile"
+        echo "  update      Pull latest changes and rebuild system"
+        echo "  reset [REF] Reset flake to git reference (default: main)"
+        echo "  freeze      Save current tmux session layout"
+        echo
+        echo "Options:"
+        echo "  -v, --verbose   Show post-command tips"
+        echo "  -h, --help      Show this help message"
+        echo
+        echo "Examples:"
+        echo "  nish switch -v          # Apply changes with verbose tips"
+        echo "  nish reset origin/dev   # Reset to development branch"
+        echo "  nish status             # Check current system state"
+      }
+
       verbose_tips() {
         echo "✅ Command succeeded!"
         echo "💡 Live‑reload tips:"
@@ -70,9 +94,16 @@
         echo "  • tmuxp restore → tmuxp load ~/.tmuxp/last-session.yaml"
       }
 
+      # Handle no arguments or help flags
+      if [[ "$#" -eq 0 ]]; then
+        show_usage
+        exit 0
+      fi
+
       do_verbose=false
       while [[ "$#" -gt 0 ]]; do
         case "$1" in
+          -h|--help) show_usage; exit 0 ;;
           -v|--verbose) do_verbose=true; shift ;;
           build) system_build; shift ;;
           switch) system_switch; shift ;;
@@ -81,7 +112,7 @@
           update) update; shift ;;
           reset) shift; reset_flake "$@"; exit $? ;;
           freeze) freeze_tmux; shift ;;
-          *) echo "Unknown command: $1"; exit 1 ;;
+          *) echo "Error: Unknown command '$1'"; echo; show_usage; exit 1 ;;
         esac
       done
 

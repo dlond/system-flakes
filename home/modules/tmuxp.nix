@@ -12,11 +12,11 @@
         layout = "main-horizontal";
         panes = [
           {shell_command = ["nvim"];}
-          {shell_command = ["llm"];}
+          {shell_command = ["claude"];}
         ];
       }
     ];
   };
 in {
-  xdg.configFile."tmuxp/default.yaml".text = builtins.toJSON tmuxpDefault;
+  xdg.configFile."tmuxp/default.json".text = builtins.toJSON tmuxpDefault;
 }

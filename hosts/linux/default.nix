@@ -4,7 +4,7 @@
   ...
 }: {
   imports = [
-    ../modules/common.nix
+    ../../lib/shared.nix
     inputs.home-manager.nixosModules.home-manager
   ];
 
@@ -14,7 +14,5 @@
     shell = pkgs.zsh;
   };
 
-  home-manager.users.dlond = import ../../home/dlond.nix;
-
-  system.stateVersion = "24.05";
+  home-manager.users.dlond = import ../../home/users/dlond;
 }

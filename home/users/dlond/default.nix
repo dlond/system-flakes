@@ -14,10 +14,10 @@ in {
 
   imports = [
     sops-nix.homeManagerModules.sops
-    ./tmux.nix
-    ../../modules/zsh.nix
     ../../modules/nish.nix
+    ../../modules/tmux.nix
     ../../modules/tmuxp.nix
+    ../../modules/zsh.nix
   ];
 
   home.packages = with pkgs; [

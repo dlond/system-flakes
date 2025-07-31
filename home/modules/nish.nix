@@ -17,7 +17,7 @@
       }
 
       system_switch() {
-        darwin-rebuild switch --flake "$FLAKE_ROOT"
+        sudo darwin-rebuild switch --flake "$FLAKE_ROOT"
       }
 
       hm_switch() {

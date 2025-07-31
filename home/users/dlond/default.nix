@@ -17,6 +17,7 @@ in {
     ./tmux.nix
     ../../modules/zsh.nix
     ../../modules/nish.nix
+    ../../modules/tmuxp.nix
   ];
 
   home.packages = with pkgs; [

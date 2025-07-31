@@ -39,6 +39,7 @@
       stylua
       texlab
       tmux
+      tmuxp
       tree
       tree-sitter
       wget

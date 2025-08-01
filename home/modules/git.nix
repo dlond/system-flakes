@@ -9,7 +9,7 @@
     gpr = "git push -u origin $(git branch --show-current) && gh pr create";
     gpv = "gh pr view";
     gpc = "gh pr checkout";
-    gpm = "gh pr merge";
+    gpm = "gh pr merge --delete-branch=false";
     gprs = "gh pr status";
     gprl = "gh pr list";
     gprd = "gh pr diff";
@@ -38,12 +38,38 @@
     gclean-remote = "git remote prune origin";
     gclean-all = "git fetch --prune && git branch --merged main | grep -v main | xargs -n 1 git branch -d";
     
-    # Worktree workflow
+    # Worktree workflow - complete cleanup after PR merge
     gwt-done = ''
       current_branch=$(git branch --show-current)
-      cd ..
-      git worktree remove "$current_branch" 2>/dev/null || echo "Worktree cleanup may be needed"
-      cd -
+      current_dir=$(pwd)
+      
+      # Check if we're in a worktree (not the main repo)
+      if git rev-parse --show-superproject-working-tree >/dev/null 2>&1 || [ "$(basename "$current_dir")" != "$(basename $(git rev-parse --show-toplevel))" ]; then
+        echo "📦 In worktree: $current_branch"
+        
+        # Navigate to main worktree
+        main_worktree=$(git worktree list | head -1 | awk '{print $1}')
+        echo "🔄 Switching to main worktree: $main_worktree"
+        cd "$main_worktree"
+        
+        # Pull merged changes
+        echo "⬇️  Pulling merged changes..."
+        git fetch origin
+        git pull origin main
+        
+        # Remove the worktree
+        echo "🧹 Removing worktree: $current_branch"
+        git worktree remove "$current_dir" 2>/dev/null || {
+          echo "⚠️  Could not remove worktree automatically"
+          echo "   Run: git worktree remove \"$current_dir\" --force"
+        }
+        
+        echo "✅ Worktree cleanup complete!"
+      else
+        echo "📍 Already in main worktree - just pulling latest changes"
+        git fetch origin
+        git pull origin main
+      fi
     '';
     
     # Worktree cleanup

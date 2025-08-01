@@ -49,8 +49,11 @@
       current_branch=$(git branch --show-current)
       current_dir=$(pwd)
 
+      # jump to repo root so the rest of the script is always at the top level
+      cd "$(git rev-parse --show-toplevel)"
+
       # Check if we're in a worktree (not the main repo)
-      if git rev-parse --show-superproject-working-tree >/dev/null 2>&1 || [ "$(basename "$current_dir")" != "$(basename $(git rev-parse --show-toplevel))" ]; then
+      if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
         echo "📦 In worktree: $current_branch"
 
         # Navigate to main worktree

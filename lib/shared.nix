@@ -20,6 +20,7 @@
       fzf
       gh
       git
+      git-filter-repo
       gnupg
       go
       lua-language-server

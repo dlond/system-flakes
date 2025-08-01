@@ -18,6 +18,7 @@ in {
     ../../modules/tmux.nix
     ../../modules/tmuxp.nix
     ../../modules/zsh.nix
+    ../../modules/git.nix
   ];
 
   home.packages = with pkgs; [
@@ -106,42 +107,6 @@ in {
   };
   xdg.configFile."ghostty/themes/dlond.ghostty" = {
     source = ./themes/dlond.ghostty;
-  };
-
-  programs.git = {
-    enable = true;
-
-    userName = "dlond";
-    userEmail = "dlond@me.com";
-
-    signing =
-      {
-        key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
-        format = "ssh";
-      }
-      // lib.mkIf pkgs.stdenv.isDarwin {
-        signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
-      }
-      // lib.mkIf pkgs.stdenv.isLinux {
-        signer = "";
-      };
-
-    # Common aliases and extraConfig could be moved to common.nix
-    aliases = {
-      co = "checkout";
-      br = "branch";
-      ci = "commit";
-      st = "status";
-      unstage = "reset HEAD --";
-      last = "log -1 HEAD";
-    };
-
-    extraConfig = {
-      init.defaultBranch = "main";
-      core.editor = "nvim";
-      color.ui = true;
-      push.default = "current";
-    };
   };
 
   sops.age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";

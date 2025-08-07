@@ -46,26 +46,17 @@
     extraConfig =
       # ensure default shell is Zsh and spawn it as a login shell
       ''
-        set -g default-shell ${pkgs.zsh}/bin/zsh
         set -g default-command "${pkgs.zsh}/bin/zsh -l"
-      ''
-      # Make sure to use lib.optionalString to convert the conditional to a string
-      + lib.optionalString (config.programs.tmux.prefix == "C-a") ''
-        unbind C-b
       ''
       + lib.optionalString (config.programs.tmux.keyMode == "vi") ''
         bind -T copy-mode-vi 'v' send-keys -X begin-selection
-        # For macOS
-        bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
-        # For Linux (uncomment if you're also using Linux with xclip)
-        # bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -i -selection clipboard"
-        bind -T copy-mode-vi MouseDragEnd1Pane copy-selection
+        bind -T copy-mode-vi 'y' send-keys -X copy-pipe-and-cancel "pbcopy"
+        bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
       ''
       + ''
         # Options that are not directly exposed by Home Manager's programs.tmux module
         # but are common tmux settings.
 
-        setw -g pane-base-index 1
         set -g renumber-windows on
 
         # Automatic renaming
@@ -96,6 +87,13 @@
 
         # Switch sessions with fzf (if fzf is installed)
         bind S run-shell "tmux new-session -A -s \"$(tmux list-sessions -F '#{session_name}' | ${pkgs.fzf}/bin/fzf --query=\"$(tmux display-message -p '#{session_name}')\" --exit-0)\""
+
+        # Clean up child sessions
+        set-hook -g session-closed 'run-shell "tmux ls -F \"#{session_name}\" | rg \"^#{hook_session_name}.*\" | xargs -r tmux kill-session -t"'
+
+        # Reload config for new/attach
+        set-hook -g client-attached 'source-file ${config.home.homeDirectory}/.tmux.conf'
+
       '';
   };
 }

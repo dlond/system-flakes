@@ -161,9 +161,19 @@
 
     extraConfig = {
       init.defaultBranch = "main";
-      core.editor = "nvim";
+
       color.ui = true;
+      core.editor = "nvim";
+      fetch.prune = true;
+      fetch.pruneTags = true;
+      merge.ff = "only";
+      pull.prune = true;
+      pull.rebase = true;
       push.default = "current";
+      rebase.autoSquash = true;
+      rebase.autoStash = true;
+      rebase.updateRefs = true;
+      rerere.enable = true;
     };
   };
 

@@ -180,7 +180,6 @@
 
   xdg.configFile."git/templates/hooks/pre-push" = {
     text = ''
-
       #!/usr/bin/env bash
       while read local_ref local_sha remote_ref remote_sha; do
         branch="#{remote_ref#refs/heads/}"

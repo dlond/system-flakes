@@ -174,6 +174,7 @@
       rebase.autoStash = true;
       rebase.updateRefs = true;
       rerere.enable = true;
+      rerere.autoupdate = true;
     };
   };
 

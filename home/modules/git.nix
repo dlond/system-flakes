@@ -178,16 +178,125 @@
     };
   };
 
+  xdg.configFile."git/templates/hooks/commit-msg" = {
+    text = ''
+      #!/usr/bin/env bash
+
+      msg_file="$1"
+      msg="$(head -n1 "$msg_file")"
+
+      if ! rg -q '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\(.+))?: .+' <<< "$msg"; then
+        echo "🚫 Commit message must start with a valid Conventional Commit prefix:"
+        echo "   feat:, fix:, docs:, style:, refactor:, perf:, test:, chore:, build:, ci:"
+        exit 1
+      fi
+    '';
+    executable = true;
+  };
+
   xdg.configFile."git/templates/hooks/pre-push" = {
     text = ''
       #!/usr/bin/env bash
+
       while read local_ref local_sha remote_ref remote_sha; do
-        branch="#{remote_ref#refs/heads/}"
+        branch="''${remote_ref#refs/heads/}"
         if [[ "$branch" == "main" ]]; then
           echo "🚫 Direct pushes to 'main' are blocked. Even for you, bitch. Open a PR."
           exit 1
         fi
       done
+    '';
+    executable = true;
+  };
+
+  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/bug_report.md".text = ''
+    ---
+    name: Bug report
+    about: Report a bug so we can fix it
+    title: "[BUG] "
+    labels: bug
+    assignees: ""
+    ---
+    **Describe the bug**
+    A clear and concise description.
+
+    **Steps to reproduce**
+    1. Go to '...'
+    2. Click on '...'
+    3. See error
+
+    **Expected behaviour**
+    What you expected to happen.
+
+    **Screenshots/logs**
+    If applicable, add screenshots or logs.
+
+    **Environment**
+    - OS:
+    - Branch/commit:
+    - Other relevant info:
+  '';
+
+  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/feature_request.md".text = ''
+    ---
+    name: Feature request
+    about: Suggest an idea for this project
+    title: "[FEATURE] "
+    labels: enhancement
+    assignees: ""
+    ---
+
+    **Describe the feature**
+    A clear and concise description of what you want.
+
+    **Why is it needed?**
+    Explain the use case.
+
+    **Additional context**
+    Add any other context or mockups.
+  '';
+
+  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/config.yml".text = ''
+    blank_issues_enabled: false
+    contact_links:
+      - name: Ask a question
+        url: https://github.com/dlond/system-flakes/discussions
+        about: Please ask and answer questions here.
+  '';
+
+  xdg.configFile."git/templates/.github/pull_request_template.md".text = ''
+    ## Summary
+    Briefly describe the changes.
+
+    ## Related Issues
+    Closes #<issue-number> <!-- or "Related to" -->
+
+    ## Changes
+    - [ ] Summary of major changes
+    - [ ] Another change
+
+    ## Checklist
+    - [ ] I have rebased onto `main`
+    - [ ] I have run all relevant tests/linters
+    - [ ] I have updated documentation (if applicable)
+  '';
+
+  home.file.".local/bin/get-repo-templates" = {
+    text = ''
+      #!/usr/bin/env bash
+
+      set -euo pipefail
+
+      repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+      if [[ -z "$repo_root" ]]; then
+        echo "Not in a git repo." >&2; exit 1
+      fi
+
+      src="$HOME/.config/git/templates/.github"
+      dst="$repo_root"
+      mkdir -p "$dst"
+      rsync -a --delete "$src" "$dst"
+      echo "✅ Templates copied to $dst"
     '';
     executable = true;
   };

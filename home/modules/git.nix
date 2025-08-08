@@ -160,12 +160,12 @@
     };
 
     extraConfig = {
-      init.defaultBranch = "main";
-
       color.ui = true;
       core.editor = "nvim";
       fetch.prune = true;
       fetch.pruneTags = true;
+      init.defaultBranch = "main";
+      init.templateDir = "${config.home.homeDirectory}/.config/git/templates";
       merge.ff = "only";
       pull.prune = true;
       pull.rebase = true;
@@ -173,9 +173,24 @@
       rebase.autoSquash = true;
       rebase.autoStash = true;
       rebase.updateRefs = true;
-      rerere.enable = true;
       rerere.autoupdate = true;
+      rerere.enable = true;
     };
+  };
+
+  xdg.configFile."git/templates/hooks/pre-push" = {
+    text = ''
+
+      #!/usr/bin/env bash
+      while read local_ref local_sha remote_ref remote_sha; do
+        branch="#{remote_ref#refs/heads/}"
+        if [[ "$branch" == "main" ]]; then
+          echo "🚫 Direct pushes to 'main' are blocked. Even for you, bitch. Open a PR."
+          exit 1
+        fi
+      done
+    '';
+    executable = true;
   };
 
   home.file.".local/bin/gwt-new" = {

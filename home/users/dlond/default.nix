@@ -100,7 +100,8 @@ in {
       font-size = 13
       theme = dlond.ghostty
 
-      working-directory = "${config.home.homeDirectory}"
+      working-directory = "${config.home.homeDirectory}/dev"
+      window-inherit-working-directory = false
 
       keybind = global:option+space=toggle_quick_terminal
     '';

@@ -21,6 +21,7 @@
       gh
       git
       git-filter-repo
+      glow
       gnupg
       go
       lua-language-server
@@ -36,6 +37,8 @@
       ripgrep
       ruff
       rustup
+      shellcheck
+      shfmt
       sops
       stylua
       texlab
@@ -44,6 +47,7 @@
       tree
       tree-sitter
       wget
+      whatsapp-for-mac
       yq
       zoxide
       zsh-fzf-tab

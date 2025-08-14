@@ -1,10 +1,15 @@
 {
+  config,
+  lib,
+  ...
+}: {
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
+    defaultCommand = "find . -type f";
     defaultOptions = [
       "--ansi"
-      "--bind=ctrl-n:down,ctrl-p:up,ctrl-y:accept,tab:down,shift-tab:toggle+down,enter:accept"
+      "--bind='ctrl-n:down,ctrl-p:up,tab:down,ctrl-e:execute-silent(echo {+} | pbcopy)+abort,ctrl-w:become(nvim {+}),ctrl-y:accept,enter:accept,shift-tab:toggle+down'"
       "--border"
       "--color=16"
       "--color=fg+:#ffffff,bg+:#262626,hl+:#ff5f5f"
@@ -19,9 +24,21 @@
       "--multi"
       "--pointer=▶"
       "--preview-window=right:50%"
-      "--preview='bat --style=numbers --color=always {}'"
-      "--prompt=❯ "
+      "--prompt=❯"
       "--smart-case"
+    ];
+
+    # Use separate options for complex commands to avoid escaping issues
+    changeDirWidgetOptions = [
+      "--preview=eza {}"
+    ];
+
+    fileWidgetOptions = [
+      "--preview=bat {}"
+    ];
+
+    historyWidgetOptions = [
+      "--preview=echo {}"
     ];
   };
 }

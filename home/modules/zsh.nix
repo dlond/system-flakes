@@ -16,10 +16,9 @@
       tree = "eza --tree";
       cat = "bat";
       sf = ''
-        fzf -m --preview="bat --color=always {}" \
-          --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {} | pbcopy)+abort"
+        fzf --multi --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {+} | pbcopy)+abort"
       '';
-      firefox = ''open -a "Firefox" --args'';
+      firefox = "open -a \"Firefox\" --args";
       ndiff = "nvim -d";
     };
 
@@ -71,10 +70,42 @@
       if [[ -n "$LS_COLORS" ]]; then
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
       fi
-      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down,ctrl-p:up,ctrl-y:accept,tab:ignore,enter:ignore';
+
       zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
       zstyle ':completion:*' menu no
+      zstyle ':completion:*:git-checkout:*' sort false
+
+      # safe baseline for ALL fzf-tab popups (visuals only)
+      zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse --border --ansi \
+        --color=16 \
+        --color=fg:#d0d0d0,bg:#1c1c1c,hl:#d75f5f \
+        --color=fg+:#ffffff,bg+:#262626,hl+:#ff5f5f \
+        --color=info:#af87ff,prompt:#5f87ff,pointer:#ffaf00 \
+        --color=marker:#ffff00,spinner:#5f87ff,header:#87af5f \
+        --pointer=▶ --marker=✓ --info=inline
+
+      # limp mode for emergencies
+      # zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse --border
+
+
+      # groups activated
+      zstyle ':fzf-tab:*' group
+      zstyle ':fzf-tab:*' group-order 'directories' 'files' 'hidden-directories' 'hidden-files'
+
+      # keybinds
+      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down,ctrl-p:up,ctrl-y:accept:,tab:down,shift-tab:toggle+down,enter:accept'
+
+      # completions
+      # fuzzy
+      # zstyle ':fzf-tab:complete:*' fzf-flags --height=40% --layout=reverse --border --ansi
+      # exact, case sensitive
+      zstyle ':fzf-tab:complete:*' fzf-flags --height=40% --layout=reverse --border --ansi --color=16 --exact +i
+      # raw and fast
+      # zstyle ':fzf-tab:complete:*' fzf-flags "--height=40% --layout=reverse --border --exact +i --info=inline"
+
+      # per-completer previews using fzf-tab’s preview mechanism (safe)
       zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color $realpath'
+      zstyle ':fzf-tab:complete:git-checkout:*' fzf-preview 'git log --oneline --decorate --color=always -n 20 -- $word'
 
       autoload -z edit-command-line
       zle -N edit-command-line

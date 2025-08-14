@@ -437,7 +437,6 @@
          return 1
         }
 
-
         echo "✅ Worktree created successfully!"
         echo "📁 Path: $folder_path"
         echo "🌿 Branch: $branch_name"

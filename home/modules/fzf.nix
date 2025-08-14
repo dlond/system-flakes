@@ -24,6 +24,7 @@
       "--multi"
       "--pointer=▶"
       "--preview-window=right:50%"
+      "--preview='if [ -d {} ]; then eza {}; else bat {}; fi'"
       "--prompt=❯"
       "--smart-case"
     ];

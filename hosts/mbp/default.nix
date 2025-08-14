@@ -74,10 +74,12 @@ in {
       "claude"
       "claude-code"
       "ghostty"
+      "messenger"
       "mullvad-vpn"
       "steam"
       "tor-browser"
       "vlc"
+      "whatsapp"
     ];
   };
 }

@@ -14,24 +14,17 @@ in {
 
   imports = [
     sops-nix.homeManagerModules.sops
+    ../../modules/fzf.nix
+    ../../modules/git.nix
     ../../modules/nish.nix
     ../../modules/tmux.nix
     ../../modules/tmuxp.nix
     ../../modules/zsh.nix
-    ../../modules/git.nix
   ];
 
   home.packages = with pkgs; [
     oh-my-posh
   ];
-
-  programs.fzf = {
-    enable = true;
-    enableZshIntegration = true;
-    defaultOptions = [
-      "--bind=ctrl-n:down,ctrl-p:up,ctrl-y:accept"
-    ];
-  };
 
   programs.zoxide = {
     enable = true;

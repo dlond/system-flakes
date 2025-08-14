@@ -92,20 +92,18 @@
       zstyle ':fzf-tab:*' group
       zstyle ':fzf-tab:*' group-order 'directories' 'files' 'hidden-directories' 'hidden-files'
 
-      # keybinds
-      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down,ctrl-p:up,ctrl-y:accept:,tab:down,shift-tab:toggle+down,enter:accept'
+      # Simple fzf-tab setup
+      zstyle ':fzf-tab:*' show-group full
+      zstyle ':fzf-tab:*' prefix ""
+      zstyle ':fzf-tab:*' single-group prefix color header
+      
+      # Full keybinds to match fzf  
+      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:down' 'shift-tab:toggle+down' 'ctrl-e:execute-silent(echo {+} | pbcopy)+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
+      
+      # Enable preview for all
+      zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'
 
-      # completions
-      # fuzzy
-      # zstyle ':fzf-tab:complete:*' fzf-flags --height=40% --layout=reverse --border --ansi
-      # exact, case sensitive
-      zstyle ':fzf-tab:complete:*' fzf-flags --height=40% --layout=reverse --border --ansi --color=16 --exact +i
-      # raw and fast
-      # zstyle ':fzf-tab:complete:*' fzf-flags "--height=40% --layout=reverse --border --exact +i --info=inline"
-
-      # per-completer previews using fzf-tab’s preview mechanism (safe)
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color $realpath'
-      zstyle ':fzf-tab:complete:git-checkout:*' fzf-preview 'git log --oneline --decorate --color=always -n 20 -- $word'
+      # Remove problematic preview for now
 
       autoload -z edit-command-line
       zle -N edit-command-line

@@ -6,14 +6,14 @@
   nvim-config,
   catppuccin-bat,
   ...
-}: let
-in {
+}: {
   home.stateVersion = "25.11";
   home.username = "dlond";
   home.homeDirectory = "/Users/dlond";
 
   imports = [
     sops-nix.homeManagerModules.sops
+    ../../modules/fzf-shared.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/nish.nix

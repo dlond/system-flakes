@@ -9,6 +9,7 @@
     inherit pkgs;
     lib = pkgs.lib;
   };
+  nix_netrc = "/etc/nix/netrc";
 in {
   environment.systemPackages =
     shared.sharedCliTools
@@ -45,6 +46,24 @@ in {
     #     tmuxp load "$HOME/.tmuxp/last-session.yaml" || echo "⚠️ Failed to restore tmux layout"
     #   fi
     # '';
+  };
+
+  sops.age = {
+    generateKey = true;
+    keyFile = "/var/lib/sops/age/key.txt";
+  };
+
+  sops.secrets.github_netrc = {
+    sopsFile = ../../secrets/github-netrc.yaml;
+    path = "${nix_netrc}";
+    mode = "0644";
+    owner = "root";
+    group = "wheel";
+  };
+
+  nix.settings = {
+    netrc-file = "${nix_netrc}";
+    trusted-users = ["root" "dlond"];
   };
 
   security.pam.services.sudo_local.touchIdAuth = true;

@@ -1,3 +1,6 @@
 creation_rules:
-  - path_regex: secrets/.*\.yaml
-    age: "age1dp3036adwyy96d4ksjw5c43s3umy2q687ymlmr5f046vslzed9jslp3c36"
+  - path_regex: '^secrets/.*\.ya?ml$'
+    key_groups:
+      - age:
+        - age16wrxyk90pw0xj7alkt7e9a43tcje02pj5vmv2gzv9a8l7rv03vhqd9p4pn # system
+        - age1dp3036adwyy96d4ksjw5c43s3umy2q687ymlmr5f046vslzed9jslp3c36 # dlond

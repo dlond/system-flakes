@@ -295,7 +295,7 @@
       src="$HOME/.config/git/templates/.github"
       dst="$repo_root"
       mkdir -p "$dst"
-      rsync -a --delete "$src" "$dst"
+      rsync -a "$src" "$dst"
       echo "✅ Templates copied to $dst"
     '';
     executable = true;

@@ -9,7 +9,6 @@
     shell = "${pkgs.zsh}/bin/zsh";
     terminal = "tmux-256color";
     historyLimit = 100000;
-    prefix = "C-a";
     mouse = true;
     keyMode = "vi";
     escapeTime = 10;
@@ -83,7 +82,12 @@
         bind -r L resize-pane -R 5
 
         # Sync panes
-        bind e set-window-option synchronize-panes
+        # bind e set-window-option synchronize-panes
+
+        # _E_ven splits
+        bind e select-layout even-horizontal
+        bind E select-layout even-vertical
+        bind t select-layout tiled
 
         # Switch sessions with fzf (if fzf is installed)
         bind S run-shell "tmux new-session -A -s \"$(tmux list-sessions -F '#{session_name}' | ${pkgs.fzf}/bin/fzf --query=\"$(tmux display-message -p '#{session_name}')\" --exit-0)\""

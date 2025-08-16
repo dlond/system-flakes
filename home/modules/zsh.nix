@@ -17,6 +17,7 @@
       cat = "bat";
       firefox = "open -a \"Firefox\" --args";
       ndiff = "nvim -d";
+      tail = "tail -F";
     };
 
     history = {

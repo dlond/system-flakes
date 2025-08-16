@@ -15,9 +15,6 @@
       lh = "eza -la --header --git --icons --group-directories-first | grep '^\\.'";
       tree = "eza --tree";
       cat = "bat";
-      sf = ''
-        fzf --multi --bind "ctrl-w:become(nvim {+}),ctrl-y:execute-silent(echo {+} | pbcopy)+abort"
-      '';
       firefox = "open -a \"Firefox\" --args";
       ndiff = "nvim -d";
     };
@@ -96,10 +93,10 @@
       zstyle ':fzf-tab:*' show-group full
       zstyle ':fzf-tab:*' prefix ""
       zstyle ':fzf-tab:*' single-group prefix color header
-      
-      # Full keybinds to match fzf  
+
+      # Full keybinds to match fzf
       zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:down' 'shift-tab:toggle+down' 'ctrl-e:execute-silent(echo {+} | pbcopy)+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
-      
+
       # Enable preview for all
       zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'
 

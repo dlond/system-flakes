@@ -10,6 +10,7 @@
       bash
       bat
       brave
+      chatgpt
       clang-tools
       cmake-language-server
       curl

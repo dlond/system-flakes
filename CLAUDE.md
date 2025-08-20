@@ -31,13 +31,32 @@ This repository uses Nix Flakes for system configuration management. Key command
 
 ### System Updates and Rebuilds
 - `nix flake update` - Update all flake inputs (nixpkgs, home-manager, nvim-config, etc.)
-- `darwin-rebuild switch --flake .#mbp` - Apply Darwin system configuration changes (macOS)
+- `nish build` - Build configuration without switching (safe testing!)
+- `darwin-rebuild build --flake .#mbp` - Alternative build command
+- `darwin-rebuild switch --flake .#mbp` - Apply Darwin system configuration changes (macOS) - SUPERVISOR ONLY
 - `home-manager switch --flake .#dlond@linux` - Apply Home Manager configuration (Linux)
 
 ### Configuration Management
 - Neovim configuration is managed via external flake input from `github:dlond/nvim`
 - System rebuilds automatically link updated Neovim config to `~/.config/nvim`
 - Always commit `flake.lock` changes after running `nix flake update`
+
+## Project Scope & Responsibilities
+
+### What This Project Owns
+- **System configuration**: Nix Darwin for macOS, Home Manager for Linux
+- **Developer tools**: nvdev, git aliases (gwt-*, wt), shell functions
+- **Collaborative environments**: tmuxp configurations (dev-full.json)
+- **Package management**: System-wide tools and languages
+- **Shell environment**: zsh, direnv, starship configurations
+- **Editor tools**: Integration scripts for nvim testing
+
+### Tools We Provide
+- **nvdev**: Test nvim configurations in isolation (now uses $PWD!)
+- **gwt-new**: Create worktrees from GitHub issues
+- **gwt-done**: Safe worktree cleanup after PR merge
+- **wt**: Interactive worktree switcher
+- **dev-full**: tmuxp config for human-Claude collaboration
 
 ## Architecture Overview
 
@@ -66,6 +85,20 @@ This is a multi-platform Nix configuration that manages:
 - `darwinConfigurations.mbp` - macOS system (aarch64-darwin)
 - `homeConfigurations."dlond@linux"` - Linux home environment (aarch64-linux)
 
+## Integration with Other Projects
+
+### Dependencies
+- **Consumes from nvim**: Configuration via flake input
+- **Provides to nvim**: nvdev testing tool, LSP servers via Nix
+- **Provides to all projects**: Git workflow aliases, development tools
+
+### Cross-Project Coordination
+When making changes that affect tools:
+1. Consider impact on nvim testing workflow
+2. Ensure git aliases work across all project types
+3. Test tmuxp configs with actual Claude sessions
+4. Verify LSP servers are available for nvim
+
 ## Important Workflows
 
 When updating Neovim configuration:
@@ -90,6 +123,30 @@ The workflow integrates with the git configuration in `home/modules/git.nix` whi
 - GitHub CLI integration (`gpr`, `gpm`, `ghc`)
 - Branch cleanup and maintenance
 - Pre-push hooks to prevent direct pushes to main
+
+## When No Active Issues (Stay Productive!)
+
+Never be idle! If waiting for PR reviews or between tasks:
+
+### Continuous Integration
+- **Build test**: Run `nish build` - should ALWAYS build without errors
+- **PR maintenance**: Keep all open PRs rebased against main
+- **Flake updates**: Check if any inputs need updating with `nix flake update --dry-run`
+- **Module verification**: Test individual modules still evaluate correctly
+
+### Proactive Maintenance
+- **Tool testing**: Verify gwt-*, nvdev, and other tools work correctly
+- **tmuxp configs**: Test dev-full.json launches properly
+- **Dependency check**: Ensure all required packages are present
+- **Performance**: Check rebuild times, optimize if needed
+- **Documentation**: Update configuration comments and CLAUDE.md
+
+### Quality Assurance
+- Every PR should be:
+  - Rebased on latest main
+  - Building successfully with `nish build`
+  - Tested for the specific feature/fix
+  - Ready for immediate merge
 
 ## Development Practices
 

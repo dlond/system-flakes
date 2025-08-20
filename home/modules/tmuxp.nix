@@ -21,7 +21,7 @@ let
           }
           {
             shell_command = [
-              "echo 'good morning' | claude"
+              "claude"
             ];
           }
           {

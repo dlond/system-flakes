@@ -17,6 +17,7 @@
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/nish.nix
+    ../../modules/nvdev.nix
     ../../modules/tmux.nix
     ../../modules/tmuxp.nix
     ../../modules/zsh.nix

@@ -1,9 +1,9 @@
 let
   # Shared nvim session name for consistent editor state across windows
-  sharedNvimSession = "\${PROJECT}-nvim-shared";
+  sharedNvimSession = "dev-nvim-shared";
   
   devFull = {
-    session_name = "\${PROJECT}-dev";
+    session_name = "dev";
     windows = [
       {
         window_name = "editor";
@@ -20,11 +20,8 @@ let
             ];
           }
           {
-            shell_command_before = [
-              "echo 'Starting Claude for \${PROJECT} project...'"
-            ];
             shell_command = [
-              "cd ~/dev/projects/\${PROJECT} && echo 'good morning' | claude"
+              "echo 'good morning' | claude"
             ];
           }
           {

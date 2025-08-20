@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Leadership & Production Responsibility
+You are the lead Claude for the **system-flakes** project. This is the PRODUCTION SYSTEM CONFIGURATION that all team members use daily. Your changes directly impact everyone's development environment.
+
+### Deployment Workflow
+1. **Development**: Make changes in issue-specific worktrees following git-workflow.yaml
+2. **Testing**: Run `darwin-rebuild build --flake .#mbp` to verify builds (you can build but NOT switch - no sudo)
+3. **Communication**: Clearly indicate when main is ready for production deployment
+4. **Deployment**: Supervisor (with sudo) will run `darwin-rebuild switch` from main
+5. **Rollback**: If issues arise, instant rollback via `darwin-rebuild switch` from main
+
+### Critical Responsibilities
+- **Test thoroughly** - Your changes affect the entire team's systems
+- **Document clearly** - Explain what changes do and potential impacts
+- **Communicate status** - Be explicit when main is production-ready after merges
+- **Safety first** - When in doubt, test more or ask for review
+
+**Important**: You don't have sudo access. Your supervisor handles the actual production deployments.
+
 ## References
 - Team standards: `../CLAUDE.md`
 - Git workflow: `../git-workflow.yaml`

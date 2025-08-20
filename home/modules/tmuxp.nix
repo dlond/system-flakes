@@ -1,9 +1,9 @@
 let
   # Shared nvim session name for consistent editor state across windows
-  sharedNvimSession = "$\{PROJECT\}-nvim-shared";
+  sharedNvimSession = "\${PROJECT}-nvim-shared";
   
   devFull = {
-    session_name = "$\{PROJECT\}-dev";
+    session_name = "\${PROJECT}-dev";
     windows = [
       {
         window_name = "editor";
@@ -20,10 +20,16 @@ let
             ];
           }
           {
-            shell_command = ["claude"];
+            shell_command_before = [
+              "echo 'Starting Claude for \${PROJECT} project...'"
+            ];
+            shell_command = [
+              "cd ~/dev/projects/\${PROJECT} && echo 'good morning' | claude"
+            ];
           }
           {
-            shell_command = ["zsh"];
+            # Bottom pane - just a shell, no need to launch zsh explicitly
+            shell_command = [];
           }
         ];
       }
@@ -46,8 +52,20 @@ let
           }
         ];
       }
+      {
+        window_name = "status";
+        layout = "even-horizontal";
+        panes = [
+          {
+            shell_command = ["watch -n 30 'gh issue list --state open --limit 5'"];
+          }
+          {
+            shell_command = ["watch -n 30 'gh pr list --state all --limit 5'"];
+          }
+        ];
+      }
     ];
   };
 in {
-  xdg.configFile."tmuxp/devFull.json".text = builtins.toJSON devFull;
+  xdg.configFile."tmuxp/dev-full.json".text = builtins.toJSON devFull;
 }

@@ -16,6 +16,7 @@
     ../../modules/fzf-shared.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
+    ../../modules/github-automation.nix
     ../../modules/nish.nix
     ../../modules/nvdev.nix
     ../../modules/tmux.nix

@@ -49,18 +49,6 @@ let
           }
         ];
       }
-      {
-        window_name = "status";
-        layout = "even-horizontal";
-        panes = [
-          {
-            shell_command = ["watch -n 30 'gh issue list --state open --limit 5'"];
-          }
-          {
-            shell_command = ["watch -n 30 'gh pr list --state all --limit 5'"];
-          }
-        ];
-      }
     ];
   };
 in {

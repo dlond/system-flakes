@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## References
+- Team standards: `../CLAUDE.md`
+- Git workflow: `../git-workflow.yaml`
+- Development practices: `../development-practices.yaml`
+
 ## Development Commands
 
 This repository uses Nix Flakes for system configuration management. Key commands:

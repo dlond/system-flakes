@@ -28,7 +28,7 @@
 
   programs.zoxide = {
     enable = true;
-    enableZshIntegration = true;
+    enableZshIntegration = false;  # We'll manually init at the end of zshrc
     options = ["--cmd cd"];
   };
 

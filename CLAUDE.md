@@ -56,3 +56,29 @@ When updating Neovim configuration:
 3. Run `nix flake update` to pull latest nvim-config
 4. Rebuild system configuration
 5. Commit updated `flake.lock`
+
+## Git Workflow
+
+This project follows the standardized git workflow documented at: `../git-workflow.yaml`
+
+Key principles:
+- Never work directly on main branch
+- Issue-driven development with `gh issue create`
+- Always use worktrees for feature development (`gwt-new <issue-number>`)
+- Complete cleanup after merge (`gwt-done`)
+
+The workflow integrates with the git configuration in `home/modules/git.nix` which provides aliases and automation for:
+- Worktree management (`gwt-new`, `gwt-done`, `gwt-clean`)
+- GitHub CLI integration (`gpr`, `gpm`, `ghc`)
+- Branch cleanup and maintenance
+- Pre-push hooks to prevent direct pushes to main
+
+## Development Practices
+
+Claude Code instances should follow the development practices documented at: `../development-practices.yaml`
+
+This includes:
+- Task management with TodoWrite for multi-step operations
+- Tool usage patterns and batching for efficient operations
+- Debugging approaches and common bug patterns
+- Code quality standards and communication guidelines

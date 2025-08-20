@@ -114,6 +114,9 @@
         precmd_functions=()
       fi
       precmd_functions+=(_update_omp_dirstack_count)
+
+      # Initialize zoxide at the very end to avoid configuration warnings
+      eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
     '';
   };
 }

@@ -13,7 +13,7 @@
       set -e
       
       REPO_PATH="''${1:-.}"
-      TEMPLATES_DIR="${./../../templates}"
+      TEMPLATES_DIR="$HOME/.config/github-automation/templates"
       
       # Colors for output
       RED='\033[0;31m'

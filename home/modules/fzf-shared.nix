@@ -2,13 +2,10 @@
   config,
   lib,
   pkgs,
+  shared,
   ...
 }: let
   cfg = config.my.fzf;
-  clip =
-    if pkgs.stdenv.isDarwin
-    then "pbcopy"
-    else "xclip -selection clipboard";
 in {
   options.my.fzf = {
     navBindings = lib.mkOption {
@@ -27,7 +24,7 @@ in {
     actionBindings = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "ctrl-e:execute-silent(echo {+} | ${clip})+abort" # copy selection(s) to clipboard
+        "ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort" # copy selection(s) to clipboard
         "ctrl-w:become(nvim {+})" # open in neovim
         "ctrl-y:accept" # accept selection(s)
         "enter:accept" # accept selection(s)

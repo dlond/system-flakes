@@ -112,8 +112,11 @@ When updating Neovim configuration:
 
 This project follows the standardized git workflow documented at: `../git-workflow.yaml`
 
+**⚠️ CRITICAL REMINDER**: NEVER push directly to main! ALWAYS use worktrees and PRs. This is production configuration that affects all team members.
+
 Key principles:
 - Never work directly on main branch
+- NEVER push directly to main (no exceptions for this repo!)
 - Issue-driven development with `gh issue create`
 - Always use worktrees for feature development (`gwt-new <issue-number>`)
 - Complete cleanup after merge (`gwt-done`)

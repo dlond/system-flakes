@@ -61,4 +61,13 @@
 
   forDarwin = lib.mkIf pkgs.stdenv.isDarwin;
   forLinux = lib.mkIf pkgs.stdenv.isLinux;
+  
+  # Platform-specific clipboard command
+  # Used by fzf, tmux, and zsh configurations
+  clipboardCommand =
+    if pkgs.stdenv.isDarwin
+    then "pbcopy"
+    else if pkgs.stdenv.isLinux
+    then "xclip -selection clipboard"
+    else "clip";  # Fallback for Windows/WSL
 }

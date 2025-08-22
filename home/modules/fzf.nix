@@ -2,20 +2,16 @@
   config,
   lib,
   pkgs,
+  shared,
   ...
-}: let
-  clip =
-    if pkgs.stdenv.isDarwin
-    then "pbcopy"
-    else "xclip -selection clipboard";
-in {
+}: {
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
     defaultCommand = "find . -type f";
     defaultOptions = [
       "--ansi"
-      "--bind='ctrl-n:down,ctrl-p:up,tab:down,ctrl-e:execute-silent(echo {+} | ${clip})+abort,ctrl-w:become(nvim {+}),ctrl-y:accept,enter:accept,shift-tab:toggle+down'"
+      "--bind='ctrl-n:down,ctrl-p:up,tab:down,ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort,ctrl-w:become(nvim {+}),ctrl-y:accept,enter:accept,shift-tab:toggle+down'"
       "--border"
       "--color=16"
       "--color=fg+:#ffffff,bg+:#262626,hl+:#ff5f5f"

@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  shared,
   ...
 }: {
   programs.tmux = {
@@ -49,8 +50,8 @@
       ''
       + lib.optionalString (config.programs.tmux.keyMode == "vi") ''
         bind -T copy-mode-vi 'v' send-keys -X begin-selection
-        bind -T copy-mode-vi 'y' send-keys -X copy-pipe-and-cancel "clip"
-        bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "clip"
+        bind -T copy-mode-vi 'y' send-keys -X copy-pipe-and-cancel "${shared.clipboardCommand}"
+        bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${shared.clipboardCommand}"
       ''
       + ''
         # Options that are not directly exposed by Home Manager's programs.tmux module

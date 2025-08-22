@@ -200,8 +200,9 @@
 
       while read local_ref local_sha remote_ref remote_sha; do
         branch="''${remote_ref#refs/heads/}"
-        if [[ "$branch" == "main" ]]; then
-          echo "🚫 Direct pushes to 'main' are blocked. Even for you, bitch. Open a PR."
+        if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+          echo "🚫 Direct pushes to '$branch' are blocked. Create a PR instead!"
+          echo "Use: gh pr create --fill"
           exit 1
         fi
       done

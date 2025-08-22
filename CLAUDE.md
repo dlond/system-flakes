@@ -21,9 +21,10 @@ You are the lead Claude for the **system-flakes** project. This is the PRODUCTIO
 **Important**: You don't have sudo access. Your supervisor handles the actual production deployments.
 
 ## References
-- Team standards: `../CLAUDE.md`
-- Git workflow: `../git-workflow.yaml`
-- Development practices: `../development-practices.yaml`
+Team practices are maintained in the [system-tools-practices](https://github.com/dlond/system-tools-practices) repository:
+- Team standards: See `CLAUDE.md` in system-tools-practices
+- Git workflow: See `workflows/git-workflow.yaml`
+- Development practices: See `workflows/development-practices.yaml`
 
 ## Development Commands
 
@@ -110,7 +111,7 @@ When updating Neovim configuration:
 
 ## Git Workflow
 
-This project follows the standardized git workflow documented at: `../git-workflow.yaml`
+This project follows the standardized git workflow documented in system-tools-practices.
 
 **⚠️ CRITICAL REMINDER**: NEVER push directly to main! ALWAYS use worktrees and PRs. This is production configuration that affects all team members.
 
@@ -120,6 +121,11 @@ Key principles:
 - Issue-driven development with `gh issue create`
 - Always use worktrees for feature development (`gwt-new <issue-number>`)
 - Complete cleanup after merge (`gwt-done`)
+
+### Project Location Convention
+- **All projects live in**: `~/dev/projects/`
+- **Worktrees go in**: `~/dev/worktrees/<project-name>/<issue-number>-description`
+- This includes system-flakes, nvim, system-tools-practices, and all other team projects
 
 The workflow integrates with the git configuration in `home/modules/git.nix` which provides aliases and automation for:
 - Worktree management (`gwt-new`, `gwt-done`, `gwt-clean`)
@@ -153,10 +159,27 @@ Never be idle! If waiting for PR reviews or between tasks:
 
 ## Development Practices
 
-Claude Code instances should follow the development practices documented at: `../development-practices.yaml`
+Claude Code instances should follow the development practices documented in the system-tools-practices repository.
 
 This includes:
 - Task management with TodoWrite for multi-step operations
 - Tool usage patterns and batching for efficient operations
 - Debugging approaches and common bug patterns
 - Code quality standards and communication guidelines
+
+## Claude-Specific Environment Notes
+
+### Shell Environment Differences
+- **Zoxide warnings**: Claude sessions may show zoxide configuration warnings that don't appear for human users
+- **Fix deployment**: Changes to ~/.zshrc require `darwin-rebuild switch` to take effect for Claude (can't just source)
+- **Environment variables**: Setting variables like `_ZO_DOCTOR=0` may not persist across command invocations
+
+### Git Hook Enforcement
+- **Pre-push hooks**: Templates in `~/.config/git/templates/hooks/` are correct but may not be in existing repos
+- **Manual fix needed**: Run `git init` in existing repos to update hooks from templates
+- **Verification**: Check `.git/hooks/pre-push` exists and has correct syntax
+
+### PR Review Best Practices
+- **Use API for comments**: `gh pr view --comments` is unreliable
+- **Preferred method**: `gh api repos/<owner>/<repo>/pulls/<PR#>/comments`
+- **Three comment types**: Issue comments, review comments, and reviews each have different endpoints

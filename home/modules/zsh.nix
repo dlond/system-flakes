@@ -3,7 +3,12 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  clip =
+    if pkgs.stdenv.isDarwin
+    then "pbcopy"
+    else "xclip -selection clipboard";
+in {
   programs.zsh = {
     enable = true;
     defaultKeymap = "viins";
@@ -18,6 +23,7 @@
       firefox = "open -a \"Firefox\" --args";
       ndiff = "nvim -d";
       tail = "tail -F";
+      clip = clip;
     };
 
     history = {
@@ -101,7 +107,7 @@
       zstyle ':fzf-tab:*' single-group prefix color header
 
       # Full keybinds to match fzf
-      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:down' 'shift-tab:toggle+down' 'ctrl-e:execute-silent(echo {+} | pbcopy)+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
+      zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:down' 'shift-tab:toggle+down' 'ctrl-e:execute-silent(echo {+} | ${clip})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
 
       # Enable preview for all
       zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'

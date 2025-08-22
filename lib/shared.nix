@@ -15,6 +15,7 @@
       cmake-language-server
       curl
       delta
+      discord-ptb
       eza
       fd
       firefox

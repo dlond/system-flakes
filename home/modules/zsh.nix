@@ -54,7 +54,12 @@
       }
     ];
 
-    initContent = ''
+    initContent = lib.mkMerge [
+      (lib.mkBefore ''
+        # Disable zoxide doctor warning since Home Manager adds integrations after our init
+        export _ZO_DOCTOR=0
+      '')
+      ''
       # shell options
       setopt globdots
       setopt pushd_silent
@@ -114,9 +119,10 @@
         precmd_functions=()
       fi
       precmd_functions+=(_update_omp_dirstack_count)
-
-      # Initialize zoxide at the very end to avoid configuration warnings
+      
+      # Initialize zoxide (warning disabled in initExtraFirst)
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
-    '';
+      ''
+    ];
   };
 }

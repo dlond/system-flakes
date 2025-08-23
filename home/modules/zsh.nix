@@ -58,7 +58,7 @@
 
     initContent = lib.mkMerge [
       (lib.mkBefore ''
-        # Disable zoxide doctor warning since Home Manager adds integrations after our init
+        # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
       '')
       ''
@@ -121,10 +121,14 @@
         precmd_functions=()
       fi
       precmd_functions+=(_update_omp_dirstack_count)
-      
-      # Initialize zoxide (warning disabled in initExtraFirst)
-      eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
       ''
+      # Zoxide MUST be initialized at the very end to avoid configuration warnings
+      # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)
+      # See: https://github.com/nix-community/home-manager/pull/6572
+      (lib.mkOrder 2000 ''
+        # Initialize zoxide with cd command replacement
+        eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
+      '')
     ];
   };
 }

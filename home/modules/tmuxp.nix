@@ -71,57 +71,7 @@ let
     # Load the generated config
     tmuxp load /tmp/tmuxp-''${PROJECT_NAME}.json
   '';
-  
-  # Keep the static dev-full.json for backward compatibility
-  # But it will use "dev" as session name
-  devFull = {
-    session_name = "dev";
-    windows = [
-      {
-        window_name = "editor";
-        layout = "0171,215x60,0,0[215x44,0,0{139x44,0,0,0,75x44,140,0,2},215x15,0,45,1]";
-        panes = [
-          {
-            shell_command_before = [
-              "tmux has-session -t \"dev-nvim-shared\" 2>/dev/null || tmux new-session -d -s \"dev-nvim-shared\" nvim ."
-            ];
-            shell_command = [
-              "TMUX= tmux attach-session -t \"dev-nvim-shared\" || nvim ."
-            ];
-          }
-          {
-            shell_command = [
-              "claude"
-            ];
-          }
-          {
-            shell_command = [];
-          }
-        ];
-      }
-      {
-        window_name = "side-by-side";
-        layout = "e5e0,215x60,0,0{107x60,0,0,3,107x60,108,0,4}";
-        panes = [
-          {
-            shell_command_before = [
-              "tmux has-session -t \"dev-nvim-shared\" 2>/dev/null || tmux new-session -d -s \"dev-nvim-shared\" nvim ."
-            ];
-            shell_command = [
-              "TMUX= tmux attach-session -t \"dev-nvim-shared\" || nvim ."
-            ];
-          }
-          {
-            shell_command = ["tmux ls"];
-          }
-        ];
-      }
-    ];
-  };
 in {
   # Install the tmuxp-project script
   home.packages = [ tmuxpProjectScript ];
-  
-  # Keep backward compatibility with dev-full.json
-  xdg.configFile."tmuxp/dev-full.json".text = builtins.toJSON devFull;
 }

@@ -46,7 +46,7 @@ This repository uses Nix Flakes for system configuration management. Key command
 ### What This Project Owns
 - **System configuration**: Nix Darwin for macOS, Home Manager for Linux
 - **Developer tools**: nvdev, git aliases (gwt-*, wt), shell functions
-- **Collaborative environments**: tmuxp configurations (dev-full.json)
+- **Collaborative environments**: tmuxp configurations (project-based)
 - **Package management**: System-wide tools and languages
 - **Shell environment**: zsh, direnv, starship configurations
 - **Editor tools**: Integration scripts for nvim testing
@@ -56,8 +56,7 @@ This repository uses Nix Flakes for system configuration management. Key command
 - **gwt-new**: Create worktrees from GitHub issues
 - **gwt-done**: Safe worktree cleanup after PR merge
 - **wt**: Interactive worktree switcher
-- **tmuxp-project**: Dynamic tmuxp sessions named by current project
-- **dev-full**: tmuxp config for human-Claude collaboration (legacy, uses "dev")
+- **tmuxp-project**: Dynamic tmuxp sessions named by current project for human-Claude collaboration
 
 ## Architecture Overview
 
@@ -140,7 +139,7 @@ Never be idle! If waiting for PR reviews or between tasks:
 
 ### Proactive Maintenance
 - **Tool testing**: Verify gwt-*, nvdev, and other tools work correctly
-- **tmuxp configs**: Test dev-full.json launches properly
+- **tmuxp configs**: Test tmuxp-project launches properly
 - **Dependency check**: Ensure all required packages are present
 - **Performance**: Check rebuild times, optimize if needed
 - **Documentation**: Update configuration comments and CLAUDE.md

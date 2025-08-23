@@ -56,7 +56,8 @@ This repository uses Nix Flakes for system configuration management. Key command
 - **gwt-new**: Create worktrees from GitHub issues
 - **gwt-done**: Safe worktree cleanup after PR merge
 - **wt**: Interactive worktree switcher
-- **dev-full**: tmuxp config for human-Claude collaboration
+- **tmuxp-project**: Dynamic tmuxp sessions named by current project
+- **dev-full**: tmuxp config for human-Claude collaboration (legacy, uses "dev")
 
 ## Architecture Overview
 

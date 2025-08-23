@@ -93,8 +93,9 @@
         # Switch sessions with fzf (if fzf is installed)
         bind S run-shell "tmux new-session -A -s \"$(tmux list-sessions -F '#{session_name}' | ${pkgs.fzf}/bin/fzf --query=\"$(tmux display-message -p '#{session_name}')\" --exit-0)\""
 
-        # Clean up child sessions
-        set-hook -g session-closed 'run-shell "tmux ls -F \"#{session_name}\" | rg \"^#{hook_session_name}.*\" | xargs -r tmux kill-session -t"'
+        # Clean up related nvim-shared session when main project session closes
+        # Only matches the specific -nvim-shared session for this project
+        set-hook -g session-closed 'run-shell "tmux ls -F \"#{session_name}\" | rg \"^#{hook_session_name}-nvim-shared$\" | xargs -r tmux kill-session -t"'
 
         # Reload config for new/attach
         set-hook -g client-attached 'source-file ${config.home.homeDirectory}/.tmux.conf'

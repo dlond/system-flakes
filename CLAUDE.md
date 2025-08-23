@@ -53,11 +53,12 @@ This repository uses Nix Flakes for system configuration management. Key command
 - **Editor tools**: Integration scripts for nvim testing
 
 ### Tools We Provide
-- **nvdev**: Test nvim configurations in isolation (now uses $PWD!)
-- **gwt-new**: Create worktrees from GitHub issues
-- **gwt-done**: Safe worktree cleanup after PR merge
-- **wt**: Interactive worktree switcher
-- **tmuxp-project**: Dynamic tmuxp sessions named by current project for human-Claude collaboration
+- **gwt-nav**: Interactive worktree switcher with fzf
+- **gwt-new <issue>**: Create worktree from GitHub issue
+- **gwt-done**: Safe worktree cleanup after PR merge (run from inside worktree)
+- **tmuxp-project**: Launch project-named tmux session
+- **cstatus**: Live Claude usage monitoring (htop-like)
+- **nvdev**: Test nvim configs in isolation
 
 ## Architecture Overview
 

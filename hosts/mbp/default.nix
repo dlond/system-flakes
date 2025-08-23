@@ -13,7 +13,10 @@
 in {
   environment.systemPackages =
     shared.sharedCliTools
-    ++ [pkgs.raycast];
+    ++ [
+      pkgs.raycast
+      pkgs.pam-reattach  # For Touch ID support in tmux
+    ];
 
   nix.settings.experimental-features = "nix-command flakes";
 
@@ -66,7 +69,16 @@ in {
     trusted-users = ["root" "dlond"];
   };
 
-  security.pam.services.sudo_local.touchIdAuth = true;
+  # Configure PAM for Touch ID with tmux support
+  # The pam-reattach module moves sudo to the GUI session for Touch ID access
+  environment.etc."pam.d/sudo_local".text = ''
+    # Written by nix-darwin
+    auth       optional       ${pkgs.pam-reattach}/lib/pam/pam_reattach.so
+    auth       sufficient     pam_tid.so
+  '';
+  
+  # This is the standard Touch ID config (kept for reference but overridden above)
+  # security.pam.services.sudo_local.touchIdAuth = true;
   fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
 
   nix-homebrew = {

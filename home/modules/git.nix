@@ -446,9 +446,19 @@
 
       create_worktree() {
         local branch_name=$1
-        local folder_path="../$branch_name"
+        
+        # Get the project name from the git repo
+        local repo_url=$(git config --get remote.origin.url)
+        local project_name=$(basename -s .git "$repo_url")
+        
+        # Use the standard worktree location
+        local worktree_base="$HOME/dev/worktrees/$project_name"
+        local folder_path="$worktree_base/$branch_name"
 
         echo "Creating worktree: $folder_path with branch: $branch_name"
+
+        # Create the worktree base directory if it doesn't exist
+        mkdir -p "$worktree_base"
 
         if [ -d "$folder_path" ]; then
           echo "Error: Directory $folder_path already exists" >&2
@@ -464,7 +474,7 @@
         echo "📁 Path: $folder_path"
         echo "🌿 Branch: $branch_name"
         echo ""
-        echo "To switch: wt and select"
+        echo "To switch: cd $folder_path"
       }
 
       main() {

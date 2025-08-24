@@ -46,6 +46,22 @@
 
     # Worktree complete cleanup after PR merge
     gwt-done = ''
+      # Check if we have an argument (branch name or issue number)
+      target_branch=""
+      if [ -n "$1" ]; then
+        # If it's a number, find the matching branch
+        if [[ "$1" =~ ^[0-9]+$ ]]; then
+          # Find worktree branch containing this issue number
+          target_branch=$(git worktree list --porcelain | grep "^branch" | cut -d" " -f2 | grep -E "[-/]$1([-/]|$)" | head -1)
+          if [ -z "$target_branch" ]; then
+            echo "❌ No worktree found for issue #$1"
+            exit 1
+          fi
+        else
+          target_branch="$1"
+        fi
+      fi
+
       current_branch=$(git branch --show-current)
       current_dir=$(pwd)
 
@@ -55,51 +71,67 @@
       # Check if we're in a worktree (not the main repo)
       if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
         echo "📦 In worktree: $current_branch"
+        target_branch="$current_branch"
+        worktree_dir="$current_dir"
 
         # Navigate to main worktree
         main_worktree=$(git worktree list | head -1 | awk '{print $1}')
         echo "🔄 Switching to main worktree: $main_worktree"
         cd "$main_worktree"
-
-        # Pull merged changes
-        echo "⬇️  Pulling merged changes..."
-        git fetch origin
-        git pull origin main
-
-        # Check if the PR was merged (important for squash merges)
-        echo "🔍 Checking if PR was merged..."
-        pr_status=$(gh pr view "$current_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-        pr_state=$(echo "$pr_status" | jq -r '.state')
-        pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
-
-        if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
-          echo "✅ PR was merged"
-          
-          # Remove the worktree
-          echo "🧹 Removing worktree: $current_branch"
-          git worktree remove "$current_dir" 2>/dev/null || {
-            echo "⚠️  Could not remove worktree automatically"
-            echo "   Run: git worktree remove \"$current_dir\" --force"
-          }
-
-          # Delete the local branch (use -D for squash-merged branches)
-          echo "🗑️  Deleting local branch: $current_branch"
-          git branch -D "$current_branch" 2>/dev/null || {
-            echo "⚠️  Could not delete branch automatically"
-            echo "   Branch may not exist locally or may be checked out elsewhere"
-          }
-
-          echo "✅ Worktree and branch cleanup complete!"
-        else
-          echo "⚠️  PR is not merged (state: $pr_state)"
-          echo "   Please merge the PR first, then run gwt-done again"
-          echo "   To force cleanup: git worktree remove \"$current_dir\" --force"
+      elif [ -n "$target_branch" ]; then
+        # We're in main and have a target branch
+        echo "🎯 Cleaning up worktree: $target_branch"
+        
+        # Find the worktree directory for this branch
+        worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
+        if [ -z "$worktree_dir" ]; then
+          echo "❌ No worktree found for branch: $target_branch"
           exit 1
         fi
       else
-        echo "📍 Already in main worktree - just pulling latest changes"
-        git fetch origin
-        git pull origin main
+        # In main with no target specified
+        echo "📍 In main worktree - specify a branch or issue number to clean up"
+        echo "Usage: gwt-done [branch-name | issue-number]"
+        echo ""
+        echo "Available worktrees:"
+        git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
+        exit 0
+      fi
+
+      # Pull merged changes
+      echo "⬇️  Pulling merged changes..."
+      git fetch origin
+      git pull origin main
+
+      # Check if the PR was merged (important for squash merges)
+      echo "🔍 Checking if PR was merged..."
+      pr_status=$(gh pr view "$target_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
+      pr_state=$(echo "$pr_status" | jq -r '.state')
+      pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
+
+      if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
+        echo "✅ PR was merged"
+        
+        # Remove the worktree
+        echo "🧹 Removing worktree: $target_branch"
+        git worktree remove "$worktree_dir" 2>/dev/null || {
+          echo "⚠️  Could not remove worktree automatically"
+          echo "   Run: git worktree remove \"$worktree_dir\" --force"
+        }
+
+        # Delete the local branch (use -D for squash-merged branches)
+        echo "🗑️  Deleting local branch: $target_branch"
+        git branch -D "$target_branch" 2>/dev/null || {
+          echo "⚠️  Could not delete branch automatically"
+          echo "   Branch may not exist locally or may be checked out elsewhere"
+        }
+
+        echo "✅ Worktree and branch cleanup complete!"
+      else
+        echo "⚠️  PR is not merged (state: $pr_state)"
+        echo "   Please merge the PR first, then run gwt-done again"
+        echo "   To force cleanup: git worktree remove \"$worktree_dir\" --force"
+        exit 1
       fi
     '';
 

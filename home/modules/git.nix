@@ -66,14 +66,36 @@
         git fetch origin
         git pull origin main
 
-        # Remove the worktree
-        echo "🧹 Removing worktree: $current_branch"
-        git worktree remove "$current_dir" 2>/dev/null || {
-          echo "⚠️  Could not remove worktree automatically"
-          echo "   Run: git worktree remove \"$current_dir\" --force"
-        }
+        # Check if the PR was merged (important for squash merges)
+        echo "🔍 Checking if PR was merged..."
+        pr_status=$(gh pr view "$current_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
+        pr_state=$(echo "$pr_status" | jq -r '.state')
+        pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
 
-        echo "✅ Worktree cleanup complete!"
+        if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
+          echo "✅ PR was merged"
+          
+          # Remove the worktree
+          echo "🧹 Removing worktree: $current_branch"
+          git worktree remove "$current_dir" 2>/dev/null || {
+            echo "⚠️  Could not remove worktree automatically"
+            echo "   Run: git worktree remove \"$current_dir\" --force"
+          }
+
+          # Delete the local branch (use -D for squash-merged branches)
+          echo "🗑️  Deleting local branch: $current_branch"
+          git branch -D "$current_branch" 2>/dev/null || {
+            echo "⚠️  Could not delete branch automatically"
+            echo "   Branch may not exist locally or may be checked out elsewhere"
+          }
+
+          echo "✅ Worktree and branch cleanup complete!"
+        else
+          echo "⚠️  PR is not merged (state: $pr_state)"
+          echo "   Please merge the PR first, then run gwt-done again"
+          echo "   To force cleanup: git worktree remove \"$current_dir\" --force"
+          exit 1
+        fi
       else
         echo "📍 Already in main worktree - just pulling latest changes"
         git fetch origin

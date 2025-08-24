@@ -121,6 +121,49 @@
         precmd_functions=()
       fi
       precmd_functions+=(_update_omp_dirstack_count)
+
+      # Worktree navigation function
+      gwt-nav() {
+        # Check if we're in a git repository
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "❌ Not in a git repository"
+          return 1
+        fi
+
+        # Get current worktree path for highlighting
+        local current_worktree
+        current_worktree=$(git rev-parse --show-toplevel 2>/dev/null)
+
+        # Format worktree list with better display
+        local worktree_data
+        worktree_data=$(git worktree list --porcelain | awk '
+          /^worktree / { path=$2 }
+          /^branch / { 
+            branch=$2
+            gsub("refs/heads/", "", branch)
+            if (branch == "") branch="(detached)"
+            printf "%s\t%s\n", path, branch
+          }
+        ')
+
+        # Use fzf with formatted display
+        local selected
+        selected=$(echo "$worktree_data" | fzf \
+          --header="Select worktree (current: $(basename "$current_worktree"))" \
+          --preview="echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
+          --preview-window=right:50%:wrap \
+          --delimiter=$'\t' \
+          --with-nth=2 \
+          --bind='ctrl-d:reload(git worktree list --porcelain | awk "/^worktree / { path=\$2 } /^branch / { branch=\$2; gsub(\"refs/heads/\", \"\", branch); if (branch == \"\") branch=\"(detached)\"; printf \"%s\\t%s\\n\", path, branch }")' \
+          --prompt="Worktree> " | cut -f1)
+
+        # Navigate to selected worktree
+        if [ -n "$selected" ]; then
+          cd "$selected" || return 1
+          echo "📍 Switched to: $(basename "$selected")"
+          pwd
+        fi
+      }
       ''
       # Zoxide MUST be initialized at the very end to avoid configuration warnings
       # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)

@@ -34,15 +34,7 @@
     gclean-remote = "git remote prune origin";
     gclean-all = "git fetch --prune && git branch --merged main | grep -v main | xargs -n 1 git branch -d";
 
-    # Worktree navigation
-    gwt-nav = ''
-      local worktree_path
-      worktree_path=$(git worktree list | fzf | awk '{print $1}')
-
-      if [ -n "$worktree_path" ]; then
-        cd "$worktree_path" || return 1
-        fi
-    '';
+    # Worktree navigation - removed, now a function in zsh.nix
 
     # Worktree complete cleanup after PR merge
     gwt-done = ''

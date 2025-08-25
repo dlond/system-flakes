@@ -207,6 +207,7 @@
 
     extraConfig = {
       color.ui = true;
+      commit.template = "${config.home.homeDirectory}/dev/projects/system-tools-practices/templates/commit-message.template";
       core.editor = "nvim";
       fetch.prune = true;
       fetch.pruneTags = true;
@@ -231,7 +232,7 @@
       msg_file="$1"
       msg="$(head -n1 "$msg_file")"
 
-      if ! rg -q '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\(.+))?: .+' <<< "$msg"; then
+      if ! rg -q '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\(.+\))?: .+' <<< "$msg"; then
         echo "🚫 Commit message must start with a valid Conventional Commit prefix:"
         echo "   feat:, fix:, docs:, style:, refactor:, perf:, test:, chore:, build:, ci:"
         exit 1

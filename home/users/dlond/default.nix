@@ -23,6 +23,7 @@
     ../../modules/tmux.nix
     ../../modules/tmuxp.nix
     ../../modules/zsh.nix
+    ../../modules/neovim.nix
   ];
 
   home.packages = with pkgs; [
@@ -31,7 +32,7 @@
 
   programs.zoxide = {
     enable = true;
-    enableZshIntegration = false;  # We'll manually init at the end of zshrc
+    enableZshIntegration = false; # We'll manually init at the end of zshrc
     options = ["--cmd cd"];
   };
 
@@ -61,33 +62,10 @@
     silent = true;
   };
 
-  programs.neovim = {
+  programs.neovim-cfg = {
     enable = true;
-    vimAlias = true;
-    withPython3 = true;
-    withNodeJs = true;
-  };
-  home.file = {
-    ".config/nvim/init.lua" = {
-      source = nvim-config + "/init.lua";
-    };
-    ".config/nvim/lua" = {
-      source = nvim-config + "/lua";
-      recursive = true;
-    };
-    ".config/nvim/.stylua.toml" = {
-      source = nvim-config + "/.stylua.toml";
-    };
-    ".config/nvim/doc" = {
-      source = nvim-config + "/doc";
-      recursive = true;
-    };
-    ".config/nvim/LICENSE.md" = {
-      source = nvim-config + "/LICENSE.md";
-    };
-    ".config/nvim/README.md" = {
-      source = nvim-config + "/README.md";
-    };
+    withCopilot = true;
+    withDebugger = true;
   };
 
   xdg.configFile."ghostty/config" = {

@@ -11,8 +11,6 @@
       bat
       brave
       chatgpt
-      clang-tools
-      cmake-language-server
       curl
       delta
       discord-ptb
@@ -26,30 +24,22 @@
       glow
       gnupg
       go
-      lua-language-server
       lua5_1
       luarocks
       mosh
       neovim
-      nixd
       nodejs_20
       obsidian
-      pyright
-      python3Packages.debugpy
       ripgrep
-      ruff
       rustup
       shellcheck
-      shfmt
       sops
-      stylua
       texlab
       tmux
       tmuxp
       tree
       tree-sitter
       wget
-      # whatsapp-for-mac
       yq
       zoxide
       zsh-fzf-tab

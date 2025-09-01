@@ -94,11 +94,11 @@
       pkgs = mkPkgs system;
     in
       inputs.home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
         modules = [
           ./home/users/${username}
         ];
         extraSpecialArgs = {
-          inherit pkgs;
           inherit (inputs) sops-nix nvim-config catppuccin-bat;
           shared = import ./lib/shared.nix {
             inherit pkgs;

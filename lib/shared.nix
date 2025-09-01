@@ -49,7 +49,7 @@
       tree
       tree-sitter
       wget
-      whatsapp-for-mac
+      # whatsapp-for-mac
       yq
       zoxide
       zsh-fzf-tab
@@ -61,7 +61,7 @@
 
   forDarwin = lib.mkIf pkgs.stdenv.isDarwin;
   forLinux = lib.mkIf pkgs.stdenv.isLinux;
-  
+
   # Platform-specific clipboard command
   # Used by fzf, tmux, and zsh configurations
   clipboardCommand =
@@ -69,5 +69,5 @@
     then "pbcopy"
     else if pkgs.stdenv.isLinux
     then "xclip -selection clipboard"
-    else "clip";  # Fallback for Windows/WSL
+    else "clip"; # Fallback for Windows/WSL
 }

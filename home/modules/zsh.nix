@@ -121,6 +121,9 @@
         fi
         precmd_functions+=(_update_omp_dirstack_count)
 
+        # Source git worktree functions
+        source "$HOME/.local/lib/gwt-functions.sh"
+
       ''
       # Zoxide MUST be initialized at the very end to avoid configuration warnings
       # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)

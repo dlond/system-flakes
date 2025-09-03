@@ -555,34 +555,32 @@
     executable = true;
   };
 
-  # Worktree navigation
-  home.file.".local/bin/gwt-switch" = {
+  # Git worktree shell functions (sourced by zsh.nix)
+  home.file.".local/lib/gwt-functions.sh" = {
     text = ''
       #!/usr/bin/env bash
+      # Git worktree functions - must be sourced to work properly
+      
+      # All gwt functions source the common library
+      # These are functions (not scripts) so they can change directory and maintain consistency
+      
+      gwt-switch() {
+        # Source common functions
+        source "$HOME/.local/lib/gwt-common.sh"
 
-      set -euo pipefail
-
-      # Source common functions
-      source "$HOME/.local/lib/gwt-common.sh"
-
-      usage() {
-        echo "Usage: gwt-switch"
-        echo ""
-        echo "fzf-based worktree switcher."
-        exit 1
-      }
-
-      main() {
         if [ $# -gt 0 ]; then
-          usage
+          echo "Usage: gwt-switch"
+          echo ""
+          echo "fzf-based worktree switcher."
+          return 1
         fi
 
         # Check if we're in a git repository
-        check_git_repo || exit 1
+        check_git_repo || return 1
 
-        current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
+        local current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
 
-        all_wts=$(git worktree list --porcelain | awk '
+        local all_wts=$(git worktree list --porcelain | awk '
           /^worktree / { path=$2 }
           /^branch / {
             branch=$2
@@ -592,7 +590,7 @@
           }
         ')
 
-        selected=$(echo "$all_wts" | fzf \
+        local selected=$(echo "$all_wts" | fzf \
           --header="Select worktree (current: $(basename "$current_wt"))" \
           --preview="echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
           --preview-window=right:50%:wrap \
@@ -603,15 +601,13 @@
 
         # Navigate to selected worktree
         if [ -n "$selected" ]; then
-          cd "$selected" || exit 1
+          cd "$selected" || return 1
           print_info "Switched to: $(basename "$selected")"
           pwd
         fi
       }
-
-      main "$@"
     '';
-    executable = true;
+    executable = false;
   };
 
   home.file.".local/bin/gwt-done" = {

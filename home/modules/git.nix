@@ -606,110 +606,108 @@
           pwd
         fi
       }
+
+      gwt-done() {
+        # Source common functions
+        source "$HOME/.local/lib/gwt-common.sh"
+
+        # Check if we have an argument (branch name or issue number)
+        local target_branch=""
+        if [ -n "${1:-}" ]; then
+          # If it's a number, find the matching branch
+          if [[ "$1" =~ ^[0-9]+$ ]]; then
+            # Find worktree branch containing this issue number
+            target_branch=$(find_branch_by_issue "$1")
+            if [ -z "$target_branch" ]; then
+              print_error "No worktree found for issue #$1"
+              return 1
+            fi
+          else
+            target_branch="$1"
+          fi
+        fi
+
+        local current_branch=$(git branch --show-current)
+        local current_dir=$(pwd)
+
+        # jump to repo root so the rest of the script is always at the top level
+        cd "$(git rev-parse --show-toplevel)"
+
+        # Check if we're in a worktree (not the main repo)
+        if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
+          echo "📦 In worktree: $current_branch"
+          target_branch="$current_branch"
+          local worktree_dir="$current_dir"
+
+          # Navigate to main worktree BEFORE removing
+          local main_worktree=$(git worktree list | head -1 | awk '{print $1}')
+          echo "🔄 Switching to main worktree: $main_worktree"
+          cd "$main_worktree" || return 1
+        elif [ -n "$target_branch" ]; then
+          # We're in main and have a target branch
+          echo "🎯 Cleaning up worktree: $target_branch"
+
+          # Find the worktree directory for this branch
+          local worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
+          if [ -z "$worktree_dir" ]; then
+            echo "❌ No worktree found for branch: $target_branch"
+            return 1
+          fi
+        else
+          # In main with no target specified
+          echo "📍 In main worktree - specify a branch or issue number to clean up"
+          echo "Usage: gwt-done [branch-name | issue-number]"
+          echo ""
+          echo "Available worktrees:"
+          git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
+          return 0
+        fi
+
+        # Pull merged changes
+        echo "⬇️  Pulling merged changes..."
+        git fetch origin
+        git pull origin main
+
+        # Check if the PR was merged (important for squash merges)
+        echo "🔍 Checking if PR was merged..."
+        local pr_status=$(gh pr view "$target_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
+        local pr_state=$(echo "$pr_status" | jq -r '.state')
+        local pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
+
+        if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
+          echo "✅ PR was merged"
+
+          # Remove the worktree
+          print_working "Removing worktree: $target_branch"
+          git worktree remove "$worktree_dir" 2>/dev/null || {
+            echo "⚠️  Could not remove worktree automatically"
+            echo "   Run: git worktree remove \"$worktree_dir\" --force"
+          }
+
+          # Delete the local branch (use -D for squash-merged branches)
+          print_working "Deleting local branch: $target_branch"
+          git branch -D "$target_branch" 2>/dev/null || {
+            echo "⚠️  Could not delete branch automatically"
+            echo "   Branch may not exist locally or may be checked out elsewhere"
+          }
+
+          print_success "Worktree and branch cleanup complete!"
+          
+          # We're now safely in the main worktree
+          pwd
+        else
+          print_warning "PR is not merged (state: $pr_state)"
+          echo "   Please merge the PR first, then run gwt-done again"
+          echo "   To force cleanup: git worktree remove \"$worktree_dir\" --force"
+          return 1
+        fi
+      }
     '';
     executable = false;
   };
 
-  home.file.".local/bin/gwt-done" = {
-    text = ''
-      #!/usr/bin/env bash
-      # Git worktree cleanup script - removes worktree and branch after PR is merged
-
-      set -e  # Exit on error
-
-      # Source common functions
-      source "$HOME/.local/lib/gwt-common.sh"
-
-      # Check if we have an argument (branch name or issue number)
-      target_branch=""
-      if [ -n "$1" ]; then
-        # If it's a number, find the matching branch
-        if [[ "$1" =~ ^[0-9]+$ ]]; then
-          # Find worktree branch containing this issue number
-          target_branch=$(find_branch_by_issue "$1")
-          if [ -z "$target_branch" ]; then
-            print_error "No worktree found for issue #$1"
-            exit 1
-          fi
-        else
-          target_branch="$1"
-        fi
-      fi
-
-      current_branch=$(git branch --show-current)
-      current_dir=$(pwd)
-
-      # jump to repo root so the rest of the script is always at the top level
-      cd "$(git rev-parse --show-toplevel)"
-
-      # Check if we're in a worktree (not the main repo)
-      if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
-        echo "📦 In worktree: $current_branch"
-        target_branch="$current_branch"
-        worktree_dir="$current_dir"
-
-        # Navigate to main worktree
-        main_worktree=$(git worktree list | head -1 | awk '{print $1}')
-        echo "🔄 Switching to main worktree: $main_worktree"
-        cd "$main_worktree"
-      elif [ -n "$target_branch" ]; then
-        # We're in main and have a target branch
-        echo "🎯 Cleaning up worktree: $target_branch"
-
-        # Find the worktree directory for this branch
-        worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
-        if [ -z "$worktree_dir" ]; then
-          echo "❌ No worktree found for branch: $target_branch"
-          exit 1
-        fi
-      else
-        # In main with no target specified
-        echo "📍 In main worktree - specify a branch or issue number to clean up"
-        echo "Usage: gwt-done [branch-name | issue-number]"
-        echo ""
-        echo "Available worktrees:"
-        git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
-        exit 0
-      fi
-
-      # Pull merged changes
-      echo "⬇️  Pulling merged changes..."
-      git fetch origin
-      git pull origin main
-
-      # Check if the PR was merged (important for squash merges)
-      echo "🔍 Checking if PR was merged..."
-      pr_status=$(gh pr view "$target_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-      pr_state=$(echo "$pr_status" | jq -r '.state')
-      pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
-
-      if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
-        echo "✅ PR was merged"
-
-        # Remove the worktree
-        print_working "Removing worktree: $target_branch"
-        git worktree remove "$worktree_dir" 2>/dev/null || {
-          echo "⚠️  Could not remove worktree automatically"
-          echo "   Run: git worktree remove \"$worktree_dir\" --force"
-        }
-
-        # Delete the local branch (use -D for squash-merged branches)
-        print_working "Deleting local branch: $target_branch"
-        git branch -D "$target_branch" 2>/dev/null || {
-          echo "⚠️  Could not delete branch automatically"
-          echo "   Branch may not exist locally or may be checked out elsewhere"
-        }
-
-        print_success "Worktree and branch cleanup complete!"
-      else
-        print_warning "PR is not merged (state: $pr_state)"
-        echo "   Please merge the PR first, then run gwt-done again"
-        echo "   To force cleanup: git worktree remove \"$worktree_dir\" --force"
-        exit 1
-      fi
-    '';
-    executable = true;
-  };
+  # Note: gwt-done is now a shell function in gwt-functions.sh
+  # because it needs to change directory when called from a worktree
 
   # Worktree cleanup - prune and remove merged branches
   home.file.".local/bin/gwt-clean" = {

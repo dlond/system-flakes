@@ -295,6 +295,13 @@
         git worktree list --porcelain | grep "^branch" | cut -d" " -f2 | grep -E "[-/]$issue_num([-/]|$)" | head -1
       }
 
+      # Extract issue numbers from branch name
+      extract_issue_numbers() {
+        local branch=$1
+        # Match patterns like: fix-123-desc, feature-123-124-desc, 123-desc, etc.
+        echo "$branch" | grep -oE '[0-9]+' | tr '\n' ' '
+      }
+
       # Sanitize string for branch name
       sanitize_for_branch() {
         echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g'
@@ -321,6 +328,38 @@
         local pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
         
         [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]
+      }
+
+      # Check if branch is merged (via regular merge)
+      is_branch_ancestor() {
+        local branch=$1
+        local target_branch=''${2:-$(get_main_branch)}
+        git merge-base --is-ancestor "$branch" "$target_branch" 2>/dev/null
+      }
+
+      # Check if branch is merged by any method (regular, squash, or rebase)
+      is_branch_merged() {
+        local branch=$1
+        local target_branch=''${2:-$(get_main_branch)}
+        
+        # First check: regular merge (fast, local)
+        if is_branch_ancestor "$branch" "$target_branch"; then
+          return 0
+        fi
+        
+        # Second check: PR merged on GitHub (catches squash/rebase)
+        if is_pr_merged "$branch"; then
+          return 0
+        fi
+        
+        return 1
+      }
+
+      # Get PR merge status with details
+      get_pr_status() {
+        local branch=$1
+        local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
+        echo "$pr_status"
       }
 
       # Colored output helpers
@@ -611,24 +650,55 @@
         # Source common functions
         source "$HOME/.local/lib/gwt-common.sh"
 
-        # Check if we have an argument (branch name or issue number)
+        # Helper function for usage
+        usage() {
+          echo "Usage: gwt-done [branch-name | issue-number] [--no-close]"
+          echo ""
+          echo "Options:"
+          echo "  --no-close   Don't automatically close related issues"
+          echo "  --help, -h   Show this help message"
+          echo ""
+          echo "Clean up worktree and branch after PR is merged."
+          echo "Automatically closes related GitHub issues unless --no-close is specified."
+          return 0
+        }
+
+        # Parse arguments
         local target_branch=""
-        if [ -n "''${1:-}" ]; then
-          # If it's a number, find the matching branch
-          if [[ "$1" =~ ^[0-9]+$ ]]; then
-            # Find worktree branch containing this issue number
-            target_branch=$(find_branch_by_issue "$1")
-            if [ -z "$target_branch" ]; then
-              print_error "No worktree found for issue #$1"
-              return 1
-            fi
-          else
-            target_branch="$1"
+        local close_issues=true
+        
+        while [[ $# -gt 0 ]]; do
+          case $1 in
+            --no-close)
+              close_issues=false
+              shift
+              ;;
+            --help|-h)
+              usage
+              return 0
+              ;;
+            *)
+              if [ -z "$target_branch" ]; then
+                target_branch="$1"
+              fi
+              shift
+              ;;
+          esac
+        done
+
+        # If it's a number, find the matching branch
+        if [ -n "$target_branch" ] && [[ "$target_branch" =~ ^[0-9]+$ ]]; then
+          local issue_num="$target_branch"
+          target_branch=$(find_branch_by_issue "$issue_num")
+          if [ -z "$target_branch" ]; then
+            print_error "No worktree found for issue #$issue_num"
+            return 1
           fi
         fi
 
         local current_branch=$(git branch --show-current)
         local current_dir=$(pwd)
+        local worktree_dir=""
 
         # jump to repo root so the rest of the script is always at the top level
         cd "$(git rev-parse --show-toplevel)"
@@ -637,7 +707,7 @@
         if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
           echo "📦 In worktree: $current_branch"
           target_branch="$current_branch"
-          local worktree_dir="$current_dir"
+          worktree_dir="$current_dir"
 
           # Navigate to main worktree BEFORE removing
           local main_worktree=$(git worktree list | head -1 | awk '{print $1}')
@@ -648,7 +718,7 @@
           echo "🎯 Cleaning up worktree: $target_branch"
 
           # Find the worktree directory for this branch
-          local worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
+          worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
           if [ -z "$worktree_dir" ]; then
             echo "❌ No worktree found for branch: $target_branch"
             return 1
@@ -656,25 +726,32 @@
         else
           # In main with no target specified
           echo "📍 In main worktree - specify a branch or issue number to clean up"
-          echo "Usage: gwt-done [branch-name | issue-number]"
+          echo "Usage: gwt-done [branch-name | issue-number] [--no-close]"
           echo ""
           echo "Available worktrees:"
           git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
           return 0
         fi
 
+        # Get the main branch name and protect it
+        local main_branch=$(get_main_branch)
+        
+        # Safety check: Never remove main/master branch
+        if [[ "$target_branch" == "$main_branch" ]] || [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
+          print_error "Cannot remove the main branch ($target_branch)!"
+          echo "   The main branch and its worktree must be preserved."
+          return 1
+        fi
+
         # Pull merged changes
         echo "⬇️  Pulling merged changes..."
         git fetch origin
-        git pull origin main
+        git pull origin "$main_branch"
 
         # Check if the PR was merged (important for squash merges)
         echo "🔍 Checking if PR was merged..."
-        local pr_status=$(gh pr view "$target_branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-        local pr_state=$(echo "$pr_status" | jq -r '.state')
-        local pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
-
-        if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]; then
+        
+        if is_pr_merged "$target_branch"; then
           echo "✅ PR was merged"
 
           # Remove the worktree
@@ -690,6 +767,31 @@
             echo "⚠️  Could not delete branch automatically"
             echo "   Branch may not exist locally or may be checked out elsewhere"
           }
+
+          # Extract and close related issues (if enabled)
+          if [ "$close_issues" = true ]; then
+            local issue_numbers=$(extract_issue_numbers "$target_branch")
+            if [ -n "$issue_numbers" ]; then
+              print_working "Closing related issues: $issue_numbers"
+              for issue in $issue_numbers; do
+                # Check if issue exists and is open
+                if gh issue view "$issue" --json state 2>/dev/null | grep -q '"state":"OPEN"'; then
+                  if gh issue close "$issue" --comment "Closed automatically by gwt-done after PR merge" 2>/dev/null; then
+                    print_success "Closed issue #$issue"
+                  else
+                    print_warning "Could not close issue #$issue"
+                  fi
+                else
+                  echo "   Issue #$issue is already closed or doesn't exist"
+                fi
+              done
+            fi
+          else
+            local issue_numbers=$(extract_issue_numbers "$target_branch")
+            if [ -n "$issue_numbers" ]; then
+              print_info "Skipping issue closing (--no-close specified) for: $issue_numbers"
+            fi
+          fi
 
           print_success "Worktree and branch cleanup complete!"
           
@@ -790,9 +892,14 @@
               continue
             fi
 
-            # Check if branch is merged
-            if git merge-base --is-ancestor "$wt_branch" "$main_branch" 2>/dev/null; then
-              echo "  ✅ Merged branch found: $wt_branch"
+            # Check if branch is merged (any method)
+            if is_branch_merged "$wt_branch" "$main_branch"; then
+              # Determine merge type for user feedback
+              if is_branch_ancestor "$wt_branch" "$main_branch"; then
+                echo "  ✅ Merged branch found (regular merge): $wt_branch"
+              else
+                echo "  ✅ Merged branch found (squash/rebase merge): $wt_branch"
+              fi
               echo "     Removing worktree: $wt_path"
               if git worktree remove "$wt_path" 2>/dev/null; then
                 ((removed_count++))

@@ -613,7 +613,7 @@
 
         # Check if we have an argument (branch name or issue number)
         local target_branch=""
-        if [ -n "${1:-}" ]; then
+        if [ -n "''${1:-}" ]; then
           # If it's a number, find the matching branch
           if [[ "$1" =~ ^[0-9]+$ ]]; then
             # Find worktree branch containing this issue number

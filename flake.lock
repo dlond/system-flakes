@@ -110,16 +110,15 @@
     "nvim-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1756854965,
+        "lastModified": 1756862791,
         "narHash": "sha256-4xbLyN+vc/Bw4/h/d+RNDgIhaurg9aXg7GqmhgDAt68=",
         "owner": "dlond",
         "repo": "nvim",
-        "rev": "0294f9a720977fc52d8a10487e3ae266ccbe7001",
+        "rev": "9e6b01e176f3b8b50de157a66ffe3e1690b0f6e1",
         "type": "github"
       },
       "original": {
         "owner": "dlond",
-        "ref": "telescope-compile-commands-json-picker-33",
         "repo": "nvim",
         "type": "github"
       }

@@ -11,6 +11,7 @@
       bat
       brave
       chatgpt
+      claude-code
       curl
       delta
       discord-ptb

@@ -15,7 +15,7 @@ in {
     shared.sharedCliTools
     ++ [
       pkgs.raycast
-      pkgs.pam-reattach  # For Touch ID support in tmux
+      pkgs.pam-reattach # For Touch ID support in tmux
     ];
 
   nix.settings.experimental-features = "nix-command flakes";
@@ -76,7 +76,7 @@ in {
     auth       optional       ${pkgs.pam-reattach}/lib/pam/pam_reattach.so
     auth       sufficient     pam_tid.so
   '';
-  
+
   # This is the standard Touch ID config (kept for reference but overridden above)
   # security.pam.services.sudo_local.touchIdAuth = true;
   fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
@@ -103,7 +103,7 @@ in {
       "1password-cli"
       "anythingllm"
       "claude"
-      "claude-code"
+      # "claude-code"
       "ghostty"
       "messenger"
       "mullvad-vpn"

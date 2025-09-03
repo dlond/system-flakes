@@ -21,7 +21,7 @@
       "alignment": "left",
       "segments": [
         {
-          "template": "{{if .Env.IN_NIX_SHELL }}{{\"❄\"}} {{else}}{{.Icon}}{{end}} ",
+          "template": "{{if .Env.IN_CONAN_ENV}}⚔️{{else if .Env.IN_NIX_SHELL}}❄{{else}}{{.Icon}}{{end}} ",
           "foreground": "p:os",
           "type": "os",
           "style": "plain"

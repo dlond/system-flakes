@@ -59,6 +59,7 @@
       (lib.mkBefore ''
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
+        
       '')
       ''
         # shell options
@@ -115,7 +116,14 @@
 
         _update_omp_dirstack_count() {
           export MY_DIRSTACK_COUNT=$#dirstack
+          # Also check for Conan environment here
+          if [[ -n "$DYLD_LIBRARY_PATH" ]] && [[ "$DYLD_LIBRARY_PATH" == *".conan2"* ]]; then
+            export IN_CONAN_ENV="1"
+          else
+            unset IN_CONAN_ENV
+          fi
         }
+        
         if [[ -z "$precmd_functions" ]]; then
           precmd_functions=()
         fi

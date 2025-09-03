@@ -40,9 +40,7 @@ in {
           ruff
           nixd
           texlab
-          # cmake-language-server has compatibility issues with current nixpkgs
-          # TODO: Re-enable when pygls/lsprotocol issues are resolved
-          # cmake-language-server
+          cmake-language-server
           bash-language-server
           lua-language-server
 

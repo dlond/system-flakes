@@ -10,14 +10,38 @@
     defaultKeymap = "viins";
 
     shellAliases = {
-      ls = "eza";
-      ll = "eza -l --header --git --icons";
-      la = "eza -la --header --git --icons";
-      lh = "eza -la --header --git --icons --group-directories-first | grep '^\\.'";
+      # Better ls aliases
+      ls = "eza --icons"; # Simple list with icons
+      ll = "eza -la --header --git --icons"; # List ALL including hidden
+      la = "eza -la --header --git --icons"; # Same as ll for muscle memory
+      lh = "eza -ld .* --icons"; # List ONLY hidden files/dirs
+      lt = "eza -l --header --git --icons --tree"; # Tree view with details
       tree = "eza --tree";
+      
+      # File tools
       cat = "bat";
-      firefox = "open -a \"Firefox\" --args";
+      v = "nvim";
       ndiff = "nvim -d";
+      
+      # Safety aliases
+      rm = "rm -i"; # Interactive confirmation
+      
+      # Fuzzy history
+      fh = "fc -l 1 | fzf --tac --height=50% | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | sh";
+      
+      # Nix shortcuts
+      nfc = "nix flake check";
+      nfu = "nix flake update";
+      nd = "nix develop";
+      drs = "darwin-rebuild switch --flake .#mbp";
+      
+      # Quick navigation
+      dev = "cd ~/dev";
+      proj = "cd ~/dev/projects";
+      wt = "cd ~/dev/worktrees";
+      
+      # Other
+      firefox = "open -a \"Firefox\" --args";
       clip = shared.clipboardCommand;
     };
 

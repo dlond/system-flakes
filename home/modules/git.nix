@@ -79,6 +79,13 @@
       d = "diff";
       ds = "diff --staged";
       dn = "diff --name-only";
+      
+      # Difftool shortcuts
+      dt = "difftool";
+      dtd = "difftool --dir-diff";  # All files at once!
+      dts = "difftool --staged";
+      dtsd = "difftool --staged --dir-diff";  # All staged files at once
+      mt = "mergetool";
 
       # Stash management
       sl = "stash list";
@@ -100,11 +107,17 @@
       color.ui = true;
       commit.template = "${config.home.homeDirectory}/dev/projects/system-tools-practices/templates/commit-message.template";
       core.editor = "nvim";
+      diff.tool = "nvimdiff";
+      difftool.prompt = false;
+      difftool."nvimdiff".cmd = "nvim -d \"$LOCAL\" \"$REMOTE\"";
       fetch.prune = true;
       fetch.pruneTags = true;
       init.defaultBranch = "main";
       init.templateDir = "${config.home.homeDirectory}/.config/git/templates";
       merge.ff = "only";
+      merge.tool = "nvimdiff";
+      mergetool.prompt = false;
+      mergetool."nvimdiff".cmd = "nvim -d \"$LOCAL\" \"$REMOTE\" \"$MERGED\" -c 'wincmd J | wincmd ='";
       pull.prune = true;
       pull.rebase = true;
       push.default = "current";

@@ -6,38 +6,47 @@
 }: {
   home.file.".local/bin/nvdev" = {
     text = ''
-      #!/bin/bash
-      # Launch Neovim with completely isolated config
-      export NVIM_APPNAME="nvim-custom"
-      export XDG_DATA_HOME="$PWD/.local/share"
-      export XDG_CACHE_HOME="$PWD/.cache"
-      export XDG_STATE_HOME="$PWD/.local/state"
+      #!/usr/bin/env bash
 
-      # Create directories if they don't exist
-      mkdir -p "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+      nvdev() {
+        local clean=false
 
-      # Setup logging
-      LOGFILE="$PWD/.local/state/nvim-launch.log"
-      mkdir -p "$(dirname "$LOGFILE")"
+        # Parse --clean flag
+        if [[ "$1" == "--clean" ]]; then
+            clean=true
+            shift
+        fi
 
-      echo "=== Neovim Launch $(date) ===" >> "$LOGFILE"
-      echo "NVIM_APPNAME: $NVIM_APPNAME" >> "$LOGFILE"
-      echo "XDG_DATA_HOME: $XDG_DATA_HOME" >> "$LOGFILE"
-      echo "XDG_CACHE_HOME: $XDG_CACHE_HOME" >> "$LOGFILE"
-      echo "XDG_STATE_HOME: $XDG_STATE_HOME" >> "$LOGFILE"
-      echo "Args: $*" >> "$LOGFILE"
-      echo "---" >> "$LOGFILE"
+        # Find git root (where init.lua should be)
+        local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
-      # Enable verbose Neovim logging
-      export NVIM_LOG_FILE="$PWD/.local/state/nvim.log"
+        if [[ -z "$git_root" ]] || [[ ! -f "$git_root/init.lua" ]]; then
+            echo "❌ No nvim config found (need init.lua at git root)"
+            return 1
+        fi
 
-      # Launch with isolated config and proper runtime path
-      echo "Launching nvim..." >> "$LOGFILE"
-      nvim --cmd "set rtp^=$PWD" --cmd "set packpath^=$PWD" -u "$PWD/init.lua" "$@" 2>>"$LOGFILE"
+        echo "🧪 Testing nvim config from: $git_root"
 
-      echo "Neovim exited with code: $?" >> "$LOGFILE"
-      echo "" >> "$LOGFILE"
+        # Create isolated environment
+        local isolated_dir="/tmp/nvdev-$$"
+        mkdir -p "$isolated_dir"/{config,data,cache,state}
+        ln -sf "$git_root" "$isolated_dir/config/nvim"
+
+        # set XDG paths
+        export XDG_CONFIG_HOME="$isolated_dir/config"
+        export XDG_DATA_HOME="$isolated_dir/data"
+        export XDG_CACHE_HOME="$isolated_dir/cache"
+        export XDG_STATE_HOME="$isolated_dir/state"
+
+        echo "📁 Config: $XDG_CONFIG_HOME/nvim -> $git_root"
+        nvim "$@"
+
+        # Cleanup
+        rm -rf "$isolated_dir"
+        echo "✅ Cleaned up"
+      }
     '';
     executable = true;
   };
 }
+

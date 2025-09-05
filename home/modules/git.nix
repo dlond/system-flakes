@@ -79,12 +79,12 @@
       d = "diff";
       ds = "diff --staged";
       dn = "diff --name-only";
-      
+
       # Difftool shortcuts
       dt = "difftool";
-      dtd = "difftool --dir-diff";  # All files at once!
+      dtd = "difftool --dir-diff"; # All files at once!
       dts = "difftool --staged";
-      dtsd = "difftool --staged --dir-diff";  # All staged files at once
+      dtsd = "difftool --staged --dir-diff"; # All staged files at once
       mt = "mergetool";
 
       # Stash management
@@ -339,7 +339,7 @@
         local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
         local pr_state=$(echo "$pr_status" | jq -r '.state')
         local pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
-        
+
         [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]
       }
 
@@ -354,17 +354,17 @@
       is_branch_merged() {
         local branch=$1
         local target_branch=''${2:-$(get_main_branch)}
-        
+
         # First check: regular merge (fast, local)
         if is_branch_ancestor "$branch" "$target_branch"; then
           return 0
         fi
-        
+
         # Second check: PR merged on GitHub (catches squash/rebase)
         if is_pr_merged "$branch"; then
           return 0
         fi
-        
+
         return 1
       }
 
@@ -612,10 +612,10 @@
     text = ''
       #!/usr/bin/env bash
       # Git worktree functions - must be sourced to work properly
-      
+
       # All gwt functions source the common library
       # These are functions (not scripts) so they can change directory and maintain consistency
-      
+
       gwt-switch() {
         # Source common functions
         source "$HOME/.local/lib/gwt-common.sh"
@@ -679,7 +679,7 @@
         # Parse arguments
         local target_branch=""
         local close_issues=true
-        
+
         while [[ $# -gt 0 ]]; do
           case $1 in
             --no-close)
@@ -748,7 +748,7 @@
 
         # Get the main branch name and protect it
         local main_branch=$(get_main_branch)
-        
+
         # Safety check: Never remove main/master branch
         if [[ "$target_branch" == "$main_branch" ]] || [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
           print_error "Cannot remove the main branch ($target_branch)!"
@@ -763,7 +763,7 @@
 
         # Check if the PR was merged (important for squash merges)
         echo "🔍 Checking if PR was merged..."
-        
+
         if is_pr_merged "$target_branch"; then
           echo "✅ PR was merged"
 
@@ -788,7 +788,7 @@
               print_working "Closing related issues: $issue_numbers"
               for issue in $issue_numbers; do
                 # Check if issue exists and is open
-                if gh issue view "$issue" --json state 2>/dev/null | grep -q '"state":"OPEN"'; then
+                if [[ $(gh issue view "$issue" --json state -q .state 2>/dev/null) == "OPEN" ]]; then
                   if gh issue close "$issue" --comment "Closed automatically by gwt-done after PR merge" 2>/dev/null; then
                     print_success "Closed issue #$issue"
                   else
@@ -807,7 +807,7 @@
           fi
 
           print_success "Worktree and branch cleanup complete!"
-          
+
           # We're now safely in the main worktree
           pwd
         else

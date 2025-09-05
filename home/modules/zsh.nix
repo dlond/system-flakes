@@ -17,29 +17,29 @@
       lh = "eza -ld .* --icons"; # List ONLY hidden files/dirs
       lt = "eza -l --header --git --icons --tree"; # Tree view with details
       tree = "eza --tree";
-      
+
       # File tools
       cat = "bat";
       v = "nvim";
       ndiff = "nvim -d";
-      
+
       # Safety aliases
       rm = "rm -i"; # Interactive confirmation
-      
-      # Fuzzy history
+
+      # Fuzzy tools
       fh = "fc -l 1 | fzf --tac --height=50% | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | sh";
-      
+
       # Nix shortcuts
       nfc = "nix flake check";
       nfu = "nix flake update";
       nd = "nix develop";
       drs = "darwin-rebuild switch --flake .#mbp";
-      
+
       # Quick navigation
       dev = "cd ~/dev";
       proj = "cd ~/dev/projects";
       wt = "cd ~/dev/worktrees";
-      
+
       # Other
       firefox = "open -a \"Firefox\" --args";
       clip = shared.clipboardCommand;
@@ -83,7 +83,7 @@
       (lib.mkBefore ''
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
-        
+
       '')
       ''
         # shell options
@@ -116,7 +116,6 @@
         # limp mode for emergencies
         # zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse --border
 
-
         # groups activated
         zstyle ':fzf-tab:*' group
         zstyle ':fzf-tab:*' group-order 'directories' 'files' 'hidden-directories' 'hidden-files'
@@ -127,35 +126,50 @@
         zstyle ':fzf-tab:*' single-group prefix color header
 
         # Full keybinds to match fzf
-        zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:down' 'shift-tab:toggle+down' 'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
+        zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:toggle' 'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
 
         # Enable preview for all
         zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'
-
-        # Remove problematic preview for now
 
         autoload -z edit-command-line
         zle -N edit-command-line
         bindkey -M vicmd v edit-command-line
 
-        _update_omp_dirstack_count() {
+        _update_dirstack_conan() {
           export MY_DIRSTACK_COUNT=$#dirstack
-          # Also check for Conan environment here
           if [[ -n "$DYLD_LIBRARY_PATH" ]] && [[ "$DYLD_LIBRARY_PATH" == *".conan2"* ]]; then
             export IN_CONAN_ENV="1"
           else
             unset IN_CONAN_ENV
           fi
         }
-        
+
         if [[ -z "$precmd_functions" ]]; then
           precmd_functions=()
         fi
-        precmd_functions+=(_update_omp_dirstack_count)
+        precmd_functions+=(_update_dirstack_conan)
 
         # Source git worktree functions
         source "$HOME/.local/lib/gwt-functions.sh"
 
+        # Fuzzy functions
+        fkill() {
+          ps aux | fzf --multi --header='[kill process]' | awk '{print $2}' | xargs -r kill -9
+        }
+
+        fe() {
+          local selection
+          selection=$(fd --hidden --follow --exclude .git |
+            fzf --preview '[[ -d {} ]] && eza -la || bat --style=numbers --color=always --line-range :500 {}' \
+              --preview-window=right:60%)
+
+          [[ -z "$selection" ]] && return
+          [[ -d "$selection" ]] && cd "$selection" || ''${EDITOR:-nvim} "$selection"
+        }
+
+        fenv() {
+          env | fzf --preview 'echo {}'
+        }
       ''
       # Zoxide MUST be initialized at the very end to avoid configuration warnings
       # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)

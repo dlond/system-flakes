@@ -177,7 +177,7 @@
           selection=$(alias | \
             fzf --preview 'echo {}' \
                 --preview-window=up:3:wrap \
-                --header='[fuzzy alias search] enter: execute | ctrl-y: copy')
+                --header='[fuzzy alias search]')
           if [[ -n "$selection" ]]; then
             # Extract just the command part after the = sign
             local cmd=$(echo "$selection" | sed "s/^[^=]*=//; s/^'//; s/'$//")

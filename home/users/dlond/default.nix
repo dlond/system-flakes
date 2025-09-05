@@ -79,13 +79,7 @@
 
       # Keybindings
       keybind = global:option+space=toggle_quick_terminal
-      
-      # Vim-style split navigation
-      keybind = ctrl+h=goto_split:left
-      keybind = ctrl+j=goto_split:bottom
-      keybind = ctrl+k=goto_split:top
-      keybind = ctrl+l=goto_split:right
-      
+
       # Make Shift-Enter work as expected (send newline)
       keybind = shift+enter=text:\r
     '';

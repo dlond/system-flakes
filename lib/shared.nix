@@ -18,6 +18,7 @@
       eza
       fd
       firefox
+      fswatch
       fzf
       gh
       git

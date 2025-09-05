@@ -170,6 +170,21 @@
         fenv() {
           env | fzf --preview 'echo {}'
         }
+
+        # Fuzzy search aliases
+        fa() {
+          local selection
+          selection=$(alias | \
+            fzf --preview 'echo {}' \
+                --preview-window=up:3:wrap \
+                --header='[fuzzy alias search] enter: execute | ctrl-y: copy')
+          if [[ -n "$selection" ]]; then
+            # Extract just the command part after the = sign
+            local cmd=$(echo "$selection" | sed "s/^[^=]*=//; s/^'//; s/'$//")
+            echo "Executing: $cmd"
+            eval "$cmd"
+          fi
+        }
       ''
       # Zoxide MUST be initialized at the very end to avoid configuration warnings
       # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)

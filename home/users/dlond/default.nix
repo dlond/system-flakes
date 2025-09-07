@@ -28,13 +28,15 @@
 
   home.packages = with pkgs; [
     oh-my-posh
+    zoxide  # Add zoxide to packages since we're managing it manually
   ];
 
-  programs.zoxide = {
-    enable = true;
-    enableZshIntegration = false; # We'll manually init at the end of zshrc
-    options = ["--cmd cd"];
-  };
+  # Zoxide is handled entirely in zsh.nix to control initialization order
+  # programs.zoxide = {
+  #   enable = true;
+  #   enableZshIntegration = false; # We'll manually init at the end of zshrc
+  #   options = ["--cmd cd"];
+  # };
 
   programs.oh-my-posh = {
     enable = true;

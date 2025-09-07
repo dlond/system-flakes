@@ -7,7 +7,7 @@
 }: {
   programs.zsh = {
     enable = true;
-    defaultKeymap = "viins";
+    defaultKeymap = "emacs";
 
     shellAliases = {
       # Better ls aliases
@@ -59,6 +59,8 @@
 
     sessionVariables = {
       EDITOR = "nvim";
+      # Override FZF options for history widget to prevent conflicts
+      FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept'";
     };
 
     syntaxHighlighting = {
@@ -72,10 +74,6 @@
       {
         name = "fzf-tab";
         src = pkgs.zsh-fzf-tab.src;
-      }
-      {
-        name = "vi-mode";
-        src = pkgs.zsh-vi-mode.src;
       }
     ];
 
@@ -133,7 +131,7 @@
 
         autoload -z edit-command-line
         zle -N edit-command-line
-        bindkey -M vicmd v edit-command-line
+        bindkey '^x^e' edit-command-line  # Ctrl-X Ctrl-E to edit command in editor (standard emacs binding)
 
         _update_dirstack_conan() {
           export MY_DIRSTACK_COUNT=$#dirstack
@@ -185,12 +183,10 @@
             eval "$cmd"
           fi
         }
+
       ''
-      # Zoxide MUST be initialized at the very end to avoid configuration warnings
-      # Using mkOrder 2000 ensures it comes after any mkAfter directives (which are mkOrder 1500)
-      # See: https://github.com/nix-community/home-manager/pull/6572
+      # Initialize zoxide at the very end
       (lib.mkOrder 2000 ''
-        # Initialize zoxide with cd command replacement
         eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
       '')
     ];

@@ -7,7 +7,7 @@
 }: {
   programs.fzf = {
     enable = true;
-    enableZshIntegration = true;
+    enableZshIntegration = false;  # We'll handle this manually in zsh.nix
     defaultCommand = "find . -type f";
     defaultOptions = [
       "--ansi"
@@ -41,7 +41,11 @@
     ];
 
     historyWidgetOptions = [
+      "--height=40%"
+      "--layout=reverse" 
+      "--border"
       "--preview=echo {}"
+      "--preview-window=right:50%:wrap"
     ];
   };
 }

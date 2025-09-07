@@ -41,7 +41,7 @@ in {
         [
           # LSP servers
           clang-tools
-          pyright
+          basedpyright
           ruff
           nixd
           texlab
@@ -90,9 +90,21 @@ in {
       ".config/nvim/lua/nix-settings.lua" = {
         text = ''
           -- Settings controlled by Nix configuration
-          vim.g.copilot_enabled = ${if cfg.withCopilot then "true" else "false"}
-          vim.g.debugger_enabled = ${if cfg.withDebugger then "true" else "false"}
-          vim.g.training_mode_enabled = ${if cfg.withTrainingMode then "true" else "false"}
+          vim.g.copilot_enabled = ${
+            if cfg.withCopilot
+            then "true"
+            else "false"
+          }
+          vim.g.debugger_enabled = ${
+            if cfg.withDebugger
+            then "true"
+            else "false"
+          }
+          vim.g.training_mode_enabled = ${
+            if cfg.withTrainingMode
+            then "true"
+            else "false"
+          }
         '';
       };
     };

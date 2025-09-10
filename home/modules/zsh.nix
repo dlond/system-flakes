@@ -124,7 +124,7 @@
         zstyle ':fzf-tab:*' single-group prefix color header
 
         # Full keybinds to match fzf
-        zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'tab:toggle' 'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:accept'
+        zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:toggle'
 
         # Enable preview for all
         zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'

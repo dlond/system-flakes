@@ -7,7 +7,7 @@
 }: {
   programs.fzf = {
     enable = true;
-    enableZshIntegration = false;  # We'll handle this manually in zsh.nix
+    enableZshIntegration = true;
     defaultCommand = "find . -type f";
     defaultOptions = [
       "--ansi"

@@ -410,10 +410,14 @@
       source "$HOME/.local/lib/gwt-common.sh"
 
       usage() {
-        echo "Usage: gwt-new <issue-number> [issue-number...] | gwt-new <branch-name>"
+        echo "Usage: gwt-new [--cwd] <issue-number> [issue-number...] | gwt-new [--cwd] <branch-name>"
+        echo ""
+        echo "Options:"
+        echo "  --cwd    Stay in current directory (don't cd to new worktree)"
         echo ""
         echo "Examples:"
-        echo "  gwt-new 123                    # Single issue"
+        echo "  gwt-new 123                    # Single issue (cd to new worktree)"
+        echo "  gwt-new --cwd 123              # Single issue (stay in current dir)"
         echo "  gwt-new 123 124 125            # Multiple issues (with analysis)"
         echo "  gwt-new custom-branch-name     # Custom branch name"
         exit 1
@@ -525,6 +529,7 @@
 
       create_worktree() {
         local branch_name=$1
+        local stay_in_cwd=$2
 
         # Use common functions to get project info
         local project_name=$(get_project_name)
@@ -549,11 +554,51 @@
         echo "✅ Worktree created successfully!"
         echo "📁 Path: $folder_path"
         echo "🌿 Branch: $branch_name"
-        echo ""
-        echo "To switch: cd $folder_path"
+        
+        # Run direnv allow if .envrc exists
+        if [ -f "$folder_path/.envrc" ]; then
+          echo "🔐 Running direnv allow..."
+          (cd "$folder_path" && direnv allow)
+        fi
+        
+        # Change to the new worktree unless --cwd was specified
+        if [ "$stay_in_cwd" = "false" ]; then
+          echo ""
+          echo "📂 Switching to new worktree..."
+          cd "$folder_path"
+          # Since this is a script (not a function), we need to exec a new shell
+          exec $SHELL
+        else
+          echo ""
+          echo "To switch: cd $folder_path"
+        fi
       }
 
       main() {
+        if [ $# -eq 0 ]; then
+          usage
+        fi
+
+        # Parse flags
+        local stay_in_cwd=false
+        local args=()
+        
+        while [[ $# -gt 0 ]]; do
+          case $1 in
+            --cwd)
+              stay_in_cwd=true
+              shift
+              ;;
+            *)
+              args+=("$1")
+              shift
+              ;;
+          esac
+        done
+        
+        # Restore positional parameters
+        set -- "''${args[@]}"
+        
         if [ $# -eq 0 ]; then
           usage
         fi
@@ -593,12 +638,12 @@
               ;;
           esac
 
-          create_worktree "$suggested_name"
+          create_worktree "$suggested_name" "$stay_in_cwd"
 
         else
           # Custom branch name provided
           local branch_name=$1
-          create_worktree "$branch_name"
+          create_worktree "$branch_name" "$stay_in_cwd"
         fi
       }
 
@@ -677,8 +722,8 @@
         }
 
         # Parse arguments
-        local target_branch=""
         local close_issues=true
+        local arg=""
 
         while [[ $# -gt 0 ]]; do
           case $1 in
@@ -691,69 +736,64 @@
               return 0
               ;;
             *)
-              if [ -z "$target_branch" ]; then
-                target_branch="$1"
+              if [ -z "$arg" ]; then
+                arg="$1"
               fi
               shift
               ;;
           esac
         done
 
-        # If it's a number, find the matching branch
-        if [ -n "$target_branch" ] && [[ "$target_branch" =~ ^[0-9]+$ ]]; then
-          local issue_num="$target_branch"
-          target_branch=$(find_branch_by_issue "$issue_num")
-          if [ -z "$target_branch" ]; then
-            print_error "No worktree found for issue #$issue_num"
+        # FIXED LOGIC: Always resolve issue/branch to target first
+        local target_branch=""
+        local current_branch=$(git branch --show-current)
+        
+        # If argument provided, use it
+        if [ -n "$arg" ]; then
+          if [[ "$arg" =~ ^[0-9]+$ ]]; then
+            # It's an issue number - find the branch
+            target_branch=$(find_branch_by_issue "$arg")
+            if [ -z "$target_branch" ]; then
+              print_error "No worktree found for issue #$arg"
+              return 1
+            fi
+          else
+            # It's a branch name
+            target_branch="$arg"
+          fi
+        else
+          # No argument - use current branch if not main
+          if [[ "$current_branch" != "main" ]] && [[ "$current_branch" != "master" ]]; then
+            target_branch="$current_branch"
+          else
+            echo "📍 In main worktree - specify a branch or issue number to clean up"
+            usage
+            echo ""
+            echo "Available worktrees:"
+            git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
             return 1
           fi
         fi
-
-        local current_branch=$(git branch --show-current)
-        local current_dir=$(pwd)
-        local worktree_dir=""
-
-        # jump to repo root so the rest of the script is always at the top level
-        cd "$(git rev-parse --show-toplevel)"
-
-        # Check if we're in a worktree (not the main repo)
-        if git rev-parse --show-superproject-working-tree >/dev/null 2>&1; then
-          echo "📦 In worktree: $current_branch"
-          target_branch="$current_branch"
-          worktree_dir="$current_dir"
-
-          # Navigate to main worktree BEFORE removing
+        
+        # Safety check: Never remove main branch
+        local main_branch=$(get_main_branch)
+        if [[ "$target_branch" == "$main_branch" ]] || [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
+          print_error "Cannot remove the main branch ($target_branch)!"
+          return 1
+        fi
+        
+        # Get worktree path for target branch
+        local worktree_dir=$(get_worktree_path "$target_branch")
+        if [ -z "$worktree_dir" ]; then
+          echo "❌ No worktree found for branch: $target_branch"
+          return 1
+        fi
+        
+        # Always switch to main before removing
+        if [[ "$current_branch" != "$main_branch" ]]; then
           local main_worktree=$(git worktree list | head -1 | awk '{print $1}')
           echo "🔄 Switching to main worktree: $main_worktree"
           cd "$main_worktree" || return 1
-        elif [ -n "$target_branch" ]; then
-          # We're in main and have a target branch
-          echo "🎯 Cleaning up worktree: $target_branch"
-
-          # Find the worktree directory for this branch
-          worktree_dir=$(git worktree list --porcelain | grep -A1 "branch refs/heads/$target_branch" | grep "^worktree" | cut -d" " -f2)
-          if [ -z "$worktree_dir" ]; then
-            echo "❌ No worktree found for branch: $target_branch"
-            return 1
-          fi
-        else
-          # In main with no target specified
-          echo "📍 In main worktree - specify a branch or issue number to clean up"
-          echo "Usage: gwt-done [branch-name | issue-number] [--no-close]"
-          echo ""
-          echo "Available worktrees:"
-          git worktree list | tail -n +2 | awk '{print "  • " $3 " at " $1}'
-          return 0
-        fi
-
-        # Get the main branch name and protect it
-        local main_branch=$(get_main_branch)
-
-        # Safety check: Never remove main/master branch
-        if [[ "$target_branch" == "$main_branch" ]] || [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
-          print_error "Cannot remove the main branch ($target_branch)!"
-          echo "   The main branch and its worktree must be preserved."
-          return 1
         fi
 
         # Pull merged changes

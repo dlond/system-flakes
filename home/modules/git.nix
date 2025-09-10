@@ -299,7 +299,8 @@
       # Get worktree path for a branch
       get_worktree_path() {
         local branch=$1
-        git worktree list --porcelain | grep -A1 "branch refs/heads/$branch" | grep "^worktree" | cut -d" " -f2
+        # Need to look BEFORE the branch line to find the worktree line
+        git worktree list --porcelain | grep -B2 "branch refs/heads/$branch$" | grep "^worktree" | cut -d" " -f2
       }
 
       # Find branch by issue number

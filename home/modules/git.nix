@@ -306,7 +306,8 @@
       # Find branch by issue number
       find_branch_by_issue() {
         local issue_num=$1
-        git worktree list --porcelain | grep "^branch" | cut -d" " -f2 | grep -E "[-/]$issue_num([-/]|$)" | head -1
+        # Strip refs/heads/ prefix to get just the branch name
+        git worktree list --porcelain | grep "^branch" | cut -d" " -f2 | grep -E "[-/]$issue_num([-/]|$)" | sed 's|^refs/heads/||' | head -1
       }
 
       # Extract issue numbers from branch name

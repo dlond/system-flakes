@@ -314,7 +314,7 @@
       extract_issue_numbers() {
         local branch=$1
         # Match patterns like: fix-123-desc, feature-123-124-desc, 123-desc, etc.
-        echo "$branch" | grep -oE '[0-9]+' | tr '\n' ' '
+        echo "$branch" | grep -oE '[0-9]+' | tr '\n' ' ' | sed 's/ $//'
       }
 
       # Sanitize string for branch name

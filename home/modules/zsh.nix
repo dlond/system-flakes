@@ -100,7 +100,6 @@
 
         zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
         zstyle ':completion:*' menu no
-        zstyle ':completion:*:git-checkout:*' sort false
 
         # safe baseline for ALL fzf-tab popups (visuals only)
         zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse --border --ansi \
@@ -128,7 +127,7 @@
           'ctrl-n:down' 'tab:down' \
           'ctrl-p:up' 'shift-tab:up' \
           'ctrl-y:accept' 'enter:accept' \
-          'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' \
+          'ctrl-e:execute-silent(echo {+} | clip)+abort' \
           'ctrl-w:become(nvim {+})' \
           'space:toggle' \
 
@@ -138,6 +137,30 @@
         zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'
 
         zstyle ':fzf-tab:complete:*' popup-pad 30 0
+
+        # Git-specific completions with previews
+        zstyle ':fzf-tab:complete:git-branch:*' fzf-preview 'git log --oneline --graph --color=always $word'
+        zstyle ':fzf-tab:complete:git-checkout:*' fzf-preview 'git log --oneline --graph --color=always $word'
+        zstyle ':fzf-tab:complete:git-switch:*' fzf-preview 'git log --oneline --graph --color=always $word'
+        zstyle ':fzf-tab:complete:git-merge:*' fzf-preview 'git log --oneline --graph --color=always $word'
+        zstyle ':fzf-tab:complete:git-rebase:*' fzf-preview 'git log --oneline --graph --color=always $word'
+
+        # For git diff, show actual diff preview
+        zstyle ':fzf-tab:complete:git-diff:*' fzf-preview 'git diff --color=always $word'
+
+        # For git add, show file diff
+        zstyle ':fzf-tab:complete:git-add:*' fzf-preview 'git diff --color=always -- $realpath 2>/dev/null || bat --color=always $realpath'
+
+        # For branch deletion, show the branch info
+        zstyle ':fzf-tab:complete:git-branch:argument-rest:' fzf-preview 'git log --oneline --graph --color=always --max-count=20 $word'
+
+        # Show recent branches first
+        zstyle ':completion:*:git-checkout:*' recent-branches-first true
+        zstyle ':completion:*:git-checkout:*' sort false
+
+        # Group git results nicely
+        zstyle ':fzf-tab:complete:git-*:*' group-order 'modified files' 'untracked files' 'branches' 'tags' 'commits' 'remotes'
+
 
         autoload -z edit-command-line
         zle -N edit-command-line
@@ -165,7 +188,7 @@
           ps aux | fzf --multi --header='[kill process]' | awk '{print $2}' | xargs -r kill -9
         }
 
-        fe() {
+        sf() {
           local selection
           selection=$(fd --hidden --follow --exclude .git |
             fzf --preview '[[ -d {} ]] && eza -la || bat --style=numbers --color=always --line-range :500 {}' \
@@ -175,12 +198,12 @@
           [[ -d "$selection" ]] && cd "$selection" || ''${EDITOR:-nvim} "$selection"
         }
 
-        fenv() {
+        se() {
           env | fzf --preview 'echo {}'
         }
 
         # Fuzzy search aliases
-        fa() {
+        sa() {
           local selection
           selection=$(alias | \
             fzf --preview 'echo {}' \
@@ -191,6 +214,26 @@
             local cmd=$(echo "$selection" | sed "s/^[^=]*=//; s/^'//; s/'$//")
             echo "Executing: $cmd"
             eval "$cmd"
+          fi
+        }
+
+        sk() {
+          local selection
+          selection=$(bindkey |
+            fzf --preview 'key={1}; func={2}; echo "Key: $key\nFunction: $func"; echo "---"; case $func in
+              *autosuggest*) echo "Zsh autosuggestions function" ;;
+              *history*) echo "History navigation" ;;
+              *fzf*) echo "FZF widget function" ;;
+              *edit*) echo "Edit/modify command" ;;
+              *complete*) echo "Completion function" ;;
+              *) echo "Zsh widget: $func" ;;
+            esac' \
+                --preview-window=up:4:wrap \
+                --header='[fuzzy keybind search] | Ctrl-Y: copy' \
+                --bind 'ctrl-e:execute(echo {1} {2} | clip)+abort')
+
+          if [[ -n "$selection" ]]; then
+            echo "$selection"
           fi
         }
 

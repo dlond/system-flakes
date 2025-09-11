@@ -21,14 +21,13 @@
     ../../modules/nish.nix
     ../../modules/nvdev.nix
     ../../modules/tmux.nix
-    ../../modules/tmuxp.nix
     ../../modules/zsh.nix
     ../../modules/neovim.nix
   ];
 
   home.packages = with pkgs; [
     oh-my-posh
-    zoxide  # Add zoxide to packages since we're managing it manually
+    zoxide # Add zoxide to packages since we're managing it manually
   ];
 
   # Zoxide is handled entirely in zsh.nix to control initialization order

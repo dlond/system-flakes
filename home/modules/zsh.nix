@@ -124,10 +124,20 @@
         zstyle ':fzf-tab:*' single-group prefix color header
 
         # Full keybinds to match fzf
-        zstyle ':fzf-tab:*' fzf-bindings 'ctrl-n:down' 'ctrl-p:up' 'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' 'ctrl-w:become(nvim {+})' 'ctrl-y:accept' 'enter:toggle'
+        zstyle ':fzf-tab:*' fzf-bindings \
+          'ctrl-n:down' 'tab:down' \
+          'ctrl-p:up' 'shift-tab:up' \
+          'ctrl-y:accept' 'enter:accept' \
+          'ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort' \
+          'ctrl-w:become(nvim {+})' \
+          'space:toggle' \
+
+        zstyle ':fzf-tab:*' continuous-trigger '/'
 
         # Enable preview for all
         zstyle ':fzf-tab:complete:*' fzf-preview 'if [[ -d $realpath ]]; then eza $realpath; else bat $realpath; fi'
+
+        zstyle ':fzf-tab:complete:*' popup-pad 30 0
 
         autoload -z edit-command-line
         zle -N edit-command-line

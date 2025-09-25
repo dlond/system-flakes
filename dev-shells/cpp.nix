@@ -6,7 +6,8 @@
   projectName ? "cpp-dev",
 }: let
   llvm = pkgs.${llvmVersion};
-in pkgs.mkShell {
+  customStdenv = pkgs.overrideCC pkgs.stdenv llvm.clang;
+in customStdenv.mkDerivation {
   name = "${projectName}-shell";
 
   buildInputs = [

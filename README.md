@@ -1,3 +1,63 @@
+# System Flakes
+
+A comprehensive Nix flakes configuration for macOS (via nix-darwin) and Linux (via home-manager), with reusable development shells for multiple programming languages.
+
+## Features
+
+- 🖥️ **Full system configuration** for macOS with nix-darwin
+- 🏠 **Home-manager** for Linux and macOS user environments
+- 🚀 **Instant project scaffolding** with `nix-init-project`
+- 📦 **Reusable dev shells** for Python, C++, Rust, and LaTeX
+- 🔧 **Centralized package management** - single source of truth
+- 🎯 **Neovim integration** with project-specific LSP/DAP configuration
+
+## Quick Start
+
+### System Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/dlond/system-flakes
+cd system-flakes
+
+# For macOS (nix-darwin)
+darwin-rebuild switch --flake .#mbp
+
+# For Linux (home-manager only)
+home-manager switch --flake .#linux
+```
+
+### Creating New Projects
+
+After system installation, use `nix-init-project` to scaffold any project:
+
+```bash
+# Create a Python project with specific version
+nix-init-project python --name my-ml-project --python-version 3.12 --molten --jupyter
+
+# Create a C++ project with C++23 and Clang 19
+nix-init-project cpp --name my-app --cpp-standard 23 --compiler clang --compiler-version 19 --cmake
+
+# Create a Rust project with WASM support
+nix-init-project rust --name my-wasm-app --wasm
+
+# Create a LaTeX document
+nix-init-project latex --name my-paper --pandoc --scheme full
+
+# See available options for each language
+nix-init-project python --help
+nix-init-project cpp --help
+nix-init-project rust --help
+nix-init-project latex --help
+```
+
+Each command creates:
+- `flake.nix` - Nix development environment
+- `.envrc` - Automatic environment activation with direnv
+- `.gitignore` - Language-specific ignores
+- `.nvim.lua` - Project-specific Neovim configuration
+- Starter files (requirements.txt, CMakeLists.txt, Cargo.toml, main.tex)
+
 ## Updating Neovim & Flake Inputs
 
 This flake manages the system configuration and pulls in the Neovim configuration from a separate repository ([dlond/nvim](https://github.com/dlond/nvim)) via a flake input (`nvim-config`).

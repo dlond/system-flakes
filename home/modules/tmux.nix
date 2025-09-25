@@ -170,6 +170,9 @@ in {
       setw -g aggressive-resize on
       setw -g monitor-activity off
 
+      set -gq allow-passthrough on
+      set -g visual-activity off
+
       bind r source-file ${tmuxConf} \; display-message "Reloaded"
 
       # Copy-mode bindings (vi-style)

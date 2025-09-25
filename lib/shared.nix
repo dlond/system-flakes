@@ -2,7 +2,9 @@
   pkgs,
   lib,
   ...
-}: {
+}: let
+  nix-init-project = pkgs.callPackage ../packages/nix-init-project.nix {};
+in {
   sharedCliTools = with pkgs;
     [
       age
@@ -30,6 +32,7 @@
       luarocks
       mosh
       neovim
+      nix-init-project
       nodejs_20
       obsidian
       ripgrep

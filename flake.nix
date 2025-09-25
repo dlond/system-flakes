@@ -32,6 +32,15 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+    };
   };
 
   outputs = inputs @ {self, ...}: let
@@ -42,7 +51,44 @@
       linux_x86 = "x86_64-linux";
     };
     mkPkgs = import ./lib/mkPkgs.nix {inherit (inputs) nixpkgs;};
+
+    # Export dev shells for reuse
+    forAllSystems = inputs.nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
   in {
+    # Dev shell templates - exported as a custom output
+    devShellTemplates = {
+      python = import ./dev-shells/python.nix;
+      cpp = import ./dev-shells/cpp.nix;
+      rust = import ./dev-shells/rust.nix;
+      latex = import ./dev-shells/latex.nix;
+    };
+
+    # Example dev shells that can be used with `nix develop`
+    devShells = forAllSystems (system: let
+      pkgs = import inputs.nixpkgs {
+        inherit system;
+        overlays = [inputs.rust-overlay.overlays.default];
+      };
+    in {
+      python = import ./dev-shells/python.nix {
+        inherit pkgs;
+        withJupyter = true;
+        withMolten = false;
+      };
+      python-molten = import ./dev-shells/python.nix {
+        inherit pkgs;
+        withJupyter = true;
+        withMolten = true;
+      };
+      cpp = import ./dev-shells/cpp.nix {
+        inherit pkgs;
+      };
+      latex = import ./dev-shells/latex.nix {
+        inherit pkgs;
+        scheme = "medium";
+        withPandoc = true;
+      };
+    });
     #### macOS full-system (nix-darwin + HM)
     darwinConfigurations.mbp = let
       system = systems.darwin;

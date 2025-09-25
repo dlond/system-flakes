@@ -6,6 +6,7 @@
   ...
 }: let
   cfg = config.programs.neovim-cfg;
+  packages = import ../../lib/packages.nix {inherit pkgs;};
 in {
   options.programs.neovim-cfg = {
     enable = lib.mkEnableOption "Neovim";
@@ -24,6 +25,11 @@ in {
       default = false;
       description = "Enable vim training mode to build better navigation habits.";
     };
+    withMolten = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Molten for Jupyter notebook support in Neovim.";
+    };
     extraLSPs = lib.mkOption {
       type = lib.types.listOf lib.types.package;
       default = [];
@@ -34,39 +40,26 @@ in {
   config = lib.mkIf cfg.enable {
     programs.neovim = {
       enable = true;
+      defaultEditor = true;
       vimAlias = true;
+      vimdiffAlias = true;
       withPython3 = true;
       withNodeJs = true;
-      extraPackages = with pkgs;
-        [
-          # LSP servers
-          clang-tools
-          basedpyright
-          ruff
-          nixd
-          texlab
-          cmake-language-server
-          bash-language-server
-          lua-language-server
-
-          # Formatters
-          stylua
-          alejandra
-          black
-          shfmt
-          cmake-format
-
-          # Essential tools
-          ripgrep
-          fd
-          gnumake
-          gcc
-        ]
+      extraPackages =
+        packages.neovim.lsp
+        ++ packages.neovim.formatters
+        ++ packages.neovim.tools
+        ++ lib.optionals cfg.withMolten packages.python.molten
         ++ lib.optionals cfg.withDebugger [
-          lldb
-          python3Packages.debugpy
+          pkgs.lldb
+          pkgs.python3Packages.debugpy
         ]
         ++ cfg.extraLSPs;
+      extraLuaPackages = ps:
+        with ps; [
+          magick
+        ];
+      extraPython3Packages = packages.python.pythonPackages;
     };
 
     home.file = {
@@ -102,6 +95,11 @@ in {
           }
           vim.g.training_mode_enabled = ${
             if cfg.withTrainingMode
+            then "true"
+            else "false"
+          }
+          vim.g.molten_enabled = ${
+            if cfg.withMolten
             then "true"
             else "false"
           }

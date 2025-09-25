@@ -1,0 +1,770 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_info() { echo -e "${BLUE}ℹ ${NC} $1"; }
+print_success() { echo -e "${GREEN}✓${NC} $1"; }
+print_error() { echo -e "${RED}✗${NC} $1"; }
+print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
+
+# Function to show general usage
+usage() {
+    cat << EOF
+$(print_info "Nix Project Initializer v1.0")
+
+$(print_success "USAGE:")
+  $(basename "$0") <language> [OPTIONS]
+  $(basename "$0") <language> --help    # Show language-specific help
+
+$(print_success "LANGUAGES:")
+  python      Python with uv package manager
+  cpp         C++ with modern toolchain
+  latex       LaTeX document authoring
+
+$(print_success "COMMON OPTIONS:")
+  --name NAME       Project name (default: current directory)
+  --help, -h        Show help (general or language-specific)
+
+$(print_success "EXAMPLES:")
+  $(basename "$0") python --name ml-project --molten --jupyter
+  $(basename "$0") cpp --cmake --debugger
+  $(basename "$0") latex --pandoc --scheme full
+
+$(print_success "FOR LANGUAGE-SPECIFIC OPTIONS:")
+  $(basename "$0") python --help
+  $(basename "$0") cpp --help
+  $(basename "$0") latex --help
+
+$(print_info "Each project includes:")
+  • Nix flake for reproducible environment
+  • Direnv for automatic shell activation
+  • Neovim LSP/DAP configuration
+  • Language-specific starter files
+  • Comprehensive .gitignore
+
+EOF
+    exit 0
+}
+
+# Language-specific help functions
+python_help() {
+    cat << EOF
+$(print_info "Python Project Initializer")
+
+$(print_success "USAGE:")
+  $(basename "$0") python [OPTIONS]
+
+$(print_success "OPTIONS:")
+  --name NAME           Project name (default: current directory)
+  --python-version VER  Python version: 3.9, 3.10, 3.11, 3.12, 3.13 (default: 3.11)
+  --molten              Enable molten-nvim Jupyter support
+  --jupyter             Enable Jupyter notebooks
+  --debugger            Enable Python debugging with debugpy
+  --help                Show this help
+
+$(print_success "WHAT YOU GET:")
+  • Python environment (configurable version)
+  • Virtual environment with uv package manager
+  • LSP: basedpyright and ruff (configured for venv)
+  • Formatter: black
+  • requirements.txt for dependencies
+  • .nvim.lua with venv-aware configuration
+
+$(print_success "PACKAGE MANAGEMENT:")
+  $(print_info "Nix provides:")
+    - Python interpreter, uv, development tools
+    - LSP servers, formatters, debuggers
+    - System dependencies for packages
+
+  $(print_info "uv manages (via requirements.txt):")
+    - Project-specific Python packages
+    - Version pinning with pip freeze
+
+$(print_success "WORKFLOW:")
+  1. Create project:       $(basename "$0") python --name myapp --molten
+  2. Enter directory:      cd myapp
+  3. Add dependencies:     echo "pandas>=2.0" >> requirements.txt
+  4. Install packages:     uv pip install -r requirements.txt
+  5. Open in neovim:       nvim myapp.py
+  6. Start Jupyter kernel: :MoltenInit python3
+
+$(print_success "ADDING SYSTEM DEPENDENCIES:")
+  Edit flake.nix to add packages needed by Python libraries:
+    extraPackages = with pkgs; [
+      postgresql  # for psycopg2
+      libxml2     # for lxml
+      gdal        # for geodjango
+    ];
+
+EOF
+    exit 0
+}
+
+cpp_help() {
+    cat << EOF
+$(print_info "C++ Project Initializer")
+
+$(print_success "USAGE:")
+  $(basename "$0") cpp [OPTIONS]
+
+$(print_success "OPTIONS:")
+  --name NAME           Project name (default: current directory)
+  --cpp STD             C++ standard: 11, 14, 17, 20, 23 (default: 20)
+  --llvm V              LLVM version: 16, 17, 18, 19 (default: system default)
+  --help                Show this help
+
+$(print_success "WHAT YOU GET:")
+  • Complete LLVM toolchain (clang, clang-tools, lld, lldb)
+  • Build tools: CMake, Ninja, Conan
+  • LSP: clangd with compile_commands.json support
+  • Formatter: clang-format
+  • CMakeLists.txt with configurable C++ standard
+  • src/main.cpp starter file
+  • .nvim.lua with project-aware configuration
+
+$(print_success "WORKFLOW:")
+  1. Create project:    $(basename "$0") cpp --name myapp
+  2. Enter directory:   cd myapp
+  3. Install deps:      conan install . --build=missing
+  4. Configure build:   cmake --preset conan-release
+  5. Build project:     cmake --build --preset conan-release
+
+  # Without Conan (if no dependencies):
+  1. Configure:         cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  2. Build:             cmake --build build
+
+$(print_success "COMPILE COMMANDS:")
+  The .nvim.lua automatically links compile_commands.json from build/
+  to project root for clangd to find it.
+
+EOF
+    exit 0
+}
+
+
+latex_help() {
+    cat << EOF
+$(print_info "LaTeX Project Initializer")
+
+$(print_success "USAGE:")
+  $(basename "$0") latex [OPTIONS]
+
+$(print_success "OPTIONS:")
+  --name NAME       Project name (default: current directory)
+  --scheme SCHEME   TeX scheme: basic, small, medium, full (default: medium)
+  --pandoc          Enable Pandoc for markdown conversion
+  --biber           Enable Biber for bibliography
+  --graphics        Enable graphics tools (inkscape, gnuplot)
+  --python          Enable Python integration (pythontex)
+  --help            Show this help
+
+$(print_success "WHAT YOU GET:")
+  • TeXLive distribution (size based on scheme)
+  • LSP: texlab for completion and diagnostics
+  • Build tool: latexmk for continuous compilation
+  • main.tex starter document
+  • .latexmkrc configuration
+  • Directories: figures/, sections/
+
+$(print_success "SCHEMES:")
+  basic   - Minimal TeX installation
+  small   - Basic document classes
+  medium  - Most packages, recommended (default)
+  full    - Everything including obscure packages
+
+$(print_success "OPTIONAL FEATURES:")
+  $(print_info "Pandoc (--pandoc):")
+    - Convert between markdown, LaTeX, Word, etc.
+    - Pandoc filters for custom processing
+
+  $(print_info "Graphics (--graphics):")
+    - Inkscape for SVG editing
+    - Gnuplot for data plots
+    - ImageMagick for conversions
+
+$(print_success "WORKFLOW:")
+  1. Create project:      $(basename "$0") latex --name paper --pandoc
+  2. Enter directory:     cd paper
+  3. Continuous build:    latexmk -pvc -pdf main.tex
+  4. Open in neovim:      nvim main.tex
+  5. Convert markdown:    pandoc input.md -o output.tex
+
+$(print_success "LATEXMK:")
+  The .latexmkrc is configured for:
+    - PDF output with synctex
+    - Automatic viewer refresh
+    - Comprehensive cleanup
+
+EOF
+    exit 0
+}
+
+# Parse arguments
+PROJECT_TYPE=""
+PROJECT_NAME="$(basename "$PWD")"
+MOLTEN=false
+JUPYTER=false
+SCHEME="medium"
+PANDOC=false
+BIBER=false
+GRAPHICS=false
+PYTHON_TEX=false
+# Version selections
+PYTHON_VERSION="3.11"
+CPP_STANDARD="20"
+LLVM_VERSION="llvmPackages"
+
+# Check if no arguments provided
+if [[ $# -eq 0 ]]; then
+    usage
+fi
+
+# Check for language-specific help first
+if [[ $# -eq 2 ]] && [[ $2 == "--help" || $2 == "-h" ]]; then
+    case $1 in
+        python)
+            python_help
+            ;;
+        cpp)
+            cpp_help
+            ;;
+        latex)
+            latex_help
+            ;;
+        *)
+            print_error "Unknown language: $1"
+            usage
+            ;;
+    esac
+fi
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        python|cpp|latex)
+            PROJECT_TYPE="$1"
+            shift
+            ;;
+        --name)
+            PROJECT_NAME="$2"
+            shift 2
+            ;;
+        --molten)
+            MOLTEN=true
+            shift
+            ;;
+        --jupyter)
+            JUPYTER=true
+            shift
+            ;;
+        --scheme)
+            SCHEME="$2"
+            shift 2
+            ;;
+        --pandoc)
+            PANDOC=true
+            shift
+            ;;
+        --biber)
+            BIBER=true
+            shift
+            ;;
+        --graphics)
+            GRAPHICS=true
+            shift
+            ;;
+        --python)
+            PYTHON_TEX=true
+            shift
+            ;;
+        --python-version)
+            PYTHON_VERSION="$2"
+            shift 2
+            ;;
+        --cpp)
+            CPP_STANDARD="$2"
+            shift 2
+            ;;
+        --llvm)
+            if [[ "$2" =~ ^[0-9]+$ ]]; then
+                LLVM_VERSION="llvmPackages_$2"
+            else
+                LLVM_VERSION="$2"  # Allow full package name if needed
+            fi
+            shift 2
+            ;;
+        --help|-h)
+            if [[ -n "$PROJECT_TYPE" ]]; then
+                case $PROJECT_TYPE in
+                    python) python_help ;;
+                    cpp) cpp_help ;;
+                    latex) latex_help ;;
+                esac
+            else
+                usage
+            fi
+            ;;
+        *)
+            print_error "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+# Check if project type was specified
+if [[ -z "$PROJECT_TYPE" ]]; then
+    print_error "No project type specified"
+    usage
+fi
+
+# Create project directory if name was provided and we're not already in it
+if [[ "$PROJECT_NAME" != "$(basename "$PWD")" ]]; then
+    if [[ -d "$PROJECT_NAME" ]]; then
+        print_warning "Directory '$PROJECT_NAME' already exists"
+        read -p "Continue in existing directory? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_info "Cancelled"
+            exit 1
+        fi
+    else
+        print_info "Creating directory: $PROJECT_NAME"
+        mkdir -p "$PROJECT_NAME"
+    fi
+    cd "$PROJECT_NAME"
+fi
+
+# Check if files already exist
+if [[ -f "flake.nix" ]]; then
+    print_warning "flake.nix already exists in $(basename "$PWD")"
+    read -p "Overwrite? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        exit 1
+    fi
+fi
+
+# Create flake.nix based on project type
+print_info "Creating flake.nix for $PROJECT_TYPE project: $PROJECT_NAME"
+
+case $PROJECT_TYPE in
+    python)
+        cat > flake.nix << EOF
+{
+  description = "$PROJECT_NAME - Python project";
+
+  inputs = {
+    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    nixpkgs.follows = "system-flakes/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, system-flakes, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.\${system};
+      in
+      {
+        devShells.default = system-flakes.devShellTemplates.python {
+          inherit pkgs;
+          projectName = "$PROJECT_NAME";
+          pythonVersion = "$PYTHON_VERSION";
+          withJupyter = $JUPYTER;
+          withMolten = $MOLTEN;
+
+          # Add project-specific packages here
+          extraPackages = with pkgs; [
+            # postgresql
+            # redis
+          ];
+        };
+      });
+}
+EOF
+        ;;
+
+
+    cpp)
+        cat > flake.nix << EOF
+{
+  description = "$PROJECT_NAME - C++ project";
+
+  inputs = {
+    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    nixpkgs.follows = "system-flakes/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, system-flakes, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.\${system};
+      in
+      {
+        devShells.default = system-flakes.devShellTemplates.cpp {
+          inherit pkgs;
+          projectName = "$PROJECT_NAME";
+          cppStandard = "$CPP_STANDARD";
+          llvmVersion = "$LLVM_VERSION";
+
+          # Add project-specific packages here
+          extraPackages = with pkgs; [
+            # boost
+            # opencv
+          ];
+        };
+      });
+}
+EOF
+        ;;
+
+    latex)
+        cat > flake.nix << EOF
+{
+  description = "$PROJECT_NAME - LaTeX document";
+
+  inputs = {
+    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    nixpkgs.follows = "system-flakes/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, system-flakes, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.\${system};
+      in
+      {
+        devShells.default = system-flakes.devShellTemplates.latex {
+          inherit pkgs;
+          projectName = "$PROJECT_NAME";
+          scheme = "$SCHEME";
+          withPandoc = $PANDOC;
+          withBiber = $BIBER;
+          withGraphics = $GRAPHICS;
+          withPython = $PYTHON_TEX;
+
+          # Add project-specific packages here
+          extraPackages = with pkgs; [
+            # aspell
+            # aspellDicts.en
+          ];
+        };
+      });
+}
+EOF
+        ;;
+esac
+
+print_success "Created flake.nix"
+
+# Create .envrc
+print_info "Creating .envrc"
+cat > .envrc << 'EOF'
+use flake
+
+# Project-specific environment setup
+# Add any additional environment variables or setup here
+EOF
+
+print_success "Created .envrc"
+
+# Create .gitignore if it doesn't exist
+if [[ ! -f ".gitignore" ]]; then
+    print_info "Creating .gitignore"
+    cat > .gitignore << EOF
+# Nix
+result
+result-*
+
+# Direnv
+.direnv/
+
+# Editor
+.nvim.lua
+*.swp
+*~
+
+EOF
+
+    # Add language-specific ignores
+    case $PROJECT_TYPE in
+        python)
+            cat >> .gitignore << EOF
+# Python
+.venv/
+venv/
+*.pyc
+__pycache__/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+EOF
+            ;;
+        cpp)
+            cat >> .gitignore << EOF
+# C++
+build/
+compile_commands.json
+*.o
+*.a
+*.so
+*.dylib
+EOF
+            ;;
+        latex)
+            cat >> .gitignore << EOF
+# LaTeX
+*.aux
+*.log
+*.out
+*.pdf
+*.synctex.gz
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.run.xml
+*.toc
+EOF
+            ;;
+    esac
+
+    print_success "Created .gitignore"
+fi
+
+# Create project-specific files
+case $PROJECT_TYPE in
+    python)
+        if [[ ! -f "requirements.txt" ]]; then
+            touch requirements.txt
+            print_success "Created empty requirements.txt"
+        fi
+        if [[ ! -f "README.md" ]]; then
+            echo "# $PROJECT_NAME" > README.md
+            print_success "Created README.md"
+        fi
+
+        # Create .nvim.lua for Python LSP/DAP/Molten support
+        if [[ ! -f ".nvim.lua" ]]; then
+            cat > .nvim.lua << 'EOF'
+-- Local nvim config for Python project
+local venv_path = vim.fn.getcwd() .. '/.venv'
+local venv_bin = venv_path .. '/bin'
+
+-- Set Python host for nvim
+vim.g.python3_host_prog = venv_bin .. '/python'
+
+-- Override LSP settings for Python to use venv
+vim.api.nvim_create_autocmd("LspAttach", {
+    pattern = "*.py",
+    callback = function(args)
+        local client = vim.lsp.get_client_by_id(args.data.client_id)
+        if not client then return end
+
+        -- Configure basedpyright to use venv
+        if client.name == "basedpyright" then
+            client.config.settings = vim.tbl_deep_extend("force", client.config.settings or {}, {
+                python = {
+                    pythonPath = venv_bin .. '/python',
+                    venvPath = vim.fn.getcwd(),
+                    venv = '.venv',
+                },
+            })
+            client.notify("workspace/didChangeConfiguration", { settings = client.config.settings })
+        end
+
+        -- Configure ruff to use venv
+        if client.name == "ruff" then
+            client.config.init_options = vim.tbl_deep_extend("force", client.config.init_options or {}, {
+                settings = {
+                    interpreter = { venv_bin .. '/python' },
+                },
+            })
+        end
+EOF
+
+            if [[ "$MOLTEN" == "true" ]]; then
+                cat >> .nvim.lua << 'EOF'
+
+        -- Molten reminder
+        vim.schedule(function()
+            local kernels = vim.fn.system("jupyter kernelspec list")
+            if kernels:match("python3") then
+                vim.notify("Molten: Use :MoltenInit python3 to start kernel", vim.log.levels.INFO)
+            end
+        end)
+EOF
+            fi
+
+            if [[ "$DEBUGGER" == "true" ]]; then
+                cat >> .nvim.lua << 'EOF'
+
+        -- Configure DAP for Python
+        local dap_python = require('dap-python')
+        if dap_python then
+            dap_python.setup(venv_bin .. '/python')
+        end
+EOF
+            fi
+
+            cat >> .nvim.lua << 'EOF'
+    end,
+})
+EOF
+            print_success "Created .nvim.lua for Python LSP/DAP configuration"
+        fi
+        ;;
+
+
+    cpp)
+        # Always create CMakeLists.txt with Conan support
+        if [[ ! -f "CMakeLists.txt" ]]; then
+            cat > CMakeLists.txt << EOF
+cmake_minimum_required(VERSION 3.20)
+
+# Include Conan toolchain if it exists
+if(EXISTS \${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+    include(\${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+endif()
+
+project($PROJECT_NAME)
+
+set(CMAKE_CXX_STANDARD $CPP_STANDARD)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Find packages provided by Conan
+# Example: find_package(fmt REQUIRED)
+
+# Add your targets here
+add_executable(\${PROJECT_NAME} src/main.cpp)
+
+# Link libraries
+# Example: target_link_libraries(\${PROJECT_NAME} PRIVATE fmt::fmt)
+EOF
+            mkdir -p src
+            if [[ ! -f "src/main.cpp" ]]; then
+                cat > src/main.cpp << EOF
+#include <iostream>
+
+int main() {
+    std::cout << "Hello from $PROJECT_NAME!" << std::endl;
+    return 0;
+}
+EOF
+            fi
+            print_success "Created CMakeLists.txt and src/main.cpp"
+        fi
+
+        # Always create conanfile.txt
+        if [[ ! -f "conanfile.txt" ]]; then
+            cat > conanfile.txt << EOF
+[requires]
+# Add your dependencies here, for example:
+# fmt/10.1.0
+# boost/1.82.0
+# spdlog/1.12.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout
+
+[options]
+# Add package options here if needed
+
+[imports]
+# Import files from dependencies if needed
+EOF
+            print_success "Created conanfile.txt"
+        fi
+
+        # Create .nvim.lua for C++ LSP/DAP support
+        if [[ ! -f ".nvim.lua" ]]; then
+            cat > .nvim.lua << 'EOF'
+-- Local nvim config for C++ project
+local project_root = vim.fn.getcwd()
+
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = { "c", "cpp", "cc", "cxx", "h", "hpp" },
+    callback = function()
+        -- CMake integration
+        vim.notify("Build: Run 'conan install . --build=missing' then 'cmake --preset conan-release'", vim.log.levels.INFO)
+
+        -- Auto-link compile_commands.json if it exists in build/
+        local compile_commands_build = project_root .. "/build/compile_commands.json"
+        local compile_commands_root = project_root .. "/compile_commands.json"
+        if vim.fn.filereadable(compile_commands_build) == 1 and vim.fn.filereadable(compile_commands_root) == 0 then
+            vim.fn.system("ln -s " .. compile_commands_build .. " " .. compile_commands_root)
+            vim.notify("Linked compile_commands.json from build/", vim.log.levels.INFO)
+        end
+
+        -- Configure DAP for C++ (if nvim-dap is available)
+        local ok, dap = pcall(require, 'dap')
+        if ok then
+            dap.configurations.cpp = {
+                {
+                    name = "Launch",
+                    type = "lldb",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input('Path to executable: ', project_root .. '/build/', 'file')
+                    end,
+                    cwd = project_root,
+                    stopOnEntry = false,
+                    args = {},
+                },
+            }
+            -- Use same config for C
+            dap.configurations.c = dap.configurations.cpp
+        end
+    end,
+    once = true,
+})
+EOF
+            print_success "Created .nvim.lua for C++ LSP/DAP configuration"
+        fi
+        ;;
+
+    latex)
+        if [[ ! -f "main.tex" ]]; then
+            cat > main.tex << EOF
+\\documentclass[12pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{graphicx}
+\\usepackage{hyperref}
+
+\\title{$PROJECT_NAME}
+\\author{Your Name}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Introduction}
+Start writing here...
+
+\\end{document}
+EOF
+            print_success "Created main.tex"
+        fi
+        ;;
+esac
+
+print_success "Project initialized successfully!"

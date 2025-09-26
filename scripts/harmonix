@@ -27,6 +27,7 @@ $(print_success "USAGE:")
 $(print_success "LANGUAGES:")
   python      Python with uv package manager
   cpp         C++ with modern toolchain
+  cpp-python  C++ with Python bindings via pybind11
   latex       LaTeX document authoring
 
 $(print_success "COMMON OPTIONS:")
@@ -153,6 +154,61 @@ EOF
     exit 0
 }
 
+cpp_python_help() {
+    cat << EOF
+$(print_info "C++ + Python Hybrid Project Initializer")
+
+$(print_success "USAGE:")
+  $(basename "$0") cpp-python [OPTIONS]
+
+$(print_success "OPTIONS:")
+  --name NAME           Project name (default: current directory)
+  --cpp STD             C++ standard: 11, 14, 17, 20, 23 (default: 20)
+  --llvm V              LLVM version: 18, 19, 20, 21 (default: 20)
+  --py VER              Python version: 3.10, 3.11, 3.12, 3.13, 3.14 (default: 3.11)
+  --help                Show this help
+
+$(print_success "WHAT YOU GET:")
+  • Complete LLVM toolchain for C++
+  • Python environment with uv package manager
+  • pybind11 for C++/Python bindings
+  • Example C++ module with Python bindings
+  • Python script using the C++ module
+  • CMakeLists.txt configured for Python extensions
+  • Tests for both C++ and Python code
+
+$(print_success "PROJECT STRUCTURE:")
+  src/
+    ├── bindings.cpp    # pybind11 module definition
+    ├── math_ops.cpp    # C++ implementation
+    └── math_ops.h      # C++ header
+  python/
+    └── example.py      # Python usage example
+  tests/
+    ├── test_cpp.cpp    # C++ unit tests
+    └── test_python.py  # Python unit tests
+  CMakeLists.txt        # Build configuration
+  setup.py              # Python package setup
+
+$(print_success "WORKFLOW:")
+  1. Create project:    $(basename "$0") cpp-python --name mylib
+  2. Enter directory:   cd mylib
+  3. Configure:         cmake -S . -B build -DPYTHON_EXECUTABLE=\$(which python)
+  4. Build:             cmake --build build
+  5. Install:           pip install -e .
+  6. Test C++:          ./build/tests/test_cpp
+  7. Test Python:       pytest tests/
+
+$(print_success "FEATURES:")
+  • Automatic Python venv creation with uv
+  • Example demonstrates passing arrays between C++ and Python
+  • Includes exception handling across language boundary
+  • CMake automatically finds Python and pybind11
+  • Tests demonstrate both C++ and Python usage
+
+EOF
+    exit 0
+}
 
 latex_help() {
     cat << EOF
@@ -240,7 +296,7 @@ fi
 FIRST_ARG="$1"
 
 # Check for language-specific help
-if [[ $1 == "python" || $1 == "cpp" || $1 == "latex" ]]; then
+if [[ $1 == "python" || $1 == "cpp" || $1 == "cpp-python" || $1 == "latex" ]]; then
     if [[ $# -eq 2 ]] && [[ $2 == "--help" || $2 == "-h" ]]; then
         case $1 in
             python)
@@ -248,6 +304,9 @@ if [[ $1 == "python" || $1 == "cpp" || $1 == "latex" ]]; then
                 ;;
             cpp)
                 cpp_help
+                ;;
+            cpp-python)
+                cpp_python_help
                 ;;
             latex)
                 latex_help
@@ -258,7 +317,7 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        python|cpp|latex)
+        python|cpp|cpp-python|latex)
             PROJECT_TYPE="$1"
             shift
             ;;
@@ -477,6 +536,40 @@ EOF
           extraPackages = with pkgs; [
             # aspell
             # aspellDicts.en
+          ];
+        };
+      });
+}
+EOF
+        ;;
+    cpp-python)
+        cat > flake.nix << EOF
+{
+  description = "$PROJECT_NAME - C++ + Python hybrid project";
+
+  inputs = {
+    system-flakes.url = "github:dlond/system-flakes";
+    nixpkgs.follows = "system-flakes/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, system-flakes, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.\${system};
+      in
+      {
+        devShells.default = system-flakes.devShellTemplates."cpp-python" {
+          inherit pkgs;
+          projectName = "$PROJECT_NAME";
+          cppStandard = "$CPP_STANDARD";
+          llvmVersion = "$LLVM_VERSION";
+          pythonVersion = "$PYTHON_VERSION";
+
+          # Add project-specific packages here
+          extraPackages = with pkgs; [
+            # numpy
+            # scipy
           ];
         };
       });
@@ -714,6 +807,62 @@ EOF
             print_success "Created conanfile.txt"
         fi
 
+        # Create local Conan profiles with correct compiler version
+        if [[ "$PACKAGE_MANAGER" == "conan" ]] && [[ ! -d ".conan2/profiles" ]]; then
+            mkdir -p .conan2/profiles
+
+            # Create release profile
+            cat > .conan2/profiles/release << EOF
+[settings]
+arch=armv8
+build_type=Release
+compiler=clang
+compiler.cppstd=$CPP_STANDARD
+compiler.libcxx=libc++
+compiler.version=$LLVM_VERSION
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=clang
+CXX=clang++
+LD=lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+
+            # Create debug profile
+            cat > .conan2/profiles/debug << EOF
+[settings]
+arch=armv8
+build_type=Debug
+compiler=clang
+compiler.cppstd=$CPP_STANDARD
+compiler.libcxx=libc++
+compiler.version=$LLVM_VERSION
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=clang
+CXX=clang++
+LD=lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+            print_success "Created local Conan profiles (release and debug)"
+        fi
+
         # Create .nvim.lua for C++ LSP/DAP support
         if [[ ! -f ".nvim.lua" ]]; then
             cat > .nvim.lua << 'EOF'
@@ -785,6 +934,597 @@ Start writing here...
 EOF
             print_success "Created main.tex"
         fi
+        ;;
+    cpp-python)
+        # Create directory structure
+        mkdir -p src python tests
+
+        # Create CMakeLists.txt
+        cat > CMakeLists.txt << 'EOF'
+cmake_minimum_required(VERSION 3.18)
+project(PROJECT_NAME)
+
+set(CMAKE_CXX_STANDARD CPP_STANDARD)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Fix for macOS compilation
+if(APPLE)
+    add_compile_definitions(_DARWIN_C_SOURCE)
+endif()
+
+# Find Python
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
+# Find pybind11 (from Conan)
+find_package(pybind11 REQUIRED)
+
+# Create the Python module
+pybind11_add_module(MODULE_NAME
+    src/bindings.cpp
+    src/math_ops.cpp
+)
+
+# Set properties for the module
+target_compile_features(MODULE_NAME PRIVATE cxx_std_CPP_STANDARD)
+target_include_directories(MODULE_NAME PRIVATE src)
+
+# Create C++ tests executable
+enable_testing()
+find_package(GTest REQUIRED)
+add_executable(test_cpp tests/test_cpp.cpp src/math_ops.cpp)
+target_include_directories(test_cpp PRIVATE src)
+target_link_libraries(test_cpp GTest::GTest GTest::Main)
+add_test(NAME test_cpp COMMAND test_cpp)
+EOF
+        # Replace placeholders
+        if [[ -f CMakeLists.txt ]]; then
+            # Use GNU sed syntax (gnused is installed as 'sed' in nix)
+            sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" CMakeLists.txt
+            sed -i "s/MODULE_NAME/${PROJECT_NAME//-/_}/g" CMakeLists.txt
+            sed -i "s/CPP_STANDARD/$CPP_STANDARD/g" CMakeLists.txt
+            print_success "Created CMakeLists.txt"
+        fi
+
+        # Create C++ header
+        cat > src/math_ops.h << 'EOF'
+#ifndef MATH_OPS_H
+#define MATH_OPS_H
+
+#include <vector>
+#include <string>
+
+namespace math_ops {
+
+// Simple math operations to demonstrate bindings
+double add(double a, double b);
+double multiply(double a, double b);
+
+// Vector operations
+std::vector<double> elementwise_add(const std::vector<double>& a,
+                                    const std::vector<double>& b);
+
+// Example class
+class Calculator {
+private:
+    double result_;
+
+public:
+    Calculator() : result_(0.0) {}
+
+    void add(double value);
+    void multiply(double value);
+    void reset();
+    double get_result() const;
+
+    // Example of exception throwing
+    double divide(double value);
+};
+
+// Function that throws exception
+double safe_divide(double a, double b);
+
+} // namespace math_ops
+
+#endif // MATH_OPS_H
+EOF
+        print_success "Created src/math_ops.h"
+
+        # Create C++ implementation
+        cat > src/math_ops.cpp << 'EOF'
+#include "math_ops.h"
+#include <stdexcept>
+#include <algorithm>
+
+namespace math_ops {
+
+double add(double a, double b) {
+    return a + b;
+}
+
+double multiply(double a, double b) {
+    return a * b;
+}
+
+std::vector<double> elementwise_add(const std::vector<double>& a,
+                                    const std::vector<double>& b) {
+    if (a.size() != b.size()) {
+        throw std::runtime_error("Vectors must have the same size");
+    }
+
+    std::vector<double> result(a.size());
+    std::transform(a.begin(), a.end(), b.begin(), result.begin(),
+                   [](double x, double y) { return x + y; });
+    return result;
+}
+
+void Calculator::add(double value) {
+    result_ += value;
+}
+
+void Calculator::multiply(double value) {
+    result_ *= value;
+}
+
+void Calculator::reset() {
+    result_ = 0.0;
+}
+
+double Calculator::get_result() const {
+    return result_;
+}
+
+double Calculator::divide(double value) {
+    if (value == 0.0) {
+        throw std::domain_error("Division by zero");
+    }
+    result_ /= value;
+    return result_;
+}
+
+double safe_divide(double a, double b) {
+    if (b == 0.0) {
+        throw std::domain_error("Division by zero");
+    }
+    return a / b;
+}
+
+} // namespace math_ops
+EOF
+        print_success "Created src/math_ops.cpp"
+
+        # Create pybind11 bindings
+        cat > src/bindings.cpp << 'EOF'
+// Fix for macOS compilation issues with Python.h
+#ifdef __APPLE__
+#include <cstdint>
+#include <stdint.h>
+#endif
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include "math_ops.h"
+
+namespace py = pybind11;
+
+PYBIND11_MODULE(MODULE_NAME, m) {
+    m.doc() = "C++ math operations exposed to Python via pybind11";
+
+    // Simple functions
+    m.def("add", &math_ops::add, "Add two numbers",
+          py::arg("a"), py::arg("b"));
+
+    m.def("multiply", &math_ops::multiply, "Multiply two numbers",
+          py::arg("a"), py::arg("b"));
+
+    // Vector function
+    m.def("elementwise_add", &math_ops::elementwise_add,
+          "Add two vectors element-wise",
+          py::arg("a"), py::arg("b"));
+
+    // Function with exception handling
+    m.def("safe_divide", &math_ops::safe_divide,
+          "Safely divide two numbers (throws on division by zero)",
+          py::arg("a"), py::arg("b"));
+
+    // Class binding
+    py::class_<math_ops::Calculator>(m, "Calculator")
+        .def(py::init<>())
+        .def("add", &math_ops::Calculator::add, "Add to result")
+        .def("multiply", &math_ops::Calculator::multiply, "Multiply result")
+        .def("reset", &math_ops::Calculator::reset, "Reset result to 0")
+        .def("divide", &math_ops::Calculator::divide,
+             "Divide result (throws on division by zero)")
+        .def_property_readonly("result", &math_ops::Calculator::get_result,
+                               "Get current result");
+
+    // Module-level attributes
+    m.attr("__version__") = "0.1.0";
+}
+EOF
+        # Replace module name placeholder
+        if [[ -f src/bindings.cpp ]]; then
+            sed -i "s/MODULE_NAME/${PROJECT_NAME//-/_}/g" src/bindings.cpp
+            print_success "Created src/bindings.cpp"
+        fi
+
+        # Create setup.py
+        cat > setup.py << EOF
+from setuptools import setup, Extension
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+ext_modules = [
+    Pybind11Extension(
+        "${PROJECT_NAME//-/_}",
+        ["src/bindings.cpp", "src/math_ops.cpp"],
+        include_dirs=["src"],
+        cxx_std=${CPP_STANDARD},
+    ),
+]
+
+setup(
+    name="${PROJECT_NAME}",
+    version="0.1.0",
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="C++ extension module with pybind11",
+    ext_modules=ext_modules,
+    cmdclass={"build_ext": build_ext},
+    zip_safe=False,
+    python_requires=">=3.7",
+)
+EOF
+        print_success "Created setup.py"
+
+        # Create Python example
+        cat > python/example.py << EOF
+#!/usr/bin/env python3
+"""Example usage of the C++ extension module."""
+
+import sys
+import os
+
+# Add build directory to path for development
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
+
+import ${PROJECT_NAME//-/_} as cpp_module
+
+def main():
+    print(f"Module version: {cpp_module.__version__}")
+    print()
+
+    # Simple operations
+    a, b = 10.5, 20.3
+    print(f"add({a}, {b}) = {cpp_module.add(a, b)}")
+    print(f"multiply({a}, {b}) = {cpp_module.multiply(a, b)}")
+    print()
+
+    # Vector operations
+    vec1 = [1.0, 2.0, 3.0]
+    vec2 = [4.0, 5.0, 6.0]
+    result = cpp_module.elementwise_add(vec1, vec2)
+    print(f"elementwise_add({vec1}, {vec2}) = {result}")
+    print()
+
+    # Using the Calculator class
+    calc = cpp_module.Calculator()
+    print("Calculator demo:")
+    calc.add(10)
+    print(f"  After add(10): {calc.result}")
+    calc.multiply(3)
+    print(f"  After multiply(3): {calc.result}")
+    calc.divide(2)
+    print(f"  After divide(2): {calc.result}")
+    calc.reset()
+    print(f"  After reset(): {calc.result}")
+    print()
+
+    # Exception handling
+    try:
+        result = cpp_module.safe_divide(10, 0)
+    except Exception as e:
+        print(f"Caught exception: {e}")
+
+    # Successful division
+    result = cpp_module.safe_divide(10, 2)
+    print(f"safe_divide(10, 2) = {result}")
+
+if __name__ == "__main__":
+    main()
+EOF
+        print_success "Created python/example.py"
+
+        # Create C++ test
+        cat > tests/test_cpp.cpp << 'EOF'
+#include <gtest/gtest.h>
+#include "math_ops.h"
+
+TEST(MathOpsTest, AddFunction) {
+    EXPECT_DOUBLE_EQ(math_ops::add(2.0, 3.0), 5.0);
+    EXPECT_DOUBLE_EQ(math_ops::add(-1.0, 1.0), 0.0);
+}
+
+TEST(MathOpsTest, MultiplyFunction) {
+    EXPECT_DOUBLE_EQ(math_ops::multiply(2.0, 3.0), 6.0);
+    EXPECT_DOUBLE_EQ(math_ops::multiply(-2.0, 3.0), -6.0);
+}
+
+TEST(MathOpsTest, VectorAdd) {
+    std::vector<double> a = {1.0, 2.0, 3.0};
+    std::vector<double> b = {4.0, 5.0, 6.0};
+    std::vector<double> expected = {5.0, 7.0, 9.0};
+
+    auto result = math_ops::elementwise_add(a, b);
+
+    ASSERT_EQ(result.size(), expected.size());
+    for (size_t i = 0; i < result.size(); ++i) {
+        EXPECT_DOUBLE_EQ(result[i], expected[i]);
+    }
+}
+
+TEST(MathOpsTest, VectorAddSizeMismatch) {
+    std::vector<double> a = {1.0, 2.0};
+    std::vector<double> b = {4.0, 5.0, 6.0};
+
+    EXPECT_THROW(math_ops::elementwise_add(a, b), std::runtime_error);
+}
+
+TEST(CalculatorTest, BasicOperations) {
+    math_ops::Calculator calc;
+
+    EXPECT_DOUBLE_EQ(calc.get_result(), 0.0);
+
+    calc.add(10.0);
+    EXPECT_DOUBLE_EQ(calc.get_result(), 10.0);
+
+    calc.multiply(3.0);
+    EXPECT_DOUBLE_EQ(calc.get_result(), 30.0);
+
+    calc.divide(2.0);
+    EXPECT_DOUBLE_EQ(calc.get_result(), 15.0);
+
+    calc.reset();
+    EXPECT_DOUBLE_EQ(calc.get_result(), 0.0);
+}
+
+TEST(CalculatorTest, DivisionByZero) {
+    math_ops::Calculator calc;
+    calc.add(10.0);
+
+    EXPECT_THROW(calc.divide(0.0), std::domain_error);
+}
+
+TEST(SafeDivideTest, NormalDivision) {
+    EXPECT_DOUBLE_EQ(math_ops::safe_divide(10.0, 2.0), 5.0);
+}
+
+TEST(SafeDivideTest, DivisionByZero) {
+    EXPECT_THROW(math_ops::safe_divide(10.0, 0.0), std::domain_error);
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+EOF
+        print_success "Created tests/test_cpp.cpp"
+
+        # Create Python test
+        cat > tests/test_python.py << EOF
+#!/usr/bin/env python3
+"""Tests for the Python bindings of the C++ module."""
+
+import sys
+import os
+import pytest
+
+# Add build directory to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
+
+import ${PROJECT_NAME//-/_} as cpp_module
+
+def test_add():
+    assert cpp_module.add(2.0, 3.0) == 5.0
+    assert cpp_module.add(-1.0, 1.0) == 0.0
+    assert cpp_module.add(0.0, 0.0) == 0.0
+
+def test_multiply():
+    assert cpp_module.multiply(2.0, 3.0) == 6.0
+    assert cpp_module.multiply(-2.0, 3.0) == -6.0
+    assert cpp_module.multiply(0.0, 100.0) == 0.0
+
+def test_elementwise_add():
+    vec1 = [1.0, 2.0, 3.0]
+    vec2 = [4.0, 5.0, 6.0]
+    result = cpp_module.elementwise_add(vec1, vec2)
+    assert result == [5.0, 7.0, 9.0]
+
+def test_elementwise_add_size_mismatch():
+    vec1 = [1.0, 2.0]
+    vec2 = [4.0, 5.0, 6.0]
+    with pytest.raises(ValueError):
+        cpp_module.elementwise_add(vec1, vec2)
+
+def test_calculator_basic():
+    calc = cpp_module.Calculator()
+    assert calc.result == 0.0
+
+    calc.add(10.0)
+    assert calc.result == 10.0
+
+    calc.multiply(3.0)
+    assert calc.result == 30.0
+
+    calc.divide(2.0)
+    assert calc.result == 15.0
+
+    calc.reset()
+    assert calc.result == 0.0
+
+def test_calculator_division_by_zero():
+    calc = cpp_module.Calculator()
+    calc.add(10.0)
+
+    with pytest.raises(ValueError):
+        calc.divide(0.0)
+
+def test_safe_divide():
+    assert cpp_module.safe_divide(10.0, 2.0) == 5.0
+    assert cpp_module.safe_divide(15.0, 3.0) == 5.0
+
+    with pytest.raises(ValueError):
+        cpp_module.safe_divide(10.0, 0.0)
+
+def test_module_version():
+    assert hasattr(cpp_module, '__version__')
+    assert isinstance(cpp_module.__version__, str)
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
+EOF
+        print_success "Created tests/test_python.py"
+
+        # Create requirements.txt with dependencies
+        cat > requirements.txt << 'EOF'
+pytest>=7.0.0
+numpy>=1.20.0
+EOF
+        print_success "Created requirements.txt with dependencies"
+
+        # Create conanfile.txt for C++ dependencies
+        cat > conanfile.txt << 'EOF'
+[requires]
+pybind11/2.11.1
+gtest/1.14.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[options]
+
+[imports]
+EOF
+        print_success "Created conanfile.txt for C++ dependencies"
+
+        # Create local Conan profiles with correct compiler version
+        if [[ ! -d ".conan2/profiles" ]]; then
+            mkdir -p .conan2/profiles
+
+            # Create release profile
+            cat > .conan2/profiles/release << EOF
+[settings]
+arch=armv8
+build_type=Release
+compiler=clang
+compiler.cppstd=$CPP_STANDARD
+compiler.libcxx=libc++
+compiler.version=$LLVM_VERSION
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=clang
+CXX=clang++
+LD=lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+
+            # Create debug profile
+            cat > .conan2/profiles/debug << EOF
+[settings]
+arch=armv8
+build_type=Debug
+compiler=clang
+compiler.cppstd=$CPP_STANDARD
+compiler.libcxx=libc++
+compiler.version=$LLVM_VERSION
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=clang
+CXX=clang++
+LD=lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+            print_success "Created local Conan profiles (release and debug)"
+        fi
+
+        # Create .nvim.lua for C++/Python hybrid support
+        cat > .nvim.lua << 'EOF'
+-- Local nvim config for C++/Python hybrid project
+local venv_path = vim.fn.getcwd() .. '/.venv'
+local venv_bin = venv_path .. '/bin'
+
+-- Set Python host for nvim
+vim.g.python3_host_prog = venv_bin .. '/python'
+
+-- Ensure compile_commands.json is found by clangd
+if vim.fn.filereadable('build/compile_commands.json') == 1 then
+    vim.fn.system('ln -sf build/compile_commands.json .')
+end
+
+-- Configure DAP for both C++ and Python
+local dap = require('dap')
+
+-- C++ DAP configuration
+dap.adapters.lldb = {
+    type = 'executable',
+    command = '/usr/bin/lldb-dap',
+    name = 'lldb'
+}
+
+dap.configurations.cpp = {
+    {
+        name = 'Launch C++ tests',
+        type = 'lldb',
+        request = 'launch',
+        program = function()
+            return vim.fn.getcwd() .. '/build/tests/test_cpp'
+        end,
+        cwd = '${workspaceFolder}',
+        stopOnEntry = false,
+    },
+}
+
+-- Python DAP configuration
+dap.adapters.python = {
+    type = 'executable',
+    command = venv_bin .. '/python',
+    args = { '-m', 'debugpy.adapter' },
+}
+
+dap.configurations.python = {
+    {
+        type = 'python',
+        request = 'launch',
+        name = 'Launch Python tests',
+        program = '${workspaceFolder}/tests/test_python.py',
+        pythonPath = venv_bin .. '/python',
+    },
+}
+
+-- Custom keymaps for hybrid project
+vim.keymap.set('n', '<leader>bc', ':!cmake --build build<CR>', { desc = 'Build C++ extension' })
+vim.keymap.set('n', '<leader>bt', ':!cd build && ctest<CR>', { desc = 'Run C++ tests' })
+vim.keymap.set('n', '<leader>bp', ':!pytest tests/<CR>', { desc = 'Run Python tests' })
+vim.keymap.set('n', '<leader>be', ':!python python/example.py<CR>', { desc = 'Run example' })
+EOF
+        print_success "Created .nvim.lua for C++/Python hybrid LSP/DAP configuration"
         ;;
 esac
 

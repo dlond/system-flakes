@@ -67,6 +67,7 @@ $(print_success "USAGE:")
 $(print_success "OPTIONS:")
   --name NAME           Project name (default: current directory)
   --py VER              Python version: 3.10, 3.11, 3.12, 3.13, 3.14 (default: 3.11)
+  --slim                Skip Jupyter/notebook packages (lighter requirements.txt)
   --help                Show this help
 
 $(print_success "WHAT YOU GET:")
@@ -348,6 +349,10 @@ while [[ $# -gt 0 ]]; do
         --python-version|--py)
             PYTHON_VERSION="$2"
             shift 2
+            ;;
+        --slim)
+            SLIM=true
+            shift
             ;;
         --cpp)
             CPP_STANDARD="$2"
@@ -938,14 +943,48 @@ EOF
             print_success "Created tests/test_${PROJECT_NAME//-/_}.py"
         fi
 
-        # Update requirements.txt to include pytest
-        if [[ ! -s "requirements.txt" ]]; then
-            cat > requirements.txt << 'EOF'
+        # Create requirements.txt with development dependencies
+        if [[ ! -f "requirements.txt" ]]; then
+            if [[ "$SLIM" == "true" ]]; then
+                cat > requirements.txt << 'EOF'
+# Testing
 pytest>=7.0.0
-# Add your project dependencies here
-# Example: numpy>=1.20.0
+
+# Development tools
+ipython>=8.0.0
+debugpy>=1.6.0
+
+# Add your project dependencies below:
+# numpy>=1.20.0
+# pandas>=2.0.0
 EOF
-            print_success "Updated requirements.txt with pytest"
+                print_success "Created requirements.txt (slim version)"
+            else
+                cat > requirements.txt << 'EOF'
+# Testing
+pytest>=7.0.0
+
+# Development tools
+ipython>=8.0.0
+debugpy>=1.6.0
+
+# Jupyter/Molten support for notebooks in Neovim
+jupyter>=1.0.0
+ipykernel>=6.0.0
+pynvim>=0.4.0
+jupytext>=1.14.0
+nbformat>=5.0.0
+
+# Optional visualization/notebook packages
+# matplotlib>=3.5.0
+# pillow>=9.0.0
+
+# Add your project dependencies below:
+# numpy>=1.20.0
+# pandas>=2.0.0
+EOF
+                print_success "Created requirements.txt with Jupyter/Molten support"
+            fi
         fi
 
         # Create .nvim.lua for Python LSP/DAP/Molten support

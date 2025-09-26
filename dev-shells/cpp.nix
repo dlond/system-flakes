@@ -40,10 +40,10 @@ in customStdenv.mkDerivation {
     ++ extraPackages;
 
   shellHook = ''
-    export LLDB_DEBUGSERVER_PATH=/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/debugserver
-
-    # Clear any polluting CPLUS_INCLUDE_PATH from the system
-    unset CPLUS_INCLUDE_PATH
+    # macOS-specific debugging setup
+    ${if pkgs.stdenv.isDarwin then ''
+      export LLDB_DEBUGSERVER_PATH=/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/debugserver
+    '' else ""}
 
     echo "🔧 C++ Development Environment: ${projectName}"
     echo "   LLVM Version: ${llvmVersion}"

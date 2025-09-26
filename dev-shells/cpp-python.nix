@@ -69,18 +69,27 @@ in customStdenv.mkDerivation {
     ++ extraPackages;
 
   shellHook = ''
-    # Clear any polluting CPLUS_INCLUDE_PATH from the system
-    unset CPLUS_INCLUDE_PATH
+    # macOS-specific debugging setup
+    ${if pkgs.stdenv.isDarwin then ''
+      export LLDB_DEBUGSERVER_PATH=/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/debugserver
+    '' else ""}
 
     echo "🔗 C++ + Python Hybrid Development Environment: ${projectName}"
-    echo "   C++ Standard: C++${cppStandard}"
-    echo "   LLVM Version: ${llvmVersion}"
-    echo "   Python version: ${pythonVersion}"
-    echo "   Binding library: pybind11"
     echo ""
+    echo "🔧 C++ Environment:"
+    echo "   LLVM Version: ${llvmVersion}"
+    echo "   C++ Standard: C++${cppStandard}"
+    echo "   Package Manager: conan"
+    echo "   Test Framework: gtest"
+    echo ""
+    echo "🐍 Python Environment:"
+    echo "   Python version: ${pythonVersion}"
+    echo "   Package manager: uv"
+    echo "   Binding library: pybind11 (from Nix)"
 
     # Note: Virtual environment is managed by direnv's 'layout python'
-    # Development tools are provided by Nix (pybind11, numpy, pytest, etc.)
+    # Build tools (pybind11) are provided by Nix
+    # Runtime dependencies (numpy, etc.) are managed by uv
 
     # Create local Conan profiles with correct compiler version
     if [ ! -f .conan2/profiles/release ] || [ ! -f .conan2/profiles/debug ]; then
@@ -141,10 +150,11 @@ EOF
 
     # Set up Conan for C++ dependencies
     if [ ! -f conanfile.txt ]; then
-      echo "Creating conanfile.txt with pybind11..."
+      echo "Creating conanfile.txt for C++ dependencies..."
       cat > conanfile.txt << EOF
 [requires]
-pybind11/2.11.1
+gtest/1.14.0
+# pybind11 is provided by Nix to ensure compatibility with Python
 
 [generators]
 CMakeDeps
@@ -157,23 +167,35 @@ CMakeToolchain
 EOF
     fi
 
+    # Register Jupyter kernel for this project
+    if ! jupyter kernelspec list 2>/dev/null | grep -q "${projectName}"; then
+      echo "Registering Jupyter kernel..."
+      python -m ipykernel install --user --name="${projectName}" --display-name="${projectName} (Python ${pythonVersion})"
+    fi
+
     # Set up build directory for C++ extension
     if [ ! -d build ]; then
       echo "Creating build directory..."
       mkdir -p build
     fi
 
-    echo "📦 Build workflow:"
-    echo "  1. Install deps: conan install . --profile=.conan2/profiles/release --output-folder=build --build=missing"
-    echo "  2. Configure:    cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake"
-    echo "  3. Build:        cmake --build build"
-    echo "  4. Install:      pip install -e ."
-    echo "  5. Test C++:     ./build/tests/test_cpp"
-    echo "  6. Test Python:  pytest tests/"
+    echo ""
+    echo "📦 C++ Build workflow:"
+    echo "  1. Install deps:     conan install . --profile=.conan2/profiles/release --output-folder=build --build=missing"
+    echo "  2. Configure:        cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake"
+    echo "  3. Build:            cmake --build build"
+    echo "  4. Install module:   pip install -e ."
+    echo ""
+    echo "🐍 Python workflow:"
+    echo "  1. Add dependencies: echo 'numpy>=1.20.0' >> requirements.txt"
+    echo "  2. Install packages: uv pip install -r requirements.txt"
+    echo "  3. Run Python:       python"
+    echo "  4. Import module:    import ${projectName//-/_}"
     echo ""
     echo "🧪 Testing:"
-    echo "  C++ tests:   ctest --test-dir build"
-    echo "  Python tests: pytest"
+    echo "  C++ tests:    ctest --test-dir build"
+    echo "  Python tests: pytest tests/"
+    echo "  All tests:    ctest --test-dir build && pytest"
     echo ""
     echo "✅ Environment ready!"
   '';

@@ -439,6 +439,8 @@ case $PROJECT_TYPE in
   description = "$PROJECT_NAME - Python project";
 
   inputs = {
+    # Note: system-flakes includes all inputs for the full system config.
+    # First-time use will download these dependencies, but they're cached afterward.
     system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
@@ -473,6 +475,8 @@ EOF
   description = "$PROJECT_NAME - C++ project";
 
   inputs = {
+    # Note: system-flakes includes all inputs for the full system config.
+    # First-time use will download these dependencies, but they're cached afterward.
     system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
@@ -512,6 +516,8 @@ EOF
   description = "$PROJECT_NAME - LaTeX document";
 
   inputs = {
+    # Note: system-flakes includes all inputs for the full system config.
+    # First-time use will download these dependencies, but they're cached afterward.
     system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
@@ -548,6 +554,8 @@ EOF
   description = "$PROJECT_NAME - C++ + Python hybrid project";
 
   inputs = {
+    # Note: system-flakes includes all inputs for the full system config.
+    # First-time use will download these dependencies, but they're cached afterward.
     system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
@@ -666,67 +674,311 @@ case $PROJECT_TYPE in
             print_success "Created empty requirements.txt"
         fi
         if [[ ! -f "README.md" ]]; then
-            echo "# $PROJECT_NAME" > README.md
+            cat > README.md << EOF
+# $PROJECT_NAME
+
+A Python project generated with harmonix.
+
+## Setup
+
+1. Create and activate virtual environment:
+   \`\`\`bash
+   uv venv
+   source .venv/bin/activate
+   \`\`\`
+
+2. Install dependencies:
+   \`\`\`bash
+   uv pip install -r requirements.txt
+   \`\`\`
+
+3. Run the module:
+   \`\`\`bash
+   python ${PROJECT_NAME//-/_}.py
+   \`\`\`
+
+4. Run tests:
+   \`\`\`bash
+   pytest
+   \`\`\`
+EOF
             print_success "Created README.md"
+        fi
+
+        # Create main Python module
+        if [[ ! -f "${PROJECT_NAME//-/_}.py" ]]; then
+            cat > "${PROJECT_NAME//-/_}.py" << 'EOF'
+"""
+Main module for PROJECT_NAME.
+
+This module provides basic functionality and serves as an entry point.
+"""
+
+import sys
+from typing import List, Optional
+
+
+def greet(name: str = "World") -> str:
+    """
+    Generate a greeting message.
+
+    Args:
+        name: The name to greet
+
+    Returns:
+        A greeting message
+    """
+    return f"Hello, {name}!"
+
+
+def add_numbers(a: float, b: float) -> float:
+    """
+    Add two numbers together.
+
+    Args:
+        a: First number
+        b: Second number
+
+    Returns:
+        Sum of a and b
+    """
+    return a + b
+
+
+def fibonacci(n: int) -> List[int]:
+    """
+    Generate Fibonacci sequence up to n numbers.
+
+    Args:
+        n: Number of Fibonacci numbers to generate
+
+    Returns:
+        List of Fibonacci numbers
+
+    Raises:
+        ValueError: If n is negative
+    """
+    if n < 0:
+        raise ValueError("n must be non-negative")
+
+    if n == 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+
+    fib = [0, 1]
+    for i in range(2, n):
+        fib.append(fib[i-1] + fib[i-2])
+
+    return fib
+
+
+def main() -> None:
+    """Main function demonstrating module functionality."""
+    print(greet("Python Developer"))
+    print(f"2 + 3 = {add_numbers(2, 3)}")
+
+    fib_numbers = fibonacci(10)
+    print(f"First 10 Fibonacci numbers: {fib_numbers}")
+
+
+if __name__ == "__main__":
+    main()
+EOF
+            # Replace PROJECT_NAME placeholder
+            sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" "${PROJECT_NAME//-/_}.py"
+            print_success "Created ${PROJECT_NAME//-/_}.py"
+        fi
+
+        # Create test directory and files
+        mkdir -p tests
+
+        if [[ ! -f "tests/__init__.py" ]]; then
+            touch "tests/__init__.py"
+            print_success "Created tests/__init__.py"
+        fi
+
+        if [[ ! -f "tests/test_${PROJECT_NAME//-/_}.py" ]]; then
+            cat > "tests/test_${PROJECT_NAME//-/_}.py" << 'EOF'
+"""
+Tests for PROJECT_NAME module.
+
+Run with: pytest
+"""
+
+import pytest
+import sys
+from pathlib import Path
+
+# Add the project root to the path so we can import our module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from MODULE_NAME import greet, add_numbers, fibonacci
+
+
+class TestGreet:
+    """Test cases for the greet function."""
+
+    def test_greet_default(self):
+        """Test greeting with default name."""
+        assert greet() == "Hello, World!"
+
+    def test_greet_with_name(self):
+        """Test greeting with specific name."""
+        assert greet("Alice") == "Hello, Alice!"
+
+    def test_greet_empty_string(self):
+        """Test greeting with empty string."""
+        assert greet("") == "Hello, !"
+
+
+class TestAddNumbers:
+    """Test cases for the add_numbers function."""
+
+    def test_add_positive_numbers(self):
+        """Test adding positive numbers."""
+        assert add_numbers(2, 3) == 5
+        assert add_numbers(10, 20) == 30
+
+    def test_add_negative_numbers(self):
+        """Test adding negative numbers."""
+        assert add_numbers(-1, -2) == -3
+        assert add_numbers(-5, 3) == -2
+
+    def test_add_floats(self):
+        """Test adding floating point numbers."""
+        result = add_numbers(1.5, 2.5)
+        assert abs(result - 4.0) < 1e-10
+
+    def test_add_zero(self):
+        """Test adding zero."""
+        assert add_numbers(5, 0) == 5
+        assert add_numbers(0, 0) == 0
+
+
+class TestFibonacci:
+    """Test cases for the fibonacci function."""
+
+    def test_fibonacci_zero(self):
+        """Test Fibonacci with n=0."""
+        assert fibonacci(0) == []
+
+    def test_fibonacci_one(self):
+        """Test Fibonacci with n=1."""
+        assert fibonacci(1) == [0]
+
+    def test_fibonacci_two(self):
+        """Test Fibonacci with n=2."""
+        assert fibonacci(2) == [0, 1]
+
+    def test_fibonacci_ten(self):
+        """Test Fibonacci with n=10."""
+        expected = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+        assert fibonacci(10) == expected
+
+    def test_fibonacci_negative(self):
+        """Test Fibonacci with negative n."""
+        with pytest.raises(ValueError, match="n must be non-negative"):
+            fibonacci(-1)
+
+
+class TestIntegration:
+    """Integration tests combining multiple functions."""
+
+    def test_fibonacci_and_add(self):
+        """Test using fibonacci result with add_numbers."""
+        fib = fibonacci(5)  # [0, 1, 1, 2, 3]
+        assert len(fib) == 5
+        assert add_numbers(fib[0], fib[-1]) == 3  # 0 + 3
+
+
+# Pytest fixtures example
+@pytest.fixture
+def sample_numbers():
+    """Fixture providing sample numbers for testing."""
+    return [1, 2, 3, 4, 5]
+
+
+def test_with_fixture(sample_numbers):
+    """Test using a pytest fixture."""
+    total = sum(sample_numbers)
+    assert total == 15
+
+
+# Parametrized test example
+@pytest.mark.parametrize("name,expected", [
+    ("Alice", "Hello, Alice!"),
+    ("Bob", "Hello, Bob!"),
+    ("Charlie", "Hello, Charlie!"),
+])
+def test_greet_parametrized(name, expected):
+    """Test greet function with multiple parameters."""
+    assert greet(name) == expected
+
+
+if __name__ == "__main__":
+    # Allow running tests directly with: python test_module.py
+    pytest.main([__file__, "-v"])
+EOF
+            # Replace placeholders
+            sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" "tests/test_${PROJECT_NAME//-/_}.py"
+            sed -i "s/MODULE_NAME/${PROJECT_NAME//-/_}/g" "tests/test_${PROJECT_NAME//-/_}.py"
+            print_success "Created tests/test_${PROJECT_NAME//-/_}.py"
+        fi
+
+        # Update requirements.txt to include pytest
+        if [[ ! -s "requirements.txt" ]]; then
+            cat > requirements.txt << 'EOF'
+pytest>=7.0.0
+# Add your project dependencies here
+# Example: numpy>=1.20.0
+EOF
+            print_success "Updated requirements.txt with pytest"
         fi
 
         # Create .nvim.lua for Python LSP/DAP/Molten support
         if [[ ! -f ".nvim.lua" ]]; then
             cat > .nvim.lua << 'EOF'
--- Local nvim config for Python project
-local venv_path = vim.fn.getcwd() .. '/.venv'
-local venv_bin = venv_path .. '/bin'
+-- Project-specific configuration for Python
 
--- Set Python host for nvim
-vim.g.python3_host_prog = venv_bin .. '/python'
+-- Configure Python virtual environment
+vim.g.python3_host_prog = vim.fn.getcwd() .. '/.venv/bin/python'
 
--- Override LSP settings for Python to use venv
-vim.api.nvim_create_autocmd("LspAttach", {
-    pattern = "*.py",
-    callback = function(args)
-        local client = vim.lsp.get_client_by_id(args.data.client_id)
-        if not client then return end
-
-        -- Configure basedpyright to use venv
-        if client.name == "basedpyright" then
-            client.config.settings = vim.tbl_deep_extend("force", client.config.settings or {}, {
-                python = {
-                    pythonPath = venv_bin .. '/python',
-                    venvPath = vim.fn.getcwd(),
-                    venv = '.venv',
-                },
-            })
-            client.notify("workspace/didChangeConfiguration", { settings = client.config.settings })
-        end
-
-        -- Configure ruff to use venv
-        if client.name == "ruff" then
-            client.config.init_options = vim.tbl_deep_extend("force", client.config.init_options or {}, {
-                settings = {
-                    interpreter = { venv_bin .. '/python' },
-                },
-            })
-        end
-
-        -- Molten (always enabled for Python projects)
-        vim.schedule(function()
-            local kernels = vim.fn.system("jupyter kernelspec list 2>/dev/null")
-            if kernels:match("python3") then
-                vim.notify("Molten: Use :MoltenInit python3 to start kernel", vim.log.levels.INFO)
-            end
-        end)
-
-        -- Configure DAP for Python debugging
-        local ok_dap, dap_python = pcall(require, 'dap-python')
-        if ok_dap then
-            dap_python.setup(venv_bin .. '/python')
-            vim.notify("DAP Python configured with venv", vim.log.levels.INFO)
-        end
-    end,
-})
+-- Project keymaps
+vim.keymap.set('n', '<leader>ct', ':!python -m pytest<CR>', { desc = '[C]ode: Run [T]ests' })
+vim.keymap.set('n', '<leader>cr', ':!python %<CR>', { desc = '[C]ode: [R]un current file' })
+vim.keymap.set('n', '<leader>cc', ':!find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null<CR>', { desc = '[C]ode: [C]lean cache' })
 EOF
             print_success "Created .nvim.lua for Python LSP/DAP configuration"
         fi
+
+        # Display workflow tips for Python projects
+        echo ""
+        print_success "🐍 Python Project Ready!"
+        echo ""
+        echo "$(print_info "Next steps:")"
+        echo "  1. Enter project:  cd $PROJECT_NAME"
+        echo "  2. Enter dev env:  direnv allow"
+        echo "  3. Create venv:    uv venv"
+        echo "  4. Activate venv:  source .venv/bin/activate"
+        echo "  5. Install deps:   uv pip install -r requirements.txt"
+        echo ""
+        echo "$(print_success "Run your code:")"
+        echo "  • Module:    python ${PROJECT_NAME//-/_}.py"
+        echo "  • Tests:     pytest"
+        echo "  • Coverage:  pytest --cov=${PROJECT_NAME//-/_}"
+        echo "  • Verbose:   pytest -v"
+        echo ""
+        echo "$(print_success "Test features:")"
+        echo "  ✓ Unit tests with multiple test cases"
+        echo "  ✓ Parametrized tests for multiple inputs"
+        echo "  ✓ Fixtures for reusable test data"
+        echo "  ✓ Error handling and edge case tests"
+        echo ""
+        echo "$(print_info "Tip:") The module includes greet(), add_numbers(), and fibonacci() functions"
+        echo "      with comprehensive test coverage as examples to build upon."
         ;;
 
 
@@ -755,6 +1007,23 @@ add_executable(\${PROJECT_NAME} src/main.cpp)
 
 # Link libraries
 # Example: target_link_libraries(\${PROJECT_NAME} PRIVATE fmt::fmt)
+
+# Testing configuration
+if(NOT "$TEST_FRAMEWORK" STREQUAL "none")
+    enable_testing()
+
+    if("$TEST_FRAMEWORK" STREQUAL "gtest")
+        find_package(GTest REQUIRED)
+        add_executable(\${PROJECT_NAME}_test tests/test_main.cpp)
+        target_link_libraries(\${PROJECT_NAME}_test PRIVATE GTest::gtest_main)
+        add_test(NAME \${PROJECT_NAME}_test COMMAND \${PROJECT_NAME}_test)
+    elseif("$TEST_FRAMEWORK" STREQUAL "catch2")
+        find_package(Catch2 REQUIRED)
+        add_executable(\${PROJECT_NAME}_test tests/test_main.cpp)
+        target_link_libraries(\${PROJECT_NAME}_test PRIVATE Catch2::Catch2WithMain)
+        add_test(NAME \${PROJECT_NAME}_test COMMAND \${PROJECT_NAME}_test)
+    endif()
+endif()
 EOF
             mkdir -p src
             if [[ ! -f "src/main.cpp" ]]; then
@@ -767,6 +1036,68 @@ int main() {
 }
 EOF
             fi
+
+            # Create test file if testing is enabled
+            if [[ "$TEST_FRAMEWORK" != "none" ]]; then
+                mkdir -p tests
+                if [[ ! -f "tests/test_main.cpp" ]]; then
+                    if [[ "$TEST_FRAMEWORK" == "gtest" ]]; then
+                        cat > tests/test_main.cpp << 'EOF'
+#include <gtest/gtest.h>
+
+// Example test case
+TEST(BasicTest, SampleTest) {
+    EXPECT_EQ(2 + 2, 4);
+    EXPECT_TRUE(true);
+}
+
+// You can add more test cases here
+TEST(BasicTest, StringTest) {
+    std::string greeting = "Hello, World!";
+    EXPECT_EQ(greeting.length(), 13);
+}
+
+// Test with custom setup
+class MathTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Setup code here
+    }
+
+    void TearDown() override {
+        // Teardown code here
+    }
+};
+
+TEST_F(MathTest, Addition) {
+    EXPECT_EQ(1 + 1, 2);
+    EXPECT_EQ(10 + 5, 15);
+}
+EOF
+                    elif [[ "$TEST_FRAMEWORK" == "catch2" ]]; then
+                        cat > tests/test_main.cpp << 'EOF'
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("Basic functionality", "[basic]") {
+    REQUIRE(2 + 2 == 4);
+    REQUIRE(true);
+}
+
+TEST_CASE("String operations", "[string]") {
+    std::string greeting = "Hello, World!";
+    REQUIRE(greeting.length() == 13);
+}
+
+TEST_CASE("Math operations", "[math]") {
+    REQUIRE(1 + 1 == 2);
+    REQUIRE(10 + 5 == 15);
+}
+EOF
+                    fi
+                    print_success "Created tests/test_main.cpp"
+                fi
+            fi
+
             print_success "Created CMakeLists.txt and src/main.cpp"
         fi
 
@@ -854,48 +1185,73 @@ EOF
         # Create .nvim.lua for C++ LSP/DAP support
         if [[ ! -f ".nvim.lua" ]]; then
             cat > .nvim.lua << 'EOF'
--- Local nvim config for C++ project
-local project_root = vim.fn.getcwd()
+-- Project-specific configuration for C++
 
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "c", "cpp", "cc", "cxx", "h", "hpp" },
+-- Auto-link compile_commands.json from build directory
+vim.api.nvim_create_autocmd("BufReadPost", {
+    pattern = "*",
     callback = function()
-        -- CMake integration
-        vim.notify("Build: Run 'conan install . --build=missing' then 'cmake --preset conan-release'", vim.log.levels.INFO)
-
-        -- Auto-link compile_commands.json if it exists in build/
-        local compile_commands_build = project_root .. "/build/compile_commands.json"
-        local compile_commands_root = project_root .. "/compile_commands.json"
-        if vim.fn.filereadable(compile_commands_build) == 1 and vim.fn.filereadable(compile_commands_root) == 0 then
-            vim.fn.system("ln -s " .. compile_commands_build .. " " .. compile_commands_root)
-            vim.notify("Linked compile_commands.json from build/", vim.log.levels.INFO)
-        end
-
-        -- Configure DAP for C++ (if nvim-dap is available)
-        local ok, dap = pcall(require, 'dap')
-        if ok then
-            dap.configurations.cpp = {
-                {
-                    name = "Launch",
-                    type = "lldb",
-                    request = "launch",
-                    program = function()
-                        return vim.fn.input('Path to executable: ', project_root .. '/build/', 'file')
-                    end,
-                    cwd = project_root,
-                    stopOnEntry = false,
-                    args = {},
-                },
-            }
-            -- Use same config for C
-            dap.configurations.c = dap.configurations.cpp
+        local build_cc = vim.fn.getcwd() .. "/build/compile_commands.json"
+        local root_cc = vim.fn.getcwd() .. "/compile_commands.json"
+        if vim.fn.filereadable(build_cc) == 1 and vim.fn.filereadable(root_cc) == 0 then
+            vim.fn.system("ln -sf build/compile_commands.json .")
         end
     end,
     once = true,
 })
+
+-- Project keymaps
+vim.keymap.set('n', '<leader>cb', ':!cmake --build build --preset conan-release<CR>', { desc = '[C]ode: [B]uild project' })
+vim.keymap.set('n', '<leader>ct', ':!ctest --preset conan-release<CR>', { desc = '[C]ode: Run [T]ests' })
+vim.keymap.set('n', '<leader>cc', ':!cmake --build build --target clean<CR>', { desc = '[C]ode: [C]lean' })
+vim.keymap.set('n', '<leader>ci', ':!conan install . --build=missing<CR>', { desc = '[C]ode: [I]nstall deps' })
 EOF
             print_success "Created .nvim.lua for C++ LSP/DAP configuration"
         fi
+
+        # Display workflow tips for C++ projects
+        echo ""
+        print_success "🔧 C++ Project Ready!"
+        echo ""
+        echo "$(print_info "Next steps:")"
+        echo "  1. Enter project:     cd $PROJECT_NAME"
+        echo "  2. Enter dev env:     direnv allow"
+
+        if [[ "$PACKAGE_MANAGER" == "conan" ]]; then
+            echo "  3. Install deps:      conan install . --build=missing --profile=release"
+            echo "  4. Configure:         cmake --preset conan-release"
+            echo "  5. Build:             cmake --build --preset conan-release"
+            echo "  6. Run tests:         ctest --preset conan-release"
+        else
+            echo "  3. Configure:         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release"
+            echo "  4. Build:             cmake --build build"
+            echo "  5. Run tests:         cd build && ctest"
+        fi
+
+        echo ""
+        echo "$(print_success "Run your code:")"
+        echo "  • Main app:     ./build/Release/$PROJECT_NAME"
+        echo "  • All tests:    ctest --preset conan-release"
+        echo "  • Verbose:      ctest --preset conan-release -V"
+        echo "  • Single test:  ./build/Release/${PROJECT_NAME}_test"
+
+        if [[ "$TEST_FRAMEWORK" != "none" ]]; then
+            echo ""
+            echo "$(print_success "Test features:")"
+            if [[ "$TEST_FRAMEWORK" == "gtest" ]]; then
+                echo "  ✓ Google Test framework with example tests"
+                echo "  ✓ Test fixtures for setup/teardown"
+                echo "  ✓ Multiple test cases and assertions"
+            elif [[ "$TEST_FRAMEWORK" == "catch2" ]]; then
+                echo "  ✓ Catch2 framework with BDD-style tests"
+                echo "  ✓ Tagged test cases for organization"
+                echo "  ✓ REQUIRE and CHECK assertions"
+            fi
+        fi
+
+        echo ""
+        echo "$(print_info "Tip:") Conan profiles use Nix store paths for consistent toolchain versions."
+        echo "      Check .conan2/profiles/ for debug and release configurations."
         ;;
 
     latex)
@@ -994,80 +1350,22 @@ EOF
         # Create .nvim.lua for LaTeX LSP support
         if [[ ! -f ".nvim.lua" ]]; then
             cat > .nvim.lua << 'EOF'
--- Local nvim config for LaTeX project
--- This file provides LSP configuration and custom keymaps for LaTeX development
+-- Project-specific configuration for LaTeX
 
--- LaTeX-specific settings
-vim.opt_local.conceallevel = 0
-vim.opt_local.wrap = true
-vim.opt_local.linebreak = true
-vim.opt_local.textwidth = 80
-vim.opt_local.spell = true
-vim.opt_local.spelllang = "en_us"
-
--- LSP configuration for texlab
-local function setup_texlab()
-  local lspconfig = require('lspconfig')
-
-  lspconfig.texlab.setup({
-    settings = {
-      texlab = {
-        build = {
-          executable = 'latexmk',
-          args = { '-pdf', '-interaction=nonstopmode', '-synctex=1', '%f' },
-          onSave = true,
-          outputDirectory = './build',
-        },
-        auxDirectory = './build',
-        bibtexFormatter = 'texlab',
-        latexFormatter = 'latexindent',
-        latexindent = {
-          ['local'] = nil, -- Use .latexindent.yaml if present
-          modifyLineBreaks = false,
-        },
-        chktex = {
-          onOpenAndSave = true,
-          onEdit = false,
-        },
-        diagnosticsDelay = 300,
-        formatterLineLength = 80,
-      }
-    },
-    on_attach = function(client, bufnr)
-      -- Enable completion triggered by <C-x><C-o>
-      vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
-
-      -- LaTeX-specific keymaps
-      local bufopts = { noremap=true, silent=true, buffer=bufnr }
-      vim.keymap.set('n', '<leader>lb', '<cmd>TexlabBuild<cr>', bufopts)
-      vim.keymap.set('n', '<leader>lf', '<cmd>TexlabForward<cr>', bufopts)
-      vim.keymap.set('n', '<leader>lv', '<cmd>lua vim.lsp.buf.code_action()<cr>', bufopts)
-
-      print("LaTeX LSP (texlab) attached successfully")
+-- LaTeX-specific buffer settings
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "tex",
+    callback = function()
+        vim.opt_local.wrap = true
+        vim.opt_local.linebreak = true
+        vim.opt_local.spell = true
     end,
-  })
-end
+})
 
--- Setup texlab if available
-local ok, _ = pcall(setup_texlab)
-if not ok then
-  print("Warning: texlab LSP not available. Install with: nix develop .#latex")
-end
-
--- Custom LaTeX commands and snippets helper
-vim.api.nvim_create_user_command('LatexWordCount', function()
-  local file = vim.fn.expand('%:p')
-  local cmd = string.format('texcount -inc -incbib -sum "%s"', file)
-  local result = vim.fn.system(cmd)
-  print(result)
-end, { desc = 'Count words in LaTeX document' })
-
-vim.api.nvim_create_user_command('LatexClean', function()
-  vim.fn.system('latexmk -c')
-  print("LaTeX auxiliary files cleaned")
-end, { desc = 'Clean LaTeX auxiliary files' })
-
-print("LaTeX project configuration loaded! Use <leader>lb to build, <leader>lf for forward search")
+-- Project keymaps
+vim.keymap.set('n', '<leader>cb', ':!latexmk -pdf %<CR>', { desc = '[C]ode: [B]uild PDF' })
+vim.keymap.set('n', '<leader>cc', ':!latexmk -c<CR>', { desc = '[C]ode: [C]lean aux files' })
+vim.keymap.set('n', '<leader>cv', ':!open build/*.pdf<CR>', { desc = '[C]ode: [V]iew PDF' })
 EOF
             print_success "Created .nvim.lua for LaTeX LSP configuration"
         fi
@@ -1603,63 +1901,30 @@ EOF
 
         # Create .nvim.lua for C++/Python hybrid support
         cat > .nvim.lua << 'EOF'
--- Local nvim config for C++/Python hybrid project
-local venv_path = vim.fn.getcwd() .. '/.venv'
-local venv_bin = venv_path .. '/bin'
+-- Project-specific configuration for C++/Python hybrid
 
--- Set Python host for nvim
-vim.g.python3_host_prog = venv_bin .. '/python'
+-- Configure Python virtual environment
+vim.g.python3_host_prog = vim.fn.getcwd() .. '/.venv/bin/python'
 
--- Ensure compile_commands.json is found by clangd
-if vim.fn.filereadable('build/compile_commands.json') == 1 then
-    vim.fn.system('ln -sf build/compile_commands.json .')
-end
+-- Auto-link compile_commands.json from build directory
+vim.api.nvim_create_autocmd("BufReadPost", {
+    pattern = "*",
+    callback = function()
+        local build_cc = vim.fn.getcwd() .. "/build/compile_commands.json"
+        local root_cc = vim.fn.getcwd() .. "/compile_commands.json"
+        if vim.fn.filereadable(build_cc) == 1 and vim.fn.filereadable(root_cc) == 0 then
+            vim.fn.system("ln -sf build/compile_commands.json .")
+        end
+    end,
+    once = true,
+})
 
--- Configure DAP for both C++ and Python
-local dap = require('dap')
-
--- C++ DAP configuration
-dap.adapters.lldb = {
-    type = 'executable',
-    command = '/usr/bin/lldb-dap',
-    name = 'lldb'
-}
-
-dap.configurations.cpp = {
-    {
-        name = 'Launch C++ tests',
-        type = 'lldb',
-        request = 'launch',
-        program = function()
-            return vim.fn.getcwd() .. '/build/tests/test_cpp'
-        end,
-        cwd = '${workspaceFolder}',
-        stopOnEntry = false,
-    },
-}
-
--- Python DAP configuration
-dap.adapters.python = {
-    type = 'executable',
-    command = venv_bin .. '/python',
-    args = { '-m', 'debugpy.adapter' },
-}
-
-dap.configurations.python = {
-    {
-        type = 'python',
-        request = 'launch',
-        name = 'Launch Python tests',
-        program = '${workspaceFolder}/tests/test_python.py',
-        pythonPath = venv_bin .. '/python',
-    },
-}
-
--- Custom keymaps for hybrid project
-vim.keymap.set('n', '<leader>bc', ':!cmake --build build<CR>', { desc = 'Build C++ extension' })
-vim.keymap.set('n', '<leader>bt', ':!cd build && ctest<CR>', { desc = 'Run C++ tests' })
-vim.keymap.set('n', '<leader>bp', ':!pytest tests/<CR>', { desc = 'Run Python tests' })
-vim.keymap.set('n', '<leader>be', ':!python python/example.py<CR>', { desc = 'Run example' })
+-- Project keymaps
+vim.keymap.set('n', '<leader>cb', ':!cmake --build build<CR>', { desc = '[C]ode: [B]uild C++ extension' })
+vim.keymap.set('n', '<leader>ct', ':!cd build && ctest<CR>', { desc = '[C]ode: Run C++ [T]ests' })
+vim.keymap.set('n', '<leader>cp', ':!pytest<CR>', { desc = '[C]ode: Run [P]ython tests' })
+vim.keymap.set('n', '<leader>cc', ':!cmake --build build --target clean<CR>', { desc = '[C]ode: [C]lean' })
+vim.keymap.set('n', '<leader>cr', ':!python python/example.py<CR>', { desc = '[C]ode: [R]un example' })
 EOF
         print_success "Created .nvim.lua for C++/Python hybrid LSP/DAP configuration"
         ;;

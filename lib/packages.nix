@@ -84,6 +84,10 @@ in rec {
         llvm.lldb
         llvm.libcxx
         llvm.libcxx.dev
+      ] ++ lib.optionals pkgs.stdenv.isDarwin [
+        # lldb-dap is included in lldb on macOS
+      ] ++ lib.optionals pkgs.stdenv.isLinux [
+        pkgs.lldb  # Includes lldb-dap on Linux
       ];
 
       # Build tools (always included)
@@ -166,6 +170,7 @@ in rec {
       python
       uv                      # Fast package manager - handles everything else
       basedpyright            # LSP (keep system-level for neovim)
+      ruff                    # Fast Python linter and formatter
     ] ++ lib.optionals withJupyter [
       # System packages for Jupyter/Molten visualization
       imagemagick
@@ -175,13 +180,16 @@ in rec {
     # Convenience: default Python packages for system
     default = packages {};
 
-    # Just the LSP for neovim (ruff will be in venv)
+    # Just the LSP for neovim
     lsp = with pkgs; [
       basedpyright
+      ruff  # Also acts as LSP
     ];
 
-    # Formatters will be in venv via uv
-    formatters = [];
+    # Formatters for neovim
+    formatters = with pkgs; [
+      ruff  # Fast formatter (ruff_format, ruff_fix)
+    ];
 
     # Python packages for neovim (installed via pynvim)
     pythonPackages = ps: with ps; [
@@ -364,7 +372,7 @@ in rec {
   # Debuggers for system neovim
   debuggers = {
     all = [
-      llvmPkg.lldb              # C/C++, Rust
+      llvmPkg.lldb              # C/C++, Rust (includes lldb-dap)
       pythonPkg.pkgs.debugpy    # Python
     ] ++ lib.optionals pkgs.stdenv.isLinux (with pkgs; [
       gdb                       # GNU debugger

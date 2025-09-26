@@ -44,11 +44,10 @@ in {
       vimAlias = true;
       vimdiffAlias = true;
       withPython3 = true;
-      withNodeJs = false;  # Disable built-in Node to avoid building v22 from source
+      withNodeJs = true;
       extraPackages =
         packages.neovim.packages
-        ++ cfg.extraLSPs
-        ++ [pkgs.nodejs_20];  # Add Node.js 20 LTS which has binary cache
+        ++ cfg.extraLSPs;
       extraLuaPackages = ps:
         with ps; [
           magick

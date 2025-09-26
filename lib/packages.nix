@@ -402,6 +402,7 @@ in rec {
         eza
         fswatch
         fzf
+        htop
         mosh
         sops
         zoxide

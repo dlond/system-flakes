@@ -59,6 +59,7 @@
     devShellTemplates = {
       python = import ./dev-shells/python.nix;
       cpp = import ./dev-shells/cpp.nix;
+      "cpp-python" = import ./dev-shells/cpp-python.nix;
       latex = import ./dev-shells/latex.nix;
     };
 

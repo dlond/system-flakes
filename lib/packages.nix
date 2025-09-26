@@ -42,6 +42,7 @@ in rec {
       gnumake
       gcc  # For compiling native extensions
       pkg-config
+      gnused  # GNU sed for consistent behavior across platforms
     ];
 
     # Search and navigation tools (needed by neovim)

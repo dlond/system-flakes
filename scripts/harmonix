@@ -1438,7 +1438,7 @@ endif()
 # Find Python
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
-# Find pybind11 (from Conan)
+# Find pybind11 (from Nix environment)
 find_package(pybind11 REQUIRED)
 
 # Create the Python module
@@ -1877,8 +1877,8 @@ EOF
         # Create conanfile.txt for C++ dependencies
         cat > conanfile.txt << 'EOF'
 [requires]
-pybind11/2.11.1
 gtest/1.14.0
+# pybind11 is provided by Nix to ensure version compatibility with Python
 
 [generators]
 CMakeDeps

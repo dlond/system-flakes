@@ -1149,9 +1149,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=\${llvm.clang}/bin/clang
-CXX=\${llvm.clang}/bin/clang++
-LD=\${llvm.lld}/bin/lld
+CC=clang
+CXX=clang++
+LD=lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
@@ -1174,9 +1174,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=\${llvm.clang}/bin/clang
-CXX=\${llvm.clang}/bin/clang++
-LD=\${llvm.lld}/bin/lld
+CC=clang
+CXX=clang++
+LD=lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
             print_success "Created local Conan profiles (release and debug)"
@@ -1866,9 +1866,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=\${llvm.clang}/bin/clang
-CXX=\${llvm.clang}/bin/clang++
-LD=\${llvm.lld}/bin/lld
+CC=clang
+CXX=clang++
+LD=lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
@@ -1891,9 +1891,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=\${llvm.clang}/bin/clang
-CXX=\${llvm.clang}/bin/clang++
-LD=\${llvm.lld}/bin/lld
+CC=clang
+CXX=clang++
+LD=lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
             print_success "Created local Conan profiles (release and debug)"

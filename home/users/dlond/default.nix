@@ -7,7 +7,7 @@
   catppuccin-bat,
   ...
 }: {
-  home.stateVersion = "25.11";
+  home.stateVersion = "25.05";
   home.username = "dlond";
   home.homeDirectory = "/Users/dlond";
 

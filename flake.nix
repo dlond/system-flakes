@@ -2,15 +2,15 @@
   description = "nix-darwin + home-manager for macOS, standalone home-manager for Linux";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
 
     nix-darwin = {
-      url = "github:LnL7/nix-darwin";
+      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -110,7 +110,7 @@
               extraSpecialArgs = {
                 inherit pkgs;
                 inherit (inputs) sops-nix nvim-config catppuccin-bat;
-                packages = import ./lib/packages.nix { inherit pkgs; };
+                packages = import ./lib/packages.nix {inherit pkgs;};
               };
               users.${username} = import ./home/users/${username};
             };

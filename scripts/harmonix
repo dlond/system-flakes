@@ -138,7 +138,7 @@ $(print_success "WHAT YOU GET:")
 $(print_success "WORKFLOW:")
   1. Create project:    $(basename "$0") cpp --name myapp
   2. Enter directory:   cd myapp
-  3. Install deps:      conan install . --build=missing
+  3. Install deps:      conan install . --profile ./.conan2/release --build=missing
   4. Configure build:   cmake --preset conan-release
   5. Build project:     cmake --build --preset conan-release
 
@@ -1127,11 +1127,11 @@ EOF
         fi
 
         # Create local Conan profiles with correct compiler version
-        if [[ "$PACKAGE_MANAGER" == "conan" ]] && [[ ! -d ".conan2/profiles" ]]; then
-            mkdir -p .conan2/profiles
+        if [[ "$PACKAGE_MANAGER" == "conan" ]] && [[ ! -f ".conan2/release" ]]; then
+            mkdir -p .conan2
 
             # Create release profile
-            cat > .conan2/profiles/release << EOF
+            cat > .conan2/release << EOF
 [settings]
 arch=armv8
 build_type=Release
@@ -1156,7 +1156,7 @@ CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
             # Create debug profile
-            cat > .conan2/profiles/debug << EOF
+            cat > .conan2/debug << EOF
 [settings]
 arch=armv8
 build_type=Debug
@@ -1204,7 +1204,7 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 vim.keymap.set('n', '<leader>cb', ':!cmake --build build --preset conan-release<CR>', { desc = '[C]ode: [B]uild project' })
 vim.keymap.set('n', '<leader>ct', ':!ctest --preset conan-release<CR>', { desc = '[C]ode: Run [T]ests' })
 vim.keymap.set('n', '<leader>cc', ':!cmake --build build --target clean<CR>', { desc = '[C]ode: [C]lean' })
-vim.keymap.set('n', '<leader>ci', ':!conan install . --build=missing<CR>', { desc = '[C]ode: [I]nstall deps' })
+vim.keymap.set('n', '<leader>ci', ':!conan install . --profile ./.conan2/release --build=missing<CR>', { desc = '[C]ode: [I]nstall deps' })
 EOF
             print_success "Created .nvim.lua for C++ LSP/DAP configuration"
         fi
@@ -1218,7 +1218,7 @@ EOF
         echo "  2. Enter dev env:     direnv allow"
 
         if [[ "$PACKAGE_MANAGER" == "conan" ]]; then
-            echo "  3. Install deps:      conan install . --build=missing --profile=release"
+            echo "  3. Install deps:      conan install . --profile ./.conan2/release --build=missing"
             echo "  4. Configure:         cmake --preset conan-release"
             echo "  5. Build:             cmake --build --preset conan-release"
             echo "  6. Run tests:         ctest --preset conan-release"
@@ -1251,7 +1251,7 @@ EOF
 
         echo ""
         echo "$(print_info "Tip:") Conan profiles use Nix store paths for consistent toolchain versions."
-        echo "      Check .conan2/profiles/ for debug and release configurations."
+        echo "      Or debug: conan install . --profile ./.conan2/debug --build=missing"
         ;;
 
     latex)
@@ -1844,11 +1844,11 @@ EOF
         print_success "Created conanfile.txt for C++ dependencies"
 
         # Create local Conan profiles with correct compiler version
-        if [[ ! -d ".conan2/profiles" ]]; then
-            mkdir -p .conan2/profiles
+        if [[ ! -f ".conan2/release" ]]; then
+            mkdir -p .conan2
 
             # Create release profile
-            cat > .conan2/profiles/release << EOF
+            cat > .conan2/release << EOF
 [settings]
 arch=armv8
 build_type=Release
@@ -1873,7 +1873,7 @@ CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
             # Create debug profile
-            cat > .conan2/profiles/debug << EOF
+            cat > .conan2/debug << EOF
 [settings]
 arch=armv8
 build_type=Debug

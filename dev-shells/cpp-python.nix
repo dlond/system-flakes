@@ -45,10 +45,10 @@ in customStdenv.mkDerivation {
       pkgs.cmake
       pkgs.ninja
       pkgs.pkg-config
-      pkgs.conan  # C++ package manager for pybind11
+      pkgs.conan  # C++ package manager
 
       # Python environment
-      pythonPkg
+      pythonPkg  # Base Python interpreter with headers (Python.h)
       pkgs.uv
       pkgs.basedpyright
       pkgs.black
@@ -56,11 +56,11 @@ in customStdenv.mkDerivation {
 
       # Python packages for hybrid development
       (pythonPkg.withPackages (ps: with ps; [
-        pybind11
-        numpy
-        pytest
-        ipython
-        debugpy
+        pybind11  # Provides pybind11 headers for C++ bindings
+        pytest    # Test runner
+        ipython   # Interactive shell  
+        debugpy   # DAP debugging
+        # numpy removed - let uv manage runtime dependencies via requirements.txt
       ]))
 
       # Testing

@@ -590,12 +590,22 @@ print_success "Created flake.nix"
 
 # Create .envrc
 print_info "Creating .envrc"
-cat > .envrc << 'EOF'
+if [[ "$PROJECT_TYPE" == "python" ]] || [[ "$PROJECT_TYPE" == "cpp-python" ]]; then
+    cat > .envrc << 'EOF'
+use flake
+layout python
+
+# Project-specific environment setup
+# Add any additional environment variables or setup here
+EOF
+else
+    cat > .envrc << 'EOF'
 use flake
 
 # Project-specific environment setup
 # Add any additional environment variables or setup here
 EOF
+fi
 
 print_success "Created .envrc"
 
@@ -960,10 +970,8 @@ EOF
         echo ""
         echo "$(print_info "Next steps:")"
         echo "  1. Enter project:  cd $PROJECT_NAME"
-        echo "  2. Enter dev env:  direnv allow"
-        echo "  3. Create venv:    uv venv"
-        echo "  4. Activate venv:  source .venv/bin/activate"
-        echo "  5. Install deps:   uv pip install -r requirements.txt"
+        echo "  2. Enable env:     direnv allow  # This creates & activates venv automatically"
+        echo "  3. Install deps:   uv pip install -r requirements.txt"
         echo ""
         echo "$(print_success "Run your code:")"
         echo "  • Module:    python ${PROJECT_NAME//-/_}.py"

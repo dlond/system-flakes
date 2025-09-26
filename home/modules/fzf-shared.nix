@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  shared,
+  packages,
   ...
 }: let
   cfg = config.my.fzf;
@@ -24,7 +24,7 @@ in {
     actionBindings = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "ctrl-e:execute-silent(echo {+} | ${shared.clipboardCommand})+abort" # copy selection(s) to clipboard
+        "ctrl-e:execute-silent(echo {+} | ${packages.system.clipboardCommand})+abort" # copy selection(s) to clipboard
         "ctrl-w:become(nvim {+})" # open in neovim
         "ctrl-y:accept" # accept selection(s)
         "enter:accept" # accept selection(s)

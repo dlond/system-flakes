@@ -42,6 +42,9 @@ in customStdenv.mkDerivation {
   shellHook = ''
     export LLDB_DEBUGSERVER_PATH=/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/debugserver
 
+    # Clear any polluting CPLUS_INCLUDE_PATH from the system
+    unset CPLUS_INCLUDE_PATH
+
     echo "🔧 C++ Development Environment: ${projectName}"
     echo "   LLVM Version: ${llvmVersion}"
     echo "   C++ Standard: C++${cppStandard}"
@@ -55,10 +58,61 @@ in customStdenv.mkDerivation {
 
     # Package manager specific setup
     ${if packageManager == "conan" then ''
-      # Create default conan profile if it doesn't exist
-      if ! conan profile list 2>/dev/null | grep -q default; then
-        echo "Creating default Conan profile..."
-        conan profile detect
+      # Create local Conan profiles with correct compiler version
+      if [ ! -f .conan2/profiles/release ] || [ ! -f .conan2/profiles/debug ]; then
+        echo "Creating local Conan profiles..."
+        mkdir -p .conan2/profiles
+
+        # Create release profile
+        cat > .conan2/profiles/release << EOF
+[settings]
+arch=armv8
+build_type=Release
+compiler=clang
+compiler.cppstd=${cppStandard}
+compiler.libcxx=libc++
+compiler.version=${llvmVersion}
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=${llvm.clang}/bin/clang
+CXX=${llvm.clang}/bin/clang++
+LD=${llvm.lld}/bin/lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+
+        # Create debug profile
+        cat > .conan2/profiles/debug << EOF
+[settings]
+arch=armv8
+build_type=Debug
+compiler=clang
+compiler.cppstd=${cppStandard}
+compiler.libcxx=libc++
+compiler.version=${llvmVersion}
+os=Macos
+
+[conf]
+tools.build:exelinkflags=['-fuse-ld=lld']
+tools.build:jobs=10
+tools.build:sharedlinkflags=['-fuse-ld=lld']
+tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON'}
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[buildenv]
+CC=${llvm.clang}/bin/clang
+CXX=${llvm.clang}/bin/clang++
+LD=${llvm.lld}/bin/lld
+CMAKE_EXPORT_COMPILE_COMMANDS=ON
+EOF
+        echo "✓ Created local Conan profiles (release and debug)"
       fi
 
       # Create a basic conanfile.txt if none exists

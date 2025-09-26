@@ -707,33 +707,21 @@ vim.api.nvim_create_autocmd("LspAttach", {
                 },
             })
         end
-EOF
 
-            if [[ "$MOLTEN" == "true" ]]; then
-                cat >> .nvim.lua << 'EOF'
-
-        -- Molten reminder
+        -- Molten (always enabled for Python projects)
         vim.schedule(function()
-            local kernels = vim.fn.system("jupyter kernelspec list")
+            local kernels = vim.fn.system("jupyter kernelspec list 2>/dev/null")
             if kernels:match("python3") then
                 vim.notify("Molten: Use :MoltenInit python3 to start kernel", vim.log.levels.INFO)
             end
         end)
-EOF
-            fi
 
-            if [[ "$DEBUGGER" == "true" ]]; then
-                cat >> .nvim.lua << 'EOF'
-
-        -- Configure DAP for Python
-        local dap_python = require('dap-python')
-        if dap_python then
+        -- Configure DAP for Python debugging
+        local ok_dap, dap_python = pcall(require, 'dap-python')
+        if ok_dap then
             dap_python.setup(venv_bin .. '/python')
+            vim.notify("DAP Python configured with venv", vim.log.levels.INFO)
         end
-EOF
-            fi
-
-            cat >> .nvim.lua << 'EOF'
     end,
 })
 EOF
@@ -830,9 +818,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=clang
-CXX=clang++
-LD=lld
+CC=\${llvm.clang}/bin/clang
+CXX=\${llvm.clang}/bin/clang++
+LD=\${llvm.lld}/bin/lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
@@ -855,9 +843,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=clang
-CXX=clang++
-LD=lld
+CC=\${llvm.clang}/bin/clang
+CXX=\${llvm.clang}/bin/clang++
+LD=\${llvm.lld}/bin/lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
             print_success "Created local Conan profiles (release and debug)"
@@ -911,11 +899,13 @@ EOF
         ;;
 
     latex)
+        # Create main LaTeX document
         if [[ ! -f "main.tex" ]]; then
             cat > main.tex << EOF
 \\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{amsmath}
+\\usepackage{amsfonts}
 \\usepackage{graphicx}
 \\usepackage{hyperref}
 
@@ -928,11 +918,158 @@ EOF
 \\maketitle
 
 \\section{Introduction}
-Start writing here...
+This document demonstrates some beautiful partial differential equations.
+
+\\section{Classic PDEs}
+
+\\subsection{Heat Equation}
+The heat equation describes the distribution of heat in a given region over time:
+\\begin{equation}
+\\frac{\\partial u}{\\partial t} = \\alpha \\nabla^2 u
+\\end{equation}
+
+\\subsection{Wave Equation}
+The wave equation governs the behavior of waves:
+\\begin{equation}
+\\frac{\\partial^2 u}{\\partial t^2} = c^2 \\nabla^2 u
+\\end{equation}
+
+\\subsection{Schrödinger Equation}
+The time-dependent Schrödinger equation in quantum mechanics:
+\\begin{equation}
+i\\hbar \\frac{\\partial \\psi}{\\partial t} = \\hat{H} \\psi
+\\end{equation}
+
+\\subsection{Navier-Stokes Equations}
+The incompressible Navier-Stokes equations for fluid dynamics:
+\\begin{align}
+\\nabla \\cdot \\mathbf{u} &= 0 \\\\
+\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla) \\mathbf{u} &= -\\frac{1}{\\rho} \\nabla p + \\nu \\nabla^2 \\mathbf{u}
+\\end{align}
+
+\\subsection{Maxwell's Equations}
+The electromagnetic field equations:
+\\begin{align}
+\\nabla \\cdot \\mathbf{E} &= \\frac{\\rho}{\\varepsilon_0} \\\\
+\\nabla \\cdot \\mathbf{B} &= 0 \\\\
+\\nabla \\times \\mathbf{E} &= -\\frac{\\partial \\mathbf{B}}{\\partial t} \\\\
+\\nabla \\times \\mathbf{B} &= \\mu_0 \\mathbf{J} + \\mu_0 \\varepsilon_0 \\frac{\\partial \\mathbf{E}}{\\partial t}
+\\end{align}
+
+% Include figures from figures/ directory
+% \\includegraphics[width=0.8\\textwidth]{figures/solution_plot.png}
+
+% Include sections from sections/ directory
+% \\input{sections/numerical_methods}
 
 \\end{document}
 EOF
             print_success "Created main.tex"
+        fi
+
+        # Create .latexmkrc configuration
+        if [[ ! -f ".latexmkrc" ]]; then
+            cat > .latexmkrc << 'EOF'
+# LaTeX build configuration
+$pdf_mode = 1;
+$pdflatex = 'pdflatex -interaction=nonstopmode -synctex=1 %O %S';
+$pdf_previewer = 'open -a Preview';
+$clean_ext = 'synctex.gz synctex.gz(busy) run.xml tex.bak bbl bcf fdb_latexmk run tdo %R-blx.bib';
+
+# Auto-clean on build
+$cleanup_mode = 1;
+$cleanup_includes_generated = 1;
+
+# Output directory
+$out_dir = 'build';
+$aux_dir = 'build';
+EOF
+            print_success "Created .latexmkrc"
+        fi
+
+        # Create standard LaTeX directories
+        mkdir -p figures sections build
+        print_success "Created directories: figures/, sections/, build/"
+
+        # Create .nvim.lua for LaTeX LSP support
+        if [[ ! -f ".nvim.lua" ]]; then
+            cat > .nvim.lua << 'EOF'
+-- Local nvim config for LaTeX project
+-- This file provides LSP configuration and custom keymaps for LaTeX development
+
+-- LaTeX-specific settings
+vim.opt_local.conceallevel = 0
+vim.opt_local.wrap = true
+vim.opt_local.linebreak = true
+vim.opt_local.textwidth = 80
+vim.opt_local.spell = true
+vim.opt_local.spelllang = "en_us"
+
+-- LSP configuration for texlab
+local function setup_texlab()
+  local lspconfig = require('lspconfig')
+
+  lspconfig.texlab.setup({
+    settings = {
+      texlab = {
+        build = {
+          executable = 'latexmk',
+          args = { '-pdf', '-interaction=nonstopmode', '-synctex=1', '%f' },
+          onSave = true,
+          outputDirectory = './build',
+        },
+        auxDirectory = './build',
+        bibtexFormatter = 'texlab',
+        latexFormatter = 'latexindent',
+        latexindent = {
+          ['local'] = nil, -- Use .latexindent.yaml if present
+          modifyLineBreaks = false,
+        },
+        chktex = {
+          onOpenAndSave = true,
+          onEdit = false,
+        },
+        diagnosticsDelay = 300,
+        formatterLineLength = 80,
+      }
+    },
+    on_attach = function(client, bufnr)
+      -- Enable completion triggered by <C-x><C-o>
+      vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+
+      -- LaTeX-specific keymaps
+      local bufopts = { noremap=true, silent=true, buffer=bufnr }
+      vim.keymap.set('n', '<leader>lb', '<cmd>TexlabBuild<cr>', bufopts)
+      vim.keymap.set('n', '<leader>lf', '<cmd>TexlabForward<cr>', bufopts)
+      vim.keymap.set('n', '<leader>lv', '<cmd>lua vim.lsp.buf.code_action()<cr>', bufopts)
+
+      print("LaTeX LSP (texlab) attached successfully")
+    end,
+  })
+end
+
+-- Setup texlab if available
+local ok, _ = pcall(setup_texlab)
+if not ok then
+  print("Warning: texlab LSP not available. Install with: nix develop .#latex")
+end
+
+-- Custom LaTeX commands and snippets helper
+vim.api.nvim_create_user_command('LatexWordCount', function()
+  local file = vim.fn.expand('%:p')
+  local cmd = string.format('texcount -inc -incbib -sum "%s"', file)
+  local result = vim.fn.system(cmd)
+  print(result)
+end, { desc = 'Count words in LaTeX document' })
+
+vim.api.nvim_create_user_command('LatexClean', function()
+  vim.fn.system('latexmk -c')
+  print("LaTeX auxiliary files cleaned")
+end, { desc = 'Clean LaTeX auxiliary files' })
+
+print("LaTeX project configuration loaded! Use <leader>lb to build, <leader>lf for forward search")
+EOF
+            print_success "Created .nvim.lua for LaTeX LSP configuration"
         fi
         ;;
     cpp-python)
@@ -1431,9 +1568,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=clang
-CXX=clang++
-LD=lld
+CC=\${llvm.clang}/bin/clang
+CXX=\${llvm.clang}/bin/clang++
+LD=\${llvm.lld}/bin/lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
 
@@ -1456,9 +1593,9 @@ tools.cmake.cmaketoolchain:extra_variables={'CMAKE_EXPORT_COMPILE_COMMANDS': 'ON
 tools.cmake.cmaketoolchain:generator=Ninja
 
 [buildenv]
-CC=clang
-CXX=clang++
-LD=lld
+CC=\${llvm.clang}/bin/clang
+CXX=\${llvm.clang}/bin/clang++
+LD=\${llvm.lld}/bin/lld
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
 EOF
             print_success "Created local Conan profiles (release and debug)"

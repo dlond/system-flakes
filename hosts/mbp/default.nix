@@ -5,14 +5,11 @@
   username,
   ...
 }: let
-  shared = import ../../lib/shared.nix {
-    inherit pkgs;
-    lib = pkgs.lib;
-  };
+  packages = import ../../lib/packages.nix { inherit pkgs; };
   nix_netrc = "/etc/nix/netrc";
 in {
   environment.systemPackages =
-    shared.sharedCliTools
+    packages.system.cli
     ++ [
       pkgs.raycast
       pkgs.pam-reattach # For Touch ID support in tmux

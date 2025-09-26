@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  shared,
+  packages,
   ...
 }: {
   programs.zsh = {
@@ -42,7 +42,7 @@
 
       # Other
       firefox = "open -a \"Firefox\" --args";
-      clip = shared.clipboardCommand;
+      clip = packages.system.clipboardCommand;
     };
 
     history = {

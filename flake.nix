@@ -110,10 +110,7 @@
               extraSpecialArgs = {
                 inherit pkgs;
                 inherit (inputs) sops-nix nvim-config catppuccin-bat;
-                shared = import ./lib/shared.nix {
-                  inherit pkgs;
-                  lib = pkgs.lib;
-                };
+                packages = import ./lib/packages.nix { inherit pkgs; };
               };
               users.${username} = import ./home/users/${username};
             };

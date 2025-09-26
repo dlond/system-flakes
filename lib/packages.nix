@@ -373,6 +373,80 @@ in rec {
     ]);
   };
 
+  # System CLI tools (replaces lib/shared.nix)
+  system = {
+    # Core system tools used by all environments
+    cli =
+      core.essential
+      ++ core.search
+      ++ core.utils
+      ++ (with pkgs; [
+        # Shell and terminal
+        bash
+        zsh-fzf-tab
+        zsh-vi-mode
+        tmux
+        tmuxp
+
+        # System utilities
+        age
+        bat
+        eza
+        fswatch
+        fzf
+        mosh
+        sops
+        zoxide
+
+        # Git tools
+        delta
+        git-filter-repo
+
+        # Development tools
+        gh
+        glow
+        go
+        lua5_1
+        luarocks
+        shellcheck
+        tree-sitter
+
+        # Security
+        gnupg
+
+        # Applications
+        brave
+        chatgpt
+        claude-code
+        discord-ptb
+        firefox
+        obsidian
+
+        # Development environments
+        (pkgs.callPackage ../packages/harmonix.nix {})
+      ])
+      ++ python.default  # Include Python for Molten/Jupyter support
+      ++ web.default     # Include Node.js 20 and web tools
+      ++ rust.default    # Include rustup
+      ++ latex.lsp       # Include texlab
+      ++ formatters.all  # Include alejandra and other formatters
+      ++ lib.optionals pkgs.stdenv.isLinux [
+        pkgs.xclip
+      ];
+
+    # Platform-specific helpers
+    forDarwin = lib.mkIf pkgs.stdenv.isDarwin;
+    forLinux = lib.mkIf pkgs.stdenv.isLinux;
+
+    # Platform-specific clipboard command
+    clipboardCommand =
+      if pkgs.stdenv.isDarwin
+      then "pbcopy"
+      else if pkgs.stdenv.isLinux
+      then "xclip -selection clipboard"
+      else "clip"; # Fallback for Windows/WSL
+  };
+
   # Complete package set for system neovim
   neovim = {
     packages =

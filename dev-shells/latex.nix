@@ -22,13 +22,11 @@ in pkgs.mkShell {
   name = "${projectName}-shell";
 
   buildInputs =
-    [texlivePackage]
-    ++ packages.latex.core
-    ++ packages.common.lsp
-    ++ lib.optionals withPandoc packages.latex.pandoc
+    packages.core.essential
+    ++ packages.core.search
+    ++ packages.latex.packages { inherit scheme withPandoc withGraphics; }
     ++ lib.optionals withBiber [pkgs.biber]
-    ++ lib.optionals withGraphics packages.latex.graphics
-    ++ lib.optionals withPython packages.latex.python
+    ++ lib.optionals withPython (packages.python.packages { pythonVersion = "3.11"; })
     ++ extraPackages;
 
   shellHook = ''

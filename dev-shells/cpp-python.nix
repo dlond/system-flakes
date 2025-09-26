@@ -68,19 +68,15 @@ in customStdenv.mkDerivation {
     echo "   Binding library: pybind11"
     echo ""
 
-    # Set up Python virtual environment
-    if [ ! -d .venv ]; then
-      echo "Creating Python virtual environment..."
-      uv venv --python ${pythonPkg}/bin/python
-    fi
+    # Note: Virtual environment is managed by direnv's 'layout python'
+    # The .envrc file handles venv creation and activation
 
-    source .venv/bin/activate
-
-    # Install Python development dependencies
-    if ! command -v black &> /dev/null; then
+    # Install Python development dependencies (uv will handle venv)
+    echo "Setting up Python environment..."
+    uv pip install --quiet pybind11 black ruff ipython pytest numpy 2>/dev/null || {
       echo "Installing Python development tools..."
-      uv pip install black ruff ipython pytest numpy
-    fi
+      uv pip install pybind11 black ruff ipython pytest numpy
+    }
 
     # Create local Conan profiles with correct compiler version
     if [ ! -f .conan2/profiles/release ] || [ ! -f .conan2/profiles/debug ]; then

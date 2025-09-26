@@ -59,7 +59,6 @@
     devShellTemplates = {
       python = import ./dev-shells/python.nix;
       cpp = import ./dev-shells/cpp.nix;
-      rust = import ./dev-shells/rust.nix;
       latex = import ./dev-shells/latex.nix;
     };
 
@@ -72,13 +71,6 @@
     in {
       python = import ./dev-shells/python.nix {
         inherit pkgs;
-        withJupyter = true;
-        withMolten = false;
-      };
-      python-molten = import ./dev-shells/python.nix {
-        inherit pkgs;
-        withJupyter = true;
-        withMolten = true;
       };
       cpp = import ./dev-shells/cpp.nix {
         inherit pkgs;

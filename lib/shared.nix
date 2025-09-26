@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  nix-init-project = pkgs.callPackage ../packages/nix-init-project.nix {};
+  harmonix = pkgs.callPackage ../packages/harmonix.nix {};
 in {
   sharedCliTools = with pkgs;
     [
@@ -32,7 +32,7 @@ in {
       luarocks
       mosh
       neovim
-      nix-init-project
+      harmonix
       nodejs_20
       obsidian
       ripgrep

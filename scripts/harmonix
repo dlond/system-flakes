@@ -18,7 +18,7 @@ print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 # Function to show general usage
 usage() {
     cat << EOF
-$(print_info "Nix Project Initializer v1.0")
+$(print_info "Harmonix - Nix Project Initializer")
 
 $(print_success "USAGE:")
   $(basename "$0") <language> [OPTIONS]
@@ -34,8 +34,9 @@ $(print_success "COMMON OPTIONS:")
   --help, -h        Show help (general or language-specific)
 
 $(print_success "EXAMPLES:")
-  $(basename "$0") python --name ml-project --molten --jupyter
-  $(basename "$0") cpp --cmake --debugger
+  $(basename "$0") python --name ml-project --py 3.12
+  $(basename "$0") cpp --cpp 23 --llvm 21 --test-framework catch2
+  $(basename "$0") cpp --package-manager vcpkg --analysis --docs
   $(basename "$0") latex --pandoc --scheme full
 
 $(print_success "FOR LANGUAGE-SPECIFIC OPTIONS:")
@@ -64,10 +65,7 @@ $(print_success "USAGE:")
 
 $(print_success "OPTIONS:")
   --name NAME           Project name (default: current directory)
-  --python-version VER  Python version: 3.9, 3.10, 3.11, 3.12, 3.13 (default: 3.11)
-  --molten              Enable molten-nvim Jupyter support
-  --jupyter             Enable Jupyter notebooks
-  --debugger            Enable Python debugging with debugpy
+  --py VER              Python version: 3.10, 3.11, 3.12, 3.13, 3.14 (default: 3.11)
   --help                Show this help
 
 $(print_success "WHAT YOU GET:")
@@ -75,6 +73,7 @@ $(print_success "WHAT YOU GET:")
   • Virtual environment with uv package manager
   • LSP: basedpyright and ruff (configured for venv)
   • Formatter: black
+  • Jupyter/Molten support for notebooks in neovim
   • requirements.txt for dependencies
   • .nvim.lua with venv-aware configuration
 
@@ -89,7 +88,7 @@ $(print_success "PACKAGE MANAGEMENT:")
     - Version pinning with pip freeze
 
 $(print_success "WORKFLOW:")
-  1. Create project:       $(basename "$0") python --name myapp --molten
+  1. Create project:       $(basename "$0") python --name myapp
   2. Enter directory:      cd myapp
   3. Add dependencies:     echo "pandas>=2.0" >> requirements.txt
   4. Install packages:     uv pip install -r requirements.txt
@@ -118,12 +117,17 @@ $(print_success "USAGE:")
 $(print_success "OPTIONS:")
   --name NAME           Project name (default: current directory)
   --cpp STD             C++ standard: 11, 14, 17, 20, 23 (default: 20)
-  --llvm V              LLVM version: 16, 17, 18, 19 (default: system default)
+  --llvm V              LLVM version: 18, 19, 20, 21 (default: 20)
+  --package-manager PM  Package manager: conan, vcpkg, cpm, none (default: conan)
+  --test-framework TF   Test framework: gtest, catch2, doctest, boost, none (default: gtest)
+  --bazel               Enable Bazel support
+  --docs                Enable documentation tools (doxygen, graphviz)
+  --analysis            Enable analysis tools (cppcheck, valgrind, etc.)
   --help                Show this help
 
 $(print_success "WHAT YOU GET:")
   • Complete LLVM toolchain (clang, clang-tools, lld, lldb)
-  • Build tools: CMake, Ninja, Conan
+  • Build tools: CMake, Ninja, Conan (default), Google Test (default)
   • LSP: clangd with compile_commands.json support
   • Formatter: clang-format
   • CMakeLists.txt with configurable C++ standard
@@ -210,40 +214,46 @@ EOF
 # Parse arguments
 PROJECT_TYPE=""
 PROJECT_NAME="$(basename "$PWD")"
-MOLTEN=false
-JUPYTER=false
+# Molten/Jupyter now always included for Python
 SCHEME="medium"
 PANDOC=false
 BIBER=false
 GRAPHICS=false
 PYTHON_TEX=false
-# Version selections
+# Version selections (keep Python default in sync with packages.nix!)
 PYTHON_VERSION="3.11"
 CPP_STANDARD="20"
-LLVM_VERSION="llvmPackages"
+LLVM_VERSION="20"
+# C++ options
+PACKAGE_MANAGER="conan"
+TEST_FRAMEWORK="gtest"
+WITH_BAZEL=false
+WITH_DOCS=false
+WITH_ANALYSIS=false
 
-# Check if no arguments provided
-if [[ $# -eq 0 ]]; then
+# Check if no arguments provided or just --help
+if [[ $# -eq 0 ]] || [[ $1 == "--help" ]] || [[ $1 == "-h" ]]; then
     usage
 fi
 
-# Check for language-specific help first
-if [[ $# -eq 2 ]] && [[ $2 == "--help" || $2 == "-h" ]]; then
-    case $1 in
-        python)
-            python_help
-            ;;
-        cpp)
-            cpp_help
-            ;;
-        latex)
-            latex_help
-            ;;
-        *)
-            print_error "Unknown language: $1"
-            usage
-            ;;
-    esac
+# Store the first argument as potential language
+FIRST_ARG="$1"
+
+# Check for language-specific help
+if [[ $1 == "python" || $1 == "cpp" || $1 == "latex" ]]; then
+    if [[ $# -eq 2 ]] && [[ $2 == "--help" || $2 == "-h" ]]; then
+        case $1 in
+            python)
+                python_help
+                ;;
+            cpp)
+                cpp_help
+                ;;
+            latex)
+                latex_help
+                ;;
+        esac
+    fi
 fi
 
 while [[ $# -gt 0 ]]; do
@@ -255,14 +265,6 @@ while [[ $# -gt 0 ]]; do
         --name)
             PROJECT_NAME="$2"
             shift 2
-            ;;
-        --molten)
-            MOLTEN=true
-            shift
-            ;;
-        --jupyter)
-            JUPYTER=true
-            shift
             ;;
         --scheme)
             SCHEME="$2"
@@ -284,7 +286,7 @@ while [[ $# -gt 0 ]]; do
             PYTHON_TEX=true
             shift
             ;;
-        --python-version)
+        --python-version|--py)
             PYTHON_VERSION="$2"
             shift 2
             ;;
@@ -293,12 +295,28 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --llvm)
-            if [[ "$2" =~ ^[0-9]+$ ]]; then
-                LLVM_VERSION="llvmPackages_$2"
-            else
-                LLVM_VERSION="$2"  # Allow full package name if needed
-            fi
+            LLVM_VERSION="$2"
             shift 2
+            ;;
+        --package-manager)
+            PACKAGE_MANAGER="$2"
+            shift 2
+            ;;
+        --test-framework)
+            TEST_FRAMEWORK="$2"
+            shift 2
+            ;;
+        --bazel)
+            WITH_BAZEL=true
+            shift
+            ;;
+        --docs)
+            WITH_DOCS=true
+            shift
+            ;;
+        --analysis)
+            WITH_ANALYSIS=true
+            shift
             ;;
         --help|-h)
             if [[ -n "$PROJECT_TYPE" ]]; then
@@ -362,7 +380,7 @@ case $PROJECT_TYPE in
   description = "$PROJECT_NAME - Python project";
 
   inputs = {
-    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -377,8 +395,6 @@ case $PROJECT_TYPE in
           inherit pkgs;
           projectName = "$PROJECT_NAME";
           pythonVersion = "$PYTHON_VERSION";
-          withJupyter = $JUPYTER;
-          withMolten = $MOLTEN;
 
           # Add project-specific packages here
           extraPackages = with pkgs; [
@@ -398,7 +414,7 @@ EOF
   description = "$PROJECT_NAME - C++ project";
 
   inputs = {
-    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -414,6 +430,11 @@ EOF
           projectName = "$PROJECT_NAME";
           cppStandard = "$CPP_STANDARD";
           llvmVersion = "$LLVM_VERSION";
+          packageManager = "$PACKAGE_MANAGER";
+          testFramework = "$TEST_FRAMEWORK";
+          withBazel = $WITH_BAZEL;
+          withDocs = $WITH_DOCS;
+          withAnalysis = $WITH_ANALYSIS;
 
           # Add project-specific packages here
           extraPackages = with pkgs; [
@@ -432,7 +453,7 @@ EOF
   description = "$PROJECT_NAME - LaTeX document";
 
   inputs = {
-    system-flakes.url = "path:/Users/dlond/dev/projects/system-flakes";
+    system-flakes.url = "github:dlond/system-flakes";
     nixpkgs.follows = "system-flakes/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };

@@ -51,6 +51,17 @@ in customStdenv.mkDerivation {
       pythonPkg
       pkgs.uv
       pkgs.basedpyright
+      pkgs.black
+      pkgs.ruff
+
+      # Python packages for hybrid development
+      (pythonPkg.withPackages (ps: with ps; [
+        pybind11
+        numpy
+        pytest
+        ipython
+        debugpy
+      ]))
 
       # Testing
       pkgs.gtest
@@ -69,14 +80,7 @@ in customStdenv.mkDerivation {
     echo ""
 
     # Note: Virtual environment is managed by direnv's 'layout python'
-    # The .envrc file handles venv creation and activation
-
-    # Install Python development dependencies (uv will handle venv)
-    echo "Setting up Python environment..."
-    uv pip install --quiet pybind11 black ruff ipython pytest numpy 2>/dev/null || {
-      echo "Installing Python development tools..."
-      uv pip install pybind11 black ruff ipython pytest numpy
-    }
+    # Development tools are provided by Nix (pybind11, numpy, pytest, etc.)
 
     # Create local Conan profiles with correct compiler version
     if [ ! -f .conan2/profiles/release ] || [ ! -f .conan2/profiles/debug ]; then

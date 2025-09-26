@@ -34,43 +34,38 @@ in pkgs.mkShell {
     packages.core.essential
     ++ packages.core.search
     ++ packages.core.utils
-    ++ pythonPackages
+    ++ pythonPackages  # Just python, uv, basedpyright
+    ++ (with pkgs; [
+      # Development tools (non-Python)
+      black
+      ruff
+      
+      # System dependencies for Python packages
+      # These enable pip packages to work properly
+      imagemagick      # For image processing (matplotlib, pillow)
+      ueberzugpp       # Terminal image rendering (for image.nvim)
+      cairo            # For pycairo/cairosvg
+      pkg-config       # For building Python C extensions
+      gcc              # For building Python C extensions
+      
+      # Optional: Quarto for .qmd notebook support
+      # quarto
+    ])
     ++ extraPackages;
 
   shellHook = ''
     echo "🐍 Python Development Environment: ${projectName}"
     echo "   Python version: ${pythonVersion}"
     echo "   Package manager: uv"
-    echo "   Jupyter/Molten: enabled"
+    echo "   Jupyter/Molten: enabled with image support"
 
     # Note: Virtual environment is managed by direnv's 'layout python'
-    # The .envrc file handles venv creation and activation
-
-    # Install base requirements if requirements.txt exists and venv is active
-    if [ -n "$VIRTUAL_ENV" ] && [ -f requirements.txt ]; then
-      if ! uv pip list | grep -q "^pip " 2>/dev/null; then
-        echo "Installing requirements..."
-        uv pip install -r requirements.txt
-      fi
-    fi
-
-    # Install development tools via uv (only if in venv)
-    if [ -n "$VIRTUAL_ENV" ] && ! command -v black &> /dev/null; then
-      echo "Installing development tools..."
-      uv pip install black ruff ipython debugpy
-    fi
-
-    # Install Molten/Jupyter dependencies (only if in venv)
-    if [ -n "$VIRTUAL_ENV" ] && ! python -c "import pynvim" 2>/dev/null; then
-      echo "Installing molten-nvim dependencies..."
-      uv pip install pynvim jupyter-client ipykernel jupytext nbformat
-      uv pip install cairosvg pnglatex plotly kaleido pyperclip
-    fi
-
-    # Register Jupyter kernel (only if in venv)
-    if [ -n "$VIRTUAL_ENV" ] && ! jupyter kernelspec list 2>/dev/null | grep -q "${projectName}-kernel"; then
+    # Development tools are provided by Nix
+    
+    # Register Jupyter kernel for this project
+    if ! jupyter kernelspec list 2>/dev/null | grep -q "${projectName}"; then
       echo "Registering Jupyter kernel..."
-      python -m ipykernel install --user --name=${projectName}-kernel --display-name="${projectName}"
+      python -m ipykernel install --user --name="${projectName}" --display-name="${projectName} (Python ${pythonVersion})"
     fi
 
     echo ""

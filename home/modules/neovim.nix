@@ -46,20 +46,13 @@ in {
       withPython3 = true;
       withNodeJs = true;
       extraPackages =
-        packages.neovim.lsp
-        ++ packages.neovim.formatters
-        ++ packages.neovim.tools
-        ++ lib.optionals cfg.withMolten packages.python.molten
-        ++ lib.optionals cfg.withDebugger [
-          pkgs.lldb
-          pkgs.python3Packages.debugpy
-        ]
+        packages.neovim.packages
         ++ cfg.extraLSPs;
       extraLuaPackages = ps:
         with ps; [
           magick
         ];
-      extraPython3Packages = packages.python.pythonPackages;
+      extraPython3Packages = packages.neovim.pythonPackages;
     };
 
     home.file = {

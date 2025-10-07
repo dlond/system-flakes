@@ -2,15 +2,15 @@
   description = "nix-darwin + home-manager for macOS, standalone home-manager for Linux";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     nix-darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+      url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -50,7 +50,9 @@
       linux = "aarch64-linux";
       linux_x86 = "x86_64-linux";
     };
-    mkPkgs = import ./lib/mkPkgs.nix {inherit (inputs) nixpkgs;};
+    mkPkgs = import ./lib/mkPkgs.nix {
+      inherit (inputs) nixpkgs rust-overlay;
+    };
 
     # Export dev shells for reuse
     forAllSystems = inputs.nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
@@ -65,10 +67,7 @@
 
     # Example dev shells that can be used with `nix develop`
     devShells = forAllSystems (system: let
-      pkgs = import inputs.nixpkgs {
-        inherit system;
-        overlays = [inputs.rust-overlay.overlays.default];
-      };
+      pkgs = mkPkgs system;
     in {
       python = import ./dev-shells/python.nix {
         inherit pkgs;
@@ -136,10 +135,7 @@
         ];
         extraSpecialArgs = {
           inherit (inputs) sops-nix nvim-config catppuccin-bat;
-          shared = import ./lib/shared.nix {
-            inherit pkgs;
-            lib = pkgs.lib;
-          };
+          packages = import ./lib/packages.nix {inherit pkgs;};
         };
       };
   };

@@ -47,6 +47,10 @@ in {
       withNodeJs = true;
       extraPackages =
         packages.neovim.packages
+        ++ lib.optionals cfg.withDebugger [
+          pkgs.lldb  # C/C++, Rust debugger  
+          pkgs.python3Packages.debugpy  # Python debugger
+        ]
         ++ cfg.extraLSPs;
       extraLuaPackages = ps:
         with ps; [

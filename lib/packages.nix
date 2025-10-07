@@ -3,9 +3,9 @@
 {
   pkgs,
   # Global version defaults (can be overridden per-language or in dev-shells)
-  llvmVersion ? "20",           # System default: LLVM 20
-  pythonVersion ? "3.11",       # System default: Python 3.11 (keep in sync with harmonix default!)
-  nodeVersion ? "lts",          # System default: Node LTS
+  llvmVersion ? "20", # System default: LLVM 20
+  pythonVersion ? "3.11", # System default: Python 3.11 (keep in sync with harmonix default!)
+  nodeVersion ? "lts", # System default: Node LTS
   ...
 }: let
   inherit (pkgs) lib;
@@ -15,18 +15,27 @@
     pkgs."llvmPackages_${version}" or pkgs.llvmPackages;
 
   selectPython = version:
-    if version == "3.10" then pkgs.python310
-    else if version == "3.11" then pkgs.python311
-    else if version == "3.12" then pkgs.python312
-    else if version == "3.13" then pkgs.python313
-    else if version == "3.14" then pkgs.python314
+    if version == "3.10"
+    then pkgs.python310
+    else if version == "3.11"
+    then pkgs.python311
+    else if version == "3.12"
+    then pkgs.python312
+    else if version == "3.13"
+    then pkgs.python313
+    else if version == "3.14"
+    then pkgs.python314
     else throw "Unsupported Python version: ${version}. Available: 3.10, 3.11, 3.12, 3.13, 3.14";
 
   selectNode = version:
-    if version == "lts" || version == "20" then pkgs.nodejs_20
-    else if version == "18" then pkgs.nodejs_18
-    else if version == "22" then pkgs.nodejs_22
-    else if version == "latest" then pkgs.nodejs_latest
+    if version == "lts" || version == "22"
+    then pkgs.nodejs_22
+    else if version == "18"
+    then pkgs.nodejs_18
+    else if version == "20"
+    then pkgs.nodejs_20
+    else if version == "latest"
+    then pkgs.nodejs_latest
     else pkgs.nodejs;
 
   # Default package selections
@@ -40,16 +49,16 @@ in rec {
     essential = with pkgs; [
       git
       gnumake
-      gcc  # For compiling native extensions
+      gcc # For compiling native extensions
       pkg-config
-      gnused  # GNU sed for consistent behavior across platforms
+      gnused # GNU sed for consistent behavior across platforms
     ];
 
     # Search and navigation tools (needed by neovim)
     search = with pkgs; [
-      ripgrep  # Fast grep, required by telescope.nvim
-      fd       # Fast find, required by telescope.nvim
-      tree     # Directory visualization
+      ripgrep # Fast grep, required by telescope.nvim
+      fd # Fast find, required by telescope.nvim
+      tree # Directory visualization
     ];
 
     # File and data tools
@@ -58,8 +67,8 @@ in rec {
       wget
       unzip
       zip
-      jq       # JSON processor
-      yq-go    # YAML processor
+      jq # JSON processor
+      yq-go # YAML processor
     ];
   };
 
@@ -77,18 +86,21 @@ in rec {
       llvm = selectLLVM llvmVer;
 
       # Core compiler toolchain
-      compiler = [
-        llvm.clang
-        llvm.clang-tools  # clangd, clang-format, clang-tidy
-        llvm.lld
-        llvm.lldb
-        llvm.libcxx
-        llvm.libcxx.dev
-      ] ++ lib.optionals pkgs.stdenv.isDarwin [
-        # lldb-dap is included in lldb on macOS
-      ] ++ lib.optionals pkgs.stdenv.isLinux [
-        pkgs.lldb  # Includes lldb-dap on Linux
-      ];
+      compiler =
+        [
+          llvm.clang
+          llvm.clang-tools # clangd, clang-format, clang-tidy
+          llvm.lld
+          llvm.lldb
+          llvm.libcxx
+          llvm.libcxx.dev
+        ]
+        ++ lib.optionals pkgs.stdenv.isDarwin [
+          # lldb-dap is included in lldb on macOS
+        ]
+        ++ lib.optionals pkgs.stdenv.isLinux [
+          pkgs.lldb # Includes lldb-dap on Linux
+        ];
 
       # Build tools (always included)
       buildTools = with pkgs; [
@@ -97,23 +109,23 @@ in rec {
         cmake-language-server
         ninja
         ccache
-        bear  # For compile_commands.json generation
+        bear # For compile_commands.json generation
       ];
 
       # Package managers
       packageManagers = {
-        conan = [ pkgs.conan ];
-        vcpkg = [ pkgs.vcpkg ];
-        cpm = [];  # CPM is CMake-native
+        conan = [pkgs.conan];
+        vcpkg = [pkgs.vcpkg];
+        cpm = []; # CPM is CMake-native
         none = [];
       };
 
       # Testing frameworks
       testFrameworks = {
-        gtest = [ pkgs.gtest ];
-        catch2 = [ pkgs.catch2_3 ];
-        doctest = [ pkgs.doctest ];
-        boost = [ pkgs.boost ];
+        gtest = [pkgs.gtest];
+        catch2 = [pkgs.catch2_3];
+        doctest = [pkgs.doctest];
+        boost = [pkgs.boost];
         none = [];
       };
 
@@ -129,14 +141,16 @@ in rec {
         graphviz
       ]);
 
-      analysisTools = lib.optionals withAnalysis (with pkgs; [
-        cppcheck
-        include-what-you-use
-        clang-analyzer
-      ] ++ lib.optionals stdenv.isLinux [
-        gdb
-        valgrind
-      ]);
+      analysisTools = lib.optionals withAnalysis (with pkgs;
+        [
+          cppcheck
+          include-what-you-use
+          clang-analyzer
+        ]
+        ++ lib.optionals stdenv.isLinux [
+          gdb
+          valgrind
+        ]);
     in
       compiler
       ++ buildTools
@@ -150,11 +164,11 @@ in rec {
     default = packages {};
 
     # Just the LSP for neovim
-    lsp = [ llvmPkg.clang-tools ];
+    lsp = [llvmPkg.clang-tools];
 
     # Just the formatter for neovim
     formatters = with pkgs; [
-      llvmPkg.clang-tools  # clang-format
+      llvmPkg.clang-tools # clang-format
       cmake-format
     ];
   };
@@ -166,16 +180,19 @@ in rec {
       pyVersion = args.pythonVersion or pythonVersion;
       withJupyter = args.withJupyter or true;
       python = selectPython pyVersion;
-    in with pkgs; [
-      python
-      uv                      # Fast package manager - handles everything else
-      basedpyright            # LSP (keep system-level for neovim)
-      ruff                    # Fast Python linter and formatter
-    ] ++ lib.optionals withJupyter [
-      # System packages for Jupyter/Molten visualization
-      imagemagick
-      poppler_utils
-    ];
+    in
+      with pkgs;
+        [
+          python
+          uv # Fast package manager - handles everything else
+          basedpyright # LSP (keep system-level for neovim)
+          ruff # Fast Python linter and formatter
+        ]
+        ++ lib.optionals withJupyter [
+          # System packages for Jupyter/Molten visualization
+          imagemagick
+          poppler_utils
+        ];
 
     # Convenience: default Python packages for system
     default = packages {};
@@ -183,27 +200,28 @@ in rec {
     # Just the LSP for neovim
     lsp = with pkgs; [
       basedpyright
-      ruff  # Also acts as LSP
+      ruff # Also acts as LSP
     ];
 
     # Formatters for neovim
     formatters = with pkgs; [
-      ruff  # Fast formatter (ruff_format, ruff_fix)
+      ruff # Fast formatter (ruff_format, ruff_fix)
     ];
 
     # Python packages for neovim (installed via pynvim)
-    pythonPackages = ps: with ps; [
-      pynvim
-      jupyter-client
-      ipykernel
-      cairosvg
-      pnglatex
-      plotly
-      kaleido
-      pyperclip
-      nbformat
-      jupytext
-    ];
+    pythonPackages = ps:
+      with ps; [
+        pynvim
+        jupyter-client
+        ipykernel
+        cairosvg
+        pnglatex
+        plotly
+        kaleido
+        pyperclip
+        nbformat
+        jupytext
+      ];
   };
 
   # Rust development packages
@@ -212,42 +230,47 @@ in rec {
       withWasm = args.withWasm or false;
       withTauri = args.withTauri or false;
       withDatabase = args.withDatabase or false;
-    in with pkgs; [
-      # Core Rust tools
-      cargo-watch
-      cargo-edit
-      cargo-outdated
-      cargo-audit
-      cargo-expand
-      cargo-generate
-      rustfmt
-      rust-analyzer
-      pkg-config
-      openssl
-    ] ++ lib.optionals withWasm [
-      wasm-pack
-      wasm-bindgen-cli
-      trunk
-    ] ++ lib.optionals withTauri [
-      cargo-tauri
-      nodePackages.pnpm
-      webkit2gtk
-      libsoup
-    ] ++ lib.optionals withDatabase [
-      sqlx-cli
-      diesel-cli
-      postgresql
-      sqlite
-    ];
+    in
+      with pkgs;
+        [
+          # Core Rust tools
+          cargo-watch
+          cargo-edit
+          cargo-outdated
+          cargo-audit
+          cargo-expand
+          cargo-generate
+          rustfmt
+          rust-analyzer
+          pkg-config
+          openssl
+        ]
+        ++ lib.optionals withWasm [
+          wasm-pack
+          wasm-bindgen-cli
+          trunk
+        ]
+        ++ lib.optionals withTauri [
+          cargo-tauri
+          nodePackages.pnpm
+          webkit2gtk
+          libsoup
+        ]
+        ++ lib.optionals withDatabase [
+          sqlx-cli
+          diesel-cli
+          postgresql
+          sqlite
+        ];
 
     # Convenience: default Rust packages for system
     default = packages {};
 
     # Just the LSP for neovim
-    lsp = with pkgs; [ rust-analyzer ];
+    lsp = with pkgs; [rust-analyzer];
 
     # Just the formatter for neovim
-    formatters = with pkgs; [ rustfmt ];
+    formatters = with pkgs; [rustfmt];
   };
 
   # Web development packages
@@ -255,19 +278,21 @@ in rec {
     packages = args: let
       nodeVer = args.nodeVersion or nodeVersion;
       node = selectNode nodeVer;
-    in [
-      node
-    ] ++ (with pkgs; [
-      nodePackages.npm
-      nodePackages.yarn
-      nodePackages.pnpm
-      bun
-      nodePackages.typescript
-      nodePackages.typescript-language-server
-      nodePackages.vscode-langservers-extracted  # HTML, CSS, JSON, ESLint
-      tailwindcss-language-server
-      nodePackages.prettier
-    ]);
+    in
+      [
+        node
+      ]
+      ++ (with pkgs; [
+        nodePackages.npm
+        nodePackages.yarn
+        nodePackages.pnpm
+        bun
+        nodePackages.typescript
+        nodePackages.typescript-language-server
+        nodePackages.vscode-langservers-extracted # HTML, CSS, JSON, ESLint
+        tailwindcss-language-server
+        nodePackages.prettier
+      ]);
 
     # Convenience: default web packages for system
     default = packages {};
@@ -291,35 +316,45 @@ in rec {
       scheme = args.scheme or "medium";
       withPandoc = args.withPandoc or false;
       withGraphics = args.withGraphics or false;
-    in with pkgs; [
-      texlab  # LSP
-      (texlive.combine (
-        { inherit (texlive) scheme-basic; } //
-        (if scheme == "small" then { inherit (texlive) scheme-small; }
-         else if scheme == "medium" then { inherit (texlive) scheme-medium; }
-         else if scheme == "full" then { inherit (texlive) scheme-full; }
-         else { })
-      ))
-    ] ++ lib.optionals withPandoc [
-      pandoc
-      librsvg
-      python3Packages.pandocfilters
-    ] ++ lib.optionals withGraphics [
-      ghostscript
-      imagemagick
-      inkscape
-      gnuplot
-      graphviz
-      poppler_utils
-    ] ++ lib.optionals stdenv.isLinux [
-      zathura  # PDF viewer (Linux only)
-    ];
+    in
+      with pkgs;
+        [
+          texlab # LSP
+          (texlive.combine (
+            {inherit (texlive) scheme-basic;}
+            // (
+              if scheme == "small"
+              then {inherit (texlive) scheme-small;}
+              else if scheme == "medium"
+              then {inherit (texlive) scheme-medium;}
+              else if scheme == "full"
+              then {inherit (texlive) scheme-full;}
+              else {}
+            )
+          ))
+        ]
+        ++ lib.optionals withPandoc [
+          pandoc
+          librsvg
+          python3Packages.pandocfilters
+        ]
+        ++ lib.optionals withGraphics [
+          ghostscript
+          imagemagick
+          inkscape
+          gnuplot
+          graphviz
+          poppler_utils
+        ]
+        ++ lib.optionals stdenv.isLinux [
+          zathura # PDF viewer (Linux only)
+        ];
 
     # Convenience: default LaTeX packages for system
     default = packages {};
 
     # Just the LSP for neovim
-    lsp = with pkgs; [ texlab ];
+    lsp = with pkgs; [texlab];
 
     # No formatter for LaTeX (texlab handles it)
     formatters = [];
@@ -335,11 +370,11 @@ in rec {
     ];
 
     config = with pkgs; [
-      taplo  # TOML
+      taplo # TOML
     ];
 
     docs = with pkgs; [
-      marksman  # Markdown
+      marksman # Markdown
     ];
 
     # All LSPs for system neovim
@@ -363,22 +398,24 @@ in rec {
       ++ web.formatters
       ++ latex.formatters
       ++ (with pkgs; [
-        stylua     # Lua
-        alejandra  # Nix
-        shfmt      # Shell
+        stylua # Lua
+        alejandra # Nix
+        shfmt # Shell
       ]);
   };
 
   # Debuggers for system neovim
   debuggers = {
-    all = [
-      llvmPkg.lldb              # C/C++, Rust (includes lldb-dap)
-      pythonPkg.pkgs.debugpy    # Python
-    ] ++ lib.optionals pkgs.stdenv.isLinux (with pkgs; [
-      gdb                       # GNU debugger
-      valgrind                  # Memory checker
-      delve                     # Go debugger
-    ]);
+    all =
+      [
+        llvmPkg.lldb # C/C++, Rust (includes lldb-dap)
+        pythonPkg.pkgs.debugpy # Python
+      ]
+      ++ lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+        gdb # GNU debugger
+        valgrind # Memory checker
+        delve # Go debugger
+      ]);
   };
 
   # System CLI tools (replaces lib/shared.nix)
@@ -428,17 +465,17 @@ in rec {
         chatgpt
         claude-code
         discord-ptb
-        firefox
+        # firefox  # Removed - takes too long to build
         obsidian
 
         # Development environments
         (pkgs.callPackage ../packages/harmonix.nix {})
       ])
-      ++ python.default  # Include Python for Molten/Jupyter support
-      ++ web.default     # Include Node.js 20 and web tools
-      ++ rust.default    # Include rustup
-      ++ latex.lsp       # Include texlab
-      ++ formatters.all  # Include alejandra and other formatters
+      ++ python.default # Include Python for Molten/Jupyter support
+      ++ web.default # Include Node.js 20 and web tools
+      ++ rust.default # Include rustup
+      ++ latex.lsp # Include texlab
+      ++ formatters.all # Include alejandra and other formatters
       ++ lib.optionals pkgs.stdenv.isLinux [
         pkgs.xclip
       ];
@@ -464,9 +501,10 @@ in rec {
       ++ core.utils
       ++ lsp.all
       ++ formatters.all
-      ++ debuggers.all
-      ++ python.default;  # For Molten support (includes Jupyter)
+      ++ python.default; # For Molten support (includes Jupyter)
+    # Note: debuggers are conditionally added in neovim.nix based on withDebugger option
 
     pythonPackages = python.pythonPackages;
   };
 }
+

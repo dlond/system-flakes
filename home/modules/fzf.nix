@@ -8,16 +8,14 @@
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
-    defaultCommand = "find . -type f";
+    enableBashIntegration = true;
+    defaultCommand = "fd  --type f --hidden --follow --exclude .git";
+
     defaultOptions = [
       "--ansi"
-      "--bind='${config.my.fzf.bindings}'"
+      "--bind=ctrl-/:toggle-preview"
+      "--bind=ctrl-a:select-all,ctrl-d:deselect-all"
       "--border"
-      "--color=16"
-      "--color=fg+:#ffffff,bg+:#262626,hl+:#ff5f5f"
-      "--color=fg:#d0d0d0,bg:#1c1c1c,hl:#d75f5f"
-      "--color=info:#af87ff,prompt:#5f87ff,pointer:#ffaf00"
-      "--color=marker:#ffff00,spinner:#5f87ff,header:#87af5f"
       "--cycle"
       "--height=40%"
       "--info=inline"
@@ -25,27 +23,26 @@
       "--marker=✓"
       "--multi"
       "--pointer=▶"
-      "--preview-window=right:50%"
-      "--preview='${config.my.fzf.previewFzf}'"
       "--prompt=❯"
       "--smart-case"
     ];
 
     # Use separate options for complex commands to avoid escaping issues
     changeDirWidgetOptions = [
-      "--preview=eza {}"
+      "--preview=eza --color=always --tree --level=2 --icons {}"
+      "--preview-window=right:50%"
     ];
 
     fileWidgetOptions = [
-      "--preview=bat {}"
+      "--preview=bat --color=always --style=numbers,header {}"
+      "--preview-window=right:50%"
     ];
 
     historyWidgetOptions = [
       "--height=40%"
-      "--layout=reverse" 
       "--border"
       "--preview=echo {}"
-      "--preview-window=right:50%:wrap"
+      "--preview-window=down:3:wrap"
     ];
   };
 }

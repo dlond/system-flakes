@@ -13,7 +13,6 @@
 
   imports = [
     sops-nix.homeManagerModules.sops
-    ../../modules/fzf-shared.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/github-automation.nix
@@ -77,6 +76,8 @@
 
       working-directory = "${config.home.homeDirectory}/dev"
       window-inherit-working-directory = false
+
+      macos-option-as-alt = true
 
       # Keybindings
       keybind = global:option+space=toggle_quick_terminal

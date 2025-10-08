@@ -11,7 +11,7 @@
     defaultCommand = "find . -type f";
     defaultOptions = [
       "--ansi"
-      "--bind='ctrl-n:down,ctrl-p:up,tab:down,ctrl-e:execute-silent(echo {+} | ${packages.system.clipboardCommand})+abort,ctrl-w:become(nvim {+}),ctrl-y:accept,enter:accept,shift-tab:toggle+down'"
+      "--bind='${config.my.fzf.bindings}'"
       "--border"
       "--color=16"
       "--color=fg+:#ffffff,bg+:#262626,hl+:#ff5f5f"
@@ -26,7 +26,7 @@
       "--multi"
       "--pointer=▶"
       "--preview-window=right:50%"
-      "--preview='if [ -d {} ]; then eza {}; else bat {}; fi'"
+      "--preview='${config.my.fzf.previewFzf}'"
       "--prompt=❯"
       "--smart-case"
     ];

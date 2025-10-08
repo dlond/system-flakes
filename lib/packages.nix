@@ -285,10 +285,12 @@ in rec {
 
     config = with pkgs; [
       taplo # TOML
+      nodePackages.vscode-langservers-extracted
     ];
 
     docs = with pkgs; [
       marksman # Markdown
+      sqls
     ];
 
     # All LSPs for system neovim
@@ -312,6 +314,7 @@ in rec {
         alejandra # Nix
         shfmt # Shell
         prettier # JS/TS/JSON/Markdown/HTML/CSS
+        sqlfluff
       ]);
   };
 

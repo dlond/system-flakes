@@ -224,92 +224,6 @@ in rec {
       ];
   };
 
-  # Rust development packages
-  rust = rec {
-    packages = args: let
-      withWasm = args.withWasm or false;
-      withTauri = args.withTauri or false;
-      withDatabase = args.withDatabase or false;
-    in
-      with pkgs;
-        [
-          # Core Rust tools
-          cargo-watch
-          cargo-edit
-          cargo-outdated
-          cargo-audit
-          cargo-expand
-          cargo-generate
-          rustfmt
-          rust-analyzer
-          pkg-config
-          openssl
-        ]
-        ++ lib.optionals withWasm [
-          wasm-pack
-          wasm-bindgen-cli
-          trunk
-        ]
-        ++ lib.optionals withTauri [
-          cargo-tauri
-          nodePackages.pnpm
-          webkit2gtk
-          libsoup
-        ]
-        ++ lib.optionals withDatabase [
-          sqlx-cli
-          diesel-cli
-          postgresql
-          sqlite
-        ];
-
-    # Convenience: default Rust packages for system
-    default = packages {};
-
-    # Just the LSP for neovim
-    lsp = with pkgs; [rust-analyzer];
-
-    # Just the formatter for neovim
-    formatters = with pkgs; [rustfmt];
-  };
-
-  # Web development packages
-  web = rec {
-    packages = args: let
-      nodeVer = args.nodeVersion or nodeVersion;
-      node = selectNode nodeVer;
-    in
-      [
-        node
-      ]
-      ++ (with pkgs; [
-        nodePackages.npm
-        nodePackages.yarn
-        nodePackages.pnpm
-        bun
-        nodePackages.typescript
-        nodePackages.typescript-language-server
-        nodePackages.vscode-langservers-extracted # HTML, CSS, JSON, ESLint
-        tailwindcss-language-server
-        nodePackages.prettier
-      ]);
-
-    # Convenience: default web packages for system
-    default = packages {};
-
-    # Just the LSP for neovim
-    lsp = with pkgs; [
-      nodePackages.typescript-language-server
-      nodePackages.vscode-langservers-extracted
-      tailwindcss-language-server
-    ];
-
-    # Just the formatter for neovim
-    formatters = with pkgs; [
-      nodePackages.prettier
-    ];
-  };
-
   # LaTeX packages
   latex = rec {
     packages = args: let
@@ -381,8 +295,6 @@ in rec {
     all =
       cpp.lsp
       ++ python.lsp
-      ++ rust.lsp
-      ++ web.lsp
       ++ latex.lsp
       ++ lsp.scripting
       ++ lsp.config
@@ -394,13 +306,12 @@ in rec {
     all =
       cpp.formatters
       ++ python.formatters
-      ++ rust.formatters
-      ++ web.formatters
       ++ latex.formatters
       ++ (with pkgs; [
         stylua # Lua
         alejandra # Nix
         shfmt # Shell
+        prettier # JS/TS/JSON/Markdown/HTML/CSS
       ]);
   };
 
@@ -465,12 +376,9 @@ in rec {
         chatgpt
         claude-code
         discord-ptb
-        # firefox  # Removed - takes too long to build
         obsidian
       ])
       ++ python.default # Include Python for Molten/Jupyter support
-      ++ web.default # Include Node.js 20 and web tools
-      ++ rust.default # Include rustup
       ++ latex.lsp # Include texlab
       ++ formatters.all # Include alejandra and other formatters
       ++ lib.optionals pkgs.stdenv.isLinux [
@@ -504,4 +412,3 @@ in rec {
     pythonPackages = python.pythonPackages;
   };
 }
-

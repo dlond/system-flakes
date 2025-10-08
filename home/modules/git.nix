@@ -35,6 +35,11 @@
     gclean-all = "git fetch --prune && git branch --merged main | grep -v main | xargs -n 1 git branch -d";
   };
 
+  home.packages = with pkgs; [
+    delta
+    git-filter-repo
+  ];
+
   programs.git = {
     enable = true;
 
@@ -556,13 +561,13 @@
         echo "✅ Worktree created successfully!"
         echo "📁 Path: $folder_path"
         echo "🌿 Branch: $branch_name"
-        
+
         # Run direnv allow if .envrc exists
         if [ -f "$folder_path/.envrc" ]; then
           echo "🔐 Running direnv allow..."
           (cd "$folder_path" && direnv allow)
         fi
-        
+
         # Change to the new worktree unless --cwd was specified
         if [ "$stay_in_cwd" = "false" ]; then
           echo ""
@@ -584,7 +589,7 @@
         # Parse flags
         local stay_in_cwd=false
         local args=()
-        
+
         while [[ $# -gt 0 ]]; do
           case $1 in
             --cwd)
@@ -597,10 +602,10 @@
               ;;
           esac
         done
-        
+
         # Restore positional parameters
         set -- "''${args[@]}"
-        
+
         if [ $# -eq 0 ]; then
           usage
         fi
@@ -749,7 +754,7 @@
         # FIXED LOGIC: Always resolve issue/branch to target first
         local target_branch=""
         local current_branch=$(git branch --show-current)
-        
+
         # If argument provided, use it
         if [ -n "$arg" ]; then
           if [[ "$arg" =~ ^[0-9]+$ ]]; then
@@ -776,21 +781,21 @@
             return 1
           fi
         fi
-        
+
         # Safety check: Never remove main branch
         local main_branch=$(get_main_branch)
         if [[ "$target_branch" == "$main_branch" ]] || [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
           print_error "Cannot remove the main branch ($target_branch)!"
           return 1
         fi
-        
+
         # Get worktree path for target branch
         local worktree_dir=$(get_worktree_path "$target_branch")
         if [ -z "$worktree_dir" ]; then
           echo "❌ No worktree found for branch: $target_branch"
           return 1
         fi
-        
+
         # Always switch to main before removing
         if [[ "$current_branch" != "$main_branch" ]]; then
           local main_worktree=$(git worktree list | head -1 | awk '{print $1}')

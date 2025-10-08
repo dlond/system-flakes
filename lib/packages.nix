@@ -355,10 +355,6 @@ in rec {
         sops
         zoxide
 
-        # Git tools
-        delta
-        git-filter-repo
-
         # Development tools
         gh
         glow

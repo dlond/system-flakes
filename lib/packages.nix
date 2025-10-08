@@ -4,7 +4,7 @@
   pkgs,
   # Global version defaults (can be overridden per-language or in dev-shells)
   llvmVersion ? "20", # System default: LLVM 20
-  pythonVersion ? "3.11", # System default: Python 3.11 (keep in sync with harmonix default!)
+  pythonVersion ? "3.11", # System default: Python 3.11
   nodeVersion ? "lts", # System default: Node LTS
   ...
 }: let
@@ -467,9 +467,6 @@ in rec {
         discord-ptb
         # firefox  # Removed - takes too long to build
         obsidian
-
-        # Development environments
-        (pkgs.callPackage ../packages/harmonix.nix {})
       ])
       ++ python.default # Include Python for Molten/Jupyter support
       ++ web.default # Include Node.js 20 and web tools

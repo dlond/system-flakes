@@ -289,8 +289,8 @@ in rec {
     ];
 
     docs = with pkgs; [
-      marksman # Markdown
-      sqls
+      markdown-oxide # Markdown (Rust-based, avoids .NET build issues)
+      sqls # SQL
     ];
 
     # All LSPs for system neovim

@@ -322,7 +322,6 @@ in rec {
         # Shell and terminal
         bash
         zsh-fzf-tab
-        zsh-vi-mode
         tmux
         tmuxp
 

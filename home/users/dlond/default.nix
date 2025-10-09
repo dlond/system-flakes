@@ -16,7 +16,6 @@
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/claude-monitoring.nix
-    ../../modules/nish.nix
     ../../modules/nvdev.nix
     ../../modules/tmux.nix
     ../../modules/zsh.nix

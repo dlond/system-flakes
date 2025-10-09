@@ -184,7 +184,9 @@
         precmd_functions+=(_update_dirstack_conan)
 
         # Source git worktree functions
-        source "$HOME/.local/lib/gwt-functions.sh"
+        if [[ -f "$HOME/.local/lib/gwt-functions.sh" ]]; then
+          source "$HOME/.local/lib/gwt-functions.sh"
+        fi
 
         # Load FZF keybindings manually (Claude Code runs zsh with ZLE off)
         if command -v fzf &> /dev/null; then

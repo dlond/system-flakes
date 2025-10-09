@@ -59,11 +59,11 @@
     Usage: tmux-helpers <command> [args ...]
 
     Commands:
-        tp_env                        Set environment variables for tmux session names
-        tp_load <template>            Load a tmuxp template (full.json or half.json)
-        ensure_shared_session <name>  Ensure a shared nvim tmux session exists
-        attach_shared_or_nvim <name>  Attach to shared nvim session or open nvim
-        kill_shared_for <base>        Kill the shared nvim session for a base name
+        tp-env                        Set environment variables for tmux session names
+        tp-load <template>            Load a tmuxp template (full.json or half.json)
+        ensure-shared-session <name>  Ensure a shared nvim tmux session exists
+        attach-shared-or-nvim <name>  Attach to shared nvim session or open nvim
+        kill-shared-for <base>        Kill the shared nvim session for a base name
     USAGE
         }
 

@@ -32,10 +32,6 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-    };
   };
 
   outputs = inputs @ {self, ...}: let

@@ -112,9 +112,6 @@
           --color=marker:#ffff00,spinner:#5f87ff,header:#87af5f \
           --pointer=▶ --marker=✓ --info=inline
 
-        # limp mode for emergencies
-        # zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse --border
-
         # groups activated
         zstyle ':fzf-tab:*' group
         zstyle ':fzf-tab:*' group-order 'directories' 'files' 'hidden-directories' 'hidden-files'

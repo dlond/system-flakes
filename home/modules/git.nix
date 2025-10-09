@@ -858,6 +858,7 @@
           # We're now safely in the main worktree
           pwd
         else
+          local pr_state=$(get_pr_state "$target_branch")
           print_warning "PR is not merged (state: $pr_state)"
           echo "   Please merge the PR first, then run gwt-done again"
           echo "   To force cleanup: git worktree remove \"$worktree_dir\" --force"
@@ -939,14 +940,7 @@
           echo "🔍 Checking for merged worktree branches..."
           local removed_count=0
 
-          git worktree list --porcelain | awk '
-            /^worktree / { path=$2 }
-            /^branch / {
-              branch=$2
-              gsub("refs/heads/", "", branch)
-              if (branch != "") printf "%s\t%s\n", path, branch
-            }
-          ' | while IFS=$'\t' read -r wt_path wt_branch; do
+          while IFS=$'\t' read -r wt_path wt_branch; do
             # Skip the main worktree
             if [ "$wt_path" = "$(git rev-parse --show-toplevel)" ]; then
               continue
@@ -970,7 +964,14 @@
                 echo "     Run: git worktree remove \"$wt_path\" --force"
               fi
             fi
-          done
+          done < <(git worktree list --porcelain | awk '
+            /^worktree / { path=$2 }
+            /^branch / {
+              branch=$2
+              gsub("refs/heads/", "", branch)
+              if (branch != "") printf "%s\t%s\n", path, branch
+            }
+          ')
 
           if [ "$removed_count" -eq 0 ]; then
             echo "✨ No merged worktrees to clean up"

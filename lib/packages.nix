@@ -5,7 +5,6 @@
   # Global version defaults (can be overridden per-language or in dev-shells)
   llvmVersion ? "20", # System default: LLVM 20
   pythonVersion ? "3.11", # System default: Python 3.11
-  nodeVersion ? "lts", # System default: Node LTS
   ...
 }: let
   inherit (pkgs) lib;
@@ -27,21 +26,9 @@
     then pkgs.python314
     else throw "Unsupported Python version: ${version}. Available: 3.10, 3.11, 3.12, 3.13, 3.14";
 
-  selectNode = version:
-    if version == "lts" || version == "22"
-    then pkgs.nodejs_22
-    else if version == "18"
-    then pkgs.nodejs_18
-    else if version == "20"
-    then pkgs.nodejs_20
-    else if version == "latest"
-    then pkgs.nodejs_latest
-    else pkgs.nodejs;
-
   # Default package selections
   llvmPkg = selectLLVM llvmVersion;
   pythonPkg = selectPython pythonVersion;
-  nodePkg = selectNode nodeVersion;
 in rec {
   # Core tools needed everywhere (system + all dev shells)
   core = {
@@ -77,7 +64,6 @@ in rec {
     # Function to get C++ packages with specific versions
     packages = args: let
       llvmVer = args.llvmVersion or llvmVersion;
-      cppStandard = args.cppStandard or "20";
       packageManager = args.packageManager or "conan";
       testFramework = args.testFramework or "gtest";
       withBazel = args.withBazel or false;
@@ -86,21 +72,14 @@ in rec {
       llvm = selectLLVM llvmVer;
 
       # Core compiler toolchain
-      compiler =
-        [
-          llvm.clang
-          llvm.clang-tools # clangd, clang-format, clang-tidy
-          llvm.lld
-          llvm.lldb
-          llvm.libcxx
-          llvm.libcxx.dev
-        ]
-        ++ lib.optionals pkgs.stdenv.isDarwin [
-          # lldb-dap is included in lldb on macOS
-        ]
-        ++ lib.optionals pkgs.stdenv.isLinux [
-          pkgs.lldb # Includes lldb-dap on Linux
-        ];
+      compiler = [
+        llvm.clang
+        llvm.clang-tools # clangd, clang-format, clang-tidy
+        llvm.lld
+        llvm.lldb # Includes lldb-dap
+        llvm.libcxx
+        llvm.libcxx.dev
+      ];
 
       # Build tools (always included)
       buildTools = with pkgs; [
@@ -289,7 +268,7 @@ in rec {
     ];
 
     docs = with pkgs; [
-      markdown-oxide # Markdown (Rust-based, avoids .NET build issues)
+      markdown-oxide # Markdown
       sqls # SQL
     ];
 
@@ -322,7 +301,7 @@ in rec {
   debuggers = {
     all =
       [
-        llvmPkg.lldb # C/C++, Rust (includes lldb-dap)
+        llvmPkg.lldb # C/C++ (includes lldb-dap)
         pythonPkg.pkgs.debugpy # Python
       ]
       ++ lib.optionals pkgs.stdenv.isLinux (with pkgs; [

@@ -49,33 +49,7 @@
       inherit (inputs) nixpkgs;
     };
 
-    # Export dev shells for reuse
-    forAllSystems = inputs.nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
   in {
-    # Dev shell templates - exported as a custom output
-    devShellTemplates = {
-      python = import ./dev-shells/python.nix;
-      cpp = import ./dev-shells/cpp.nix;
-      "cpp-python" = import ./dev-shells/cpp-python.nix;
-      latex = import ./dev-shells/latex.nix;
-    };
-
-    # Example dev shells that can be used with `nix develop`
-    devShells = forAllSystems (system: let
-      pkgs = mkPkgs system;
-    in {
-      python = import ./dev-shells/python.nix {
-        inherit pkgs;
-      };
-      cpp = import ./dev-shells/cpp.nix {
-        inherit pkgs;
-      };
-      latex = import ./dev-shells/latex.nix {
-        inherit pkgs;
-        scheme = "medium";
-        withPandoc = true;
-      };
-    });
     #### macOS full-system (nix-darwin + HM)
     darwinConfigurations.mbp = let
       system = systems.darwin;

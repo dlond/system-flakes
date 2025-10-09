@@ -4,6 +4,52 @@
   lib,
   ...
 }: {
+  # Commit message template
+  home.file.".config/git/commit-template".text = ''
+    # Commit Message Template
+    #
+    # Format: <type>: <subject>
+    #
+    # Types:
+    #   feat:     New feature
+    #   fix:      Bug fix
+    #   docs:     Documentation only changes
+    #   style:    Code style changes (formatting, semicolons, etc)
+    #   refactor: Code change that neither fixes a bug nor adds a feature
+    #   perf:     Performance improvements
+    #   test:     Adding or updating tests
+    #   chore:    Maintenance tasks, dependency updates
+    #   build:    Build system or external dependency changes
+    #   ci:       CI configuration changes
+    #
+    # Subject: Brief description (imperative mood, lowercase, no period)
+    #
+    # Body: Detailed explanation of changes (optional)
+    # - Why was this change necessary?
+    # - What problem does it solve?
+    # - Any side effects or breaking changes?
+    #
+    # Footer:
+    # - Reference issues: Fixes #123, Closes #456
+    # - AI acknowledgment (always include):
+    #
+    # 🤖 Generated with Claude Code
+    # Co-Authored-By: Claude <noreply@anthropic.com>
+    #
+    # Example:
+    # --------
+    # fix: correct gwt-nav command name in documentation
+    #
+    # Updated all references from 'wt' to 'gwt-nav' to match the actual
+    # command implementation in system-flakes.
+    #
+    # Fixes #5
+    #
+    # 🤖 Generated with Claude Code
+    # Co-Authored-By: Claude <noreply@anthropic.com>
+  '';
+
+
   programs.zsh.shellAliases = {
     # GitHub CLI workflow aliases
     gpr = "git push -u origin $(git branch --show-current) && gh pr create";
@@ -103,7 +149,7 @@
 
     extraConfig = {
       color.ui = true;
-      commit.template = "${config.home.homeDirectory}/dev/projects/system-tools-practices/templates/commit-message.template";
+      commit.template = "${config.home.homeDirectory}/.config/git/commit-template";
       core.editor = "nvim";
       diff.tool = "nvimdiff";
       difftool.prompt = false;

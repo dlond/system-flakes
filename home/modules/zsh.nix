@@ -62,8 +62,6 @@
       # FZF widget commands
       FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
       FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
-      # Override FZF options for history widget to prevent conflicts
-      FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept'";
     };
 
     syntaxHighlighting = {

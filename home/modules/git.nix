@@ -256,7 +256,7 @@
     blank_issues_enabled: false
     contact_links:
       - name: Ask a question
-        url: https://github.com/dlond/system-flakes/discussions
+        url: https://github.com/[YOUR_USERNAME]/[YOUR_REPO]/discussions
         about: Please ask and answer questions here.
   '';
 

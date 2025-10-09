@@ -10,6 +10,8 @@
     enableZshIntegration = true;
     enableBashIntegration = true;
     defaultCommand = "fd  --type f --hidden --follow --exclude .git";
+    fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
+    changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
 
     defaultOptions = [
       "--ansi"
@@ -29,12 +31,12 @@
 
     # Use separate options for complex commands to avoid escaping issues
     changeDirWidgetOptions = [
-      "--preview=eza --color=always --tree --level=2 --icons {}"
+      "--preview='eza --color=always --tree --level=2 --icons {}'"
       "--preview-window=right:50%"
     ];
 
     fileWidgetOptions = [
-      "--preview=bat --color=always --style=numbers,header {}"
+      "--preview='bat --color=always --style=numbers,header {}'"
       "--preview-window=right:50%"
     ];
 

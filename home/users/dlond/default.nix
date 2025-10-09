@@ -81,9 +81,6 @@
 
       # Keybindings
       keybind = global:option+space=toggle_quick_terminal
-
-      # Make Shift-Enter work as expected (send newline)
-      keybind = shift+enter=text:\r
     '';
   };
   xdg.configFile."ghostty/themes/dlond.ghostty" = {

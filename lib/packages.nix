@@ -313,7 +313,7 @@ in rec {
         stylua # Lua
         alejandra # Nix
         shfmt # Shell
-        prettier # JS/TS/JSON/Markdown/HTML/CSS
+        nodePackages.prettier # JS/TS/JSON/Markdown/HTML/CSS
         sqlfluff
       ]);
   };

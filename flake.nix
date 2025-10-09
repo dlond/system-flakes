@@ -2,15 +2,15 @@
   description = "nix-darwin + home-manager for macOS, standalone home-manager for Linux";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
 
     nix-darwin = {
-      url = "github:LnL7/nix-darwin";
+      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -33,11 +33,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     flake-utils = {
       url = "github:numtide/flake-utils";
     };
@@ -51,7 +46,7 @@
       linux_x86 = "x86_64-linux";
     };
     mkPkgs = import ./lib/mkPkgs.nix {
-      inherit (inputs) nixpkgs rust-overlay;
+      inherit (inputs) nixpkgs;
     };
 
     # Export dev shells for reuse

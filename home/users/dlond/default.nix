@@ -15,6 +15,7 @@
     sops-nix.homeManagerModules.sops
     ../../modules/fzf.nix
     ../../modules/git.nix
+    ../../modules/gwt.nix
     ../../modules/claude-monitoring.nix
     ../../modules/nvdev.nix
     ../../modules/tmux.nix

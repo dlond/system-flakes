@@ -81,6 +81,9 @@
 
     initContent = lib.mkMerge [
       (lib.mkBefore ''
+        # Add ~/.local/bin to PATH for user scripts
+        export PATH="$HOME/.local/bin:$PATH"
+        
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
 

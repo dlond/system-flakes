@@ -29,7 +29,17 @@
   # Default package selections
   llvmPkg = selectLLVM llvmVersion;
   pythonPkg = selectPython pythonVersion;
+  # Python with essential packages for system-wide use
+  pythonWithEssentials = pythonPkg.withPackages (ps: with ps; [
+    debugpy      # Python DAP debugging
+    pynvim       # Neovim Python host
+    jupyter-client # Molten communication with kernels
+    ipykernel    # Create Python kernels
+  ]);
 in rec {
+  # Export the base packages for reference
+  inherit pythonPkg pythonWithEssentials llvmPkg;
+  
   # Core tools needed everywhere (system + all dev shells)
   core = {
     # Essential development tools
@@ -159,10 +169,17 @@ in rec {
       pyVersion = args.pythonVersion or pythonVersion;
       withJupyter = args.withJupyter or true;
       python = selectPython pyVersion;
+      # Python with essential packages for Neovim debugging and Jupyter
+      pythonWithPackages = python.withPackages (ps: with ps; [
+        debugpy      # Python DAP debugging
+        pynvim       # Neovim Python host
+        jupyter-client # Molten communication with kernels
+        ipykernel    # Create Python kernels
+      ]);
     in
       with pkgs;
         [
-          python
+          pythonWithPackages # Python with debugging and Jupyter packages
           uv # Fast package manager - handles everything else
           basedpyright # LSP (keep system-level for neovim)
           ruff # Fast Python linter and formatter
@@ -302,7 +319,7 @@ in rec {
     all =
       [
         llvmPkg.lldb # C/C++ (includes lldb-dap)
-        pythonPkg.pkgs.debugpy # Python
+        # debugpy is now included in pythonWithEssentials
       ]
       ++ lib.optionals pkgs.stdenv.isLinux (with pkgs; [
         gdb # GNU debugger
@@ -355,7 +372,14 @@ in rec {
         discord-ptb
         obsidian
       ])
-      ++ python.default # Include Python for Molten/Jupyter support
+      ++ [
+        pythonWithEssentials # Python with debugging/Jupyter packages
+        pkgs.uv # Python package manager
+        pkgs.basedpyright # Python LSP
+        pkgs.ruff # Python linter/formatter
+        pkgs.imagemagick # For Jupyter/Molten visualization
+        pkgs.poppler_utils # For Jupyter/Molten PDF support
+      ]
       ++ latex.lsp # Include texlab
       ++ formatters.all # Include alejandra and other formatters
       ++ lib.optionals pkgs.stdenv.isLinux [
@@ -383,7 +407,14 @@ in rec {
       ++ core.utils
       ++ lsp.all
       ++ formatters.all
-      ++ python.default; # For Molten support (includes Jupyter)
+      ++ [
+        pythonWithEssentials # Python with debugging/Jupyter packages
+        pkgs.uv # Python package manager
+        pkgs.basedpyright # Python LSP
+        pkgs.ruff # Python linter/formatter
+        pkgs.imagemagick # For Jupyter/Molten visualization
+        pkgs.poppler_utils # For Jupyter/Molten PDF support
+      ];
     # Note: debuggers are conditionally added in neovim.nix based on withDebugger option
 
     pythonPackages = python.pythonPackages;

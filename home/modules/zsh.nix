@@ -62,7 +62,9 @@
       # FZF widget commands
       FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
       FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
-      FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept'";
+      FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept' --bind='ctrl-e:execute(echo {} | clip)+abort' --header='[history] | Ctrl-E: copy'";
+      # Common FZF bindings for all custom functions
+      FZF_CUSTOM_BINDS = "--bind='ctrl-e:execute(echo {} | clip)+abort' --bind='ctrl-w:become(nvim {})'";
     };
 
     syntaxHighlighting = {
@@ -189,21 +191,26 @@
 
         # Fuzzy functions
         fkill() {
-          ps aux | fzf --multi --header='[kill process]' | awk '{print $2}' | xargs -r kill -9
+          ps aux | fzf --multi --header='[kill process] | Ctrl-E: copy PID' \
+            --bind='ctrl-e:execute(echo {2} | clip)+abort' | awk '{print $2}' | xargs -r kill -9
         }
 
         sf() {
           local selection
           selection=$(fd --hidden --follow --exclude .git |
             fzf --preview '[[ -d {} ]] && eza -la || bat --style=numbers --color=always --line-range :500 {}' \
-              --preview-window=right:60%)
+              --preview-window=right:60% \
+              --header='[file search] | Ctrl-E: copy | Ctrl-W: nvim' \
+              $FZF_CUSTOM_BINDS)
 
           [[ -z "$selection" ]] && return
           [[ -d "$selection" ]] && cd "$selection" || ''${EDITOR:-nvim} "$selection"
         }
 
         se() {
-          env | fzf --preview 'echo {}'
+          env | fzf --preview 'echo {}' \
+            --header='[env vars] | Ctrl-E: copy' \
+            --bind='ctrl-e:execute(echo {} | clip)+abort'
         }
 
         # Fuzzy search aliases
@@ -212,7 +219,8 @@
           selection=$(alias | \
             fzf --preview 'echo {}' \
                 --preview-window=up:3:wrap \
-                --header='[fuzzy alias search]')
+                --header='[alias search] | Ctrl-E: copy' \
+                --bind='ctrl-e:execute(echo {} | clip)+abort')
           if [[ -n "$selection" ]]; then
             # Extract just the command part after the = sign
             local cmd=$(echo "$selection" | sed "s/^[^=]*=//; s/^'//; s/'$//")
@@ -233,8 +241,8 @@
               *) echo "Zsh widget: $func" ;;
             esac' \
                 --preview-window=up:4:wrap \
-                --header='[fuzzy keybind search] | Ctrl-Y: copy' \
-                --bind 'ctrl-e:execute(echo {1} {2} | clip)+abort')
+                --header='[keybind search] | Ctrl-E: copy' \
+                --bind='ctrl-e:execute(echo {1} {2} | clip)+abort')
 
           if [[ -n "$selection" ]]; then
             echo "$selection"

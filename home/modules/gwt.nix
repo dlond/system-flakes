@@ -7,15 +7,15 @@
   ...
 }: {
   # Main gwt function injected into zsh
-  programs.zsh.initExtra = lib.mkOrder 1100 ''
+  programs.zsh.initContent = lib.mkOrder 1100 ''
     # ============================================================================
     # GWT - Git Worktree Management System
     # ============================================================================
-    
+
     # ----------------------------------------------------------------------------
     # Core Helper Functions
     # ----------------------------------------------------------------------------
-    
+
     # Get the main branch name (main or master)
     __gwt_get_main_branch() {
       git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"
@@ -120,17 +120,17 @@
     __gwt_is_branch_merged() {
       local branch=$1
       local target_branch=''${2:-$(__gwt_get_main_branch)}
-      
+
       # First check: regular merge (fast, local)
       if __gwt_is_branch_ancestor "$branch" "$target_branch"; then
         return 0
       fi
-      
+
       # Second check: PR merged on GitHub (catches squash/rebase)
       if __gwt_is_pr_merged "$branch"; then
         return 0
       fi
-      
+
       return 1
     }
 
@@ -138,12 +138,12 @@
     __gwt_fetch_issue_info() {
       local issue_num=$1
       local info
-      
+
       info=$(gh issue view "$issue_num" --json title,labels,body 2>/dev/null) || {
         echo "Error: Could not fetch issue #$issue_num" >&2
         return 1
       }
-      
+
       echo "$info"
     }
 
@@ -152,29 +152,29 @@
       local issues=("$@")
       local titles=()
       local labels_all=()
-      
+
       echo "Analyzing issues for compatibility..." >&2
       echo "" >&2
-      
+
       # Fetch all issue data
       for issue in "''${issues[@]}"; do
         local info
         info=$(__gwt_fetch_issue_info "$issue") || return 1
-        
+
         local title
         title=$(echo "$info" | jq -r '.title')
         titles+=("$title")
-        
+
         local labels
         labels=$(echo "$info" | jq -r '.labels[].name' | tr '\n' ' ')
         labels_all+=("$labels")
-        
+
         echo "  #$issue: $title" >&2
         [ -n "$labels" ] && echo "    Labels: $labels" >&2
       done
-      
+
       echo "" >&2
-      
+
       # Return suggested branch name based on analysis
       if [ ''${#issues[@]} -eq 1 ]; then
         # Single issue - use sanitized title
@@ -183,7 +183,7 @@
         # Multiple issues - find common theme
         local common_component=""
         local common_type=""
-        
+
         # Find most common component and type from labels
         if [ ''${#labels_all[@]} -gt 0 ]; then
           local component_labels=()
@@ -192,7 +192,7 @@
             component_labels+=($(echo "$labels" | grep -oE '\b(frontend|backend|api|ui|auth|database)\b' || true))
             type_labels+=($(echo "$labels" | grep -oE '\b(bug|feature|enhancement|refactor)\b' || true))
           done
-          
+
           if [ ''${#component_labels[@]} -gt 0 ]; then
             common_component=$(printf '%s\n' "''${component_labels[@]}" | sort | uniq -c | sort -nr | head -1 | awk '{print $2}')
           fi
@@ -200,17 +200,17 @@
             common_type=$(printf '%s\n' "''${type_labels[@]}" | sort | uniq -c | sort -nr | head -1 | awk '{print $2}')
           fi
         fi
-        
+
         # Build suggested name
         local suggested=""
         [ -n "$common_type" ] && suggested="''${suggested}''${common_type}-"
         [ -n "$common_component" ] && suggested="''${suggested}''${common_component}-"
         [ -z "$suggested" ] && suggested="multi-issue-"
-        
+
         # Append issue numbers
         local issue_list=$(printf '%s-' "''${issues[@]}")
         suggested="''${suggested}''${issue_list%-}"
-        
+
         echo "$suggested"
       fi
     }
@@ -218,11 +218,11 @@
     # ----------------------------------------------------------------------------
     # Command: gwt new
     # ----------------------------------------------------------------------------
-    
+
     __gwt_cmd_new() {
       local stay_in_cwd=false
       local args=()
-      
+
       # Parse flags
       while [ $# -gt 0 ]; do
         case "$1" in
@@ -236,10 +236,10 @@
             ;;
         esac
       done
-      
+
       # Restore positional parameters
       set -- "''${args[@]}"
-      
+
       if [ $# -eq 0 ]; then
         echo "Usage: gwt new [--cwd] <issue-number> [issue-number...] | gwt new [--cwd] <branch-name>"
         echo ""
@@ -253,13 +253,13 @@
         echo "  gwt new custom-branch-name     # Custom branch name"
         return 1
       fi
-      
+
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
-      
+
       local branch_name
       local issue_numbers=()
-      
+
       # Check if first argument is a number (issue) or string (custom branch)
       if [[ "$1" =~ ^[0-9]+$ ]]; then
         # Issue number(s) provided
@@ -267,15 +267,15 @@
           issue_numbers+=("$1")
           shift
         done
-        
+
         # Analyze issues and suggest branch name
         branch_name=$(__gwt_analyze_issues "''${issue_numbers[@]}")
-        
+
         echo ""
         echo "💡 Suggested branch name: $branch_name"
         echo ""
         read -p "Use this name? (y/n/edit): " response
-        
+
         case "$response" in
           y|Y|yes|YES|"")
             # Use suggested name
@@ -292,7 +292,7 @@
         # Custom branch name provided
         branch_name=$(__gwt_sanitize_for_branch "$1")
       fi
-      
+
       # Check if branch already exists
       if __gwt_branch_exists "$branch_name"; then
         # Check if worktree exists
@@ -309,28 +309,28 @@
           return 1
         fi
       fi
-      
+
       # Create the worktree
       local worktree_base=$(__gwt_get_worktree_base)
       local worktree_path="$worktree_base/$branch_name"
-      
+
       # Create the worktree base directory if it doesn't exist
       mkdir -p "$worktree_base"
-      
+
       echo ""
       echo "Creating worktree: $worktree_path with branch: $branch_name"
       git worktree add "$worktree_path" -b "$branch_name" || return 1
-      
+
       __gwt_print_success "Worktree created successfully!"
       echo "📁 Path: $worktree_path"
       echo "🌿 Branch: $branch_name"
-      
+
       # Run direnv allow if .envrc exists
       if [ -f "$worktree_path/.envrc" ]; then
         echo "🔐 Running direnv allow..."
         (cd "$worktree_path" && direnv allow)
       fi
-      
+
       # Change to the new worktree unless --cwd was specified
       if [ "$stay_in_cwd" = false ]; then
         echo ""
@@ -345,7 +345,7 @@
     # ----------------------------------------------------------------------------
     # Command: gwt switch
     # ----------------------------------------------------------------------------
-    
+
     __gwt_cmd_switch() {
       if [ $# -gt 0 ]; then
         echo "Usage: gwt switch"
@@ -353,12 +353,12 @@
         echo "Interactive worktree switcher using fzf."
         return 1
       fi
-      
+
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
-      
+
       local current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
-      
+
       local all_wts=$(git worktree list --porcelain | awk '
         /^worktree / { path=$2 }
         /^branch / {
@@ -368,7 +368,7 @@
           printf "%s\t%s\n", path, branch
         }
       ')
-      
+
       local selected=$(echo "$all_wts" | fzf \
         --header="Select worktree (current: $(basename "$current_wt"))" \
         --preview="echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
@@ -377,7 +377,7 @@
         --with-nth=2 \
         --bind='ctrl-d:reload(git worktree list --porcelain | awk "/^worktree / { path=\$2 } /^branch / { branch=\$2; gsub(\"refs/heads/\", \"\", branch); if (branch == \"\") branch=\"(detached)\"; printf \"%s\\t%s\\n\", path, branch }")' \
         --prompt="Worktree> " | cut -f1)
-      
+
       # Navigate to selected worktree
       if [ -n "$selected" ]; then
         cd "$selected" || return 1
@@ -389,35 +389,35 @@
     # ----------------------------------------------------------------------------
     # Command: gwt done
     # ----------------------------------------------------------------------------
-    
+
     __gwt_cmd_done() {
       local close_issues=true
-      
+
       # Parse flags
       if [[ "$1" == "--no-close" ]]; then
         close_issues=false
         shift
       fi
-      
+
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
-      
+
       # Get current worktree info
       local worktree_dir=$(git rev-parse --show-toplevel)
       local target_branch=$(git rev-parse --abbrev-ref HEAD)
       local main_branch=$(__gwt_get_main_branch)
-      
+
       # Don't run on main/master branch
       if [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
         __gwt_print_error "Cannot run gwt-done on main/master branch"
         return 1
       fi
-      
+
       echo "🎯 Completing work on worktree"
       echo "   Branch: $target_branch"
       echo "   Path: $worktree_dir"
       echo ""
-      
+
       # Check for uncommitted changes
       if ! git diff --quiet || ! git diff --cached --quiet; then
         __gwt_print_warning "You have uncommitted changes"
@@ -426,7 +426,7 @@
         read -p "Continue anyway? (y/n): " response
         [[ "$response" != "y" ]] && return 1
       fi
-      
+
       # Check if PR exists and is merged
       if __gwt_pr_exists "$target_branch"; then
         if __gwt_is_pr_merged "$target_branch"; then
@@ -448,33 +448,33 @@
         fi
         __gwt_print_info "No PR, but branch is merged locally"
       fi
-      
+
       # Find the main worktree
       local main_worktree=$(git worktree list --porcelain | grep -B1 "branch refs/heads/$main_branch" | grep "^worktree" | cut -d" " -f2)
-      
+
       if [ -z "$main_worktree" ]; then
         # If no main worktree, use the git common dir parent
         main_worktree=$(dirname "$(git rev-parse --git-common-dir)")
       fi
-      
+
       # Switch to main worktree before removing current one
       echo ""
       __gwt_print_working "Switching to main worktree..."
       cd "$main_worktree" || return 1
-      
+
       # Remove the worktree
       __gwt_print_working "Removing worktree..."
       git worktree remove "$worktree_dir" --force || {
         __gwt_print_error "Failed to remove worktree"
         return 1
       }
-      
+
       # Delete the branch
       __gwt_print_working "Deleting branch..."
       git branch -D "$target_branch" 2>/dev/null || {
         __gwt_print_warning "Could not delete branch (might be protected or already deleted)"
       }
-      
+
       # Close related issues if requested
       if [ "$close_issues" = true ]; then
         local issue_numbers=$(__gwt_extract_issue_numbers "$target_branch")
@@ -494,9 +494,9 @@
           __gwt_print_info "Skipping issue closing (--no-close specified) for: $issue_numbers"
         fi
       fi
-      
+
       __gwt_print_success "Worktree and branch cleanup complete!"
-      
+
       # We're now safely in the main worktree
       pwd
     }
@@ -504,23 +504,23 @@
     # ----------------------------------------------------------------------------
     # Command: gwt clean
     # ----------------------------------------------------------------------------
-    
+
     __gwt_cmd_clean() {
       local clean_all=false
-      
+
       # Parse options
       if [[ "$1" == "--all" ]]; then
         clean_all=true
       fi
-      
+
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
-      
+
       echo "🧹 Cleaning up worktrees..."
       echo ""
-      
+
       local main_branch=$(__gwt_get_main_branch)
-      
+
       if [ "$clean_all" = true ]; then
         # Remove ALL worktrees except main
         echo "⚠️  Removing ALL worktrees except main branch!"
@@ -530,7 +530,7 @@
           echo "Cancelled."
           return 0
         fi
-        
+
         git worktree list --porcelain | awk '
           /^worktree / { path=$2 }
           /^branch / {
@@ -548,13 +548,13 @@
         # Remove worktrees for merged branches
         echo "🔍 Checking for merged worktree branches..."
         local removed_count=0
-        
+
         while IFS=$'\t' read -r wt_path wt_branch; do
           # Skip the main worktree
           if [ "$wt_path" = "$(git rev-parse --show-toplevel)" ]; then
             continue
           fi
-          
+
           # Check if branch is merged (any method)
           if __gwt_is_branch_merged "$wt_branch" "$main_branch"; then
             # Determine merge type for user feedback
@@ -581,14 +581,14 @@
             if (branch != "") printf "%s\t%s\n", path, branch
           }
         ')
-        
+
         if [ "$removed_count" -eq 0 ]; then
           echo "✨ No merged worktrees to clean up"
         else
           echo "✅ Cleaned up $removed_count worktree(s)"
         fi
       fi
-      
+
       # List remaining worktrees
       echo ""
       echo "📊 Remaining worktrees:"
@@ -598,11 +598,11 @@
     # ----------------------------------------------------------------------------
     # Main gwt function
     # ----------------------------------------------------------------------------
-    
+
     gwt() {
       local cmd="''${1:-help}"
       shift || true
-      
+
       case "$cmd" in
         new)
           __gwt_cmd_new "$@"
@@ -652,3 +652,4 @@
     }
   '';
 }
+

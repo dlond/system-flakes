@@ -103,5 +103,21 @@
           packages = import ./lib/packages.nix {inherit pkgs;};
         };
       };
+    
+    #### Development Templates
+    templates = {
+      python = {
+        path = ./templates/python;
+        description = "Python development environment with uv for dependency management";
+      };
+      cpp = {
+        path = ./templates/cpp;
+        description = "C++ development environment with Conan and CMake presets";
+      };
+      python-cpp = {
+        path = ./templates/python-cpp;
+        description = "Combined Python + C++ environment for bindings and mixed projects";
+      };
+    };
   };
 }

@@ -361,6 +361,18 @@ in rec {
         luarocks
         shellcheck
         tree-sitter
+        
+        # Project tools (vanilla configs, available for quick prototyping)
+        conan
+        cmake
+        cmake-format
+        cmake-language-server
+        ninja
+        ccache
+        bear  # For compile_commands.json generation
+        gtest  # Google Test framework
+        pkg-config
+        llvmPkg.lldb  # LLDB debugger with lldb-dap for DAP support
 
         # Security
         gnupg
@@ -377,6 +389,7 @@ in rec {
         pkgs.uv # Python package manager
         pkgs.basedpyright # Python LSP
         pkgs.ruff # Python linter/formatter
+        pkgs.pytest # Python testing framework
         pkgs.imagemagick # For Jupyter/Molten visualization
         pkgs.poppler_utils # For Jupyter/Molten PDF support
       ]

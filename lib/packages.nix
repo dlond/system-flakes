@@ -389,7 +389,7 @@ in rec {
         pkgs.uv # Python package manager
         pkgs.basedpyright # Python LSP
         pkgs.ruff # Python linter/formatter
-        pkgs.pytest # Python testing framework
+        pythonPkg.pkgs.pytest # Python testing framework (matches Python version)
         pkgs.imagemagick # For Jupyter/Molten visualization
         pkgs.poppler_utils # For Jupyter/Molten PDF support
       ]

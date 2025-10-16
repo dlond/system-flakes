@@ -287,7 +287,9 @@
             ;;
           *)
             # Allow editing the suggested name
-            read -e -p "Edit branch name: " -i "$branch_name" branch_name
+            echo -n "Edit branch name [$branch_name]: "
+            read new_name
+            [ -n "$new_name" ] && branch_name="$new_name"
             ;;
         esac
       else

@@ -432,6 +432,13 @@
         [[ "$response" != "y" ]] && return 1
       fi
 
+      # Fetch latest changes from remote
+      __gwt_print_working "Fetching latest changes from remote..."
+      git fetch origin "$main_branch:refs/remotes/origin/$main_branch" || {
+        __gwt_print_warning "Failed to fetch latest changes from remote"
+        echo "   Continuing with local state..."
+      }
+
       # Check if PR exists and is merged
       if __gwt_pr_exists "$target_branch"; then
         if __gwt_is_pr_merged "$target_branch"; then
@@ -444,14 +451,14 @@
           return 1
         fi
       else
-        # Check if branch is merged locally
-        if ! __gwt_is_branch_merged "$target_branch" "$main_branch"; then
-          __gwt_print_warning "No PR found and branch is not merged to $main_branch"
+        # Check if branch is merged locally (check against remote)
+        if ! __gwt_is_branch_merged "$target_branch" "origin/$main_branch"; then
+          __gwt_print_warning "No PR found and branch is not merged to origin/$main_branch"
           echo "   Create a PR with: gh pr create"
           echo "   Or merge locally first"
           return 1
         fi
-        __gwt_print_info "No PR, but branch is merged locally"
+        __gwt_print_info "No PR, but branch is merged to origin/$main_branch"
       fi
 
       # Find the main worktree

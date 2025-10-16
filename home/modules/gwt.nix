@@ -274,18 +274,22 @@
         echo ""
         echo "💡 Suggested branch name: $branch_name"
         echo ""
-        read -p "Use this name? (y/n/edit): " response
+        echo -n "Use this name? (y/n/edit): "
+        read response
 
         case "$response" in
           y|Y|yes|YES|"")
             # Use suggested name
             ;;
           n|N|no|NO)
-            read -p "Enter custom branch name: " branch_name
+            echo -n "Enter custom branch name: "
+            read branch_name
             ;;
           *)
             # Allow editing the suggested name
-            read -e -p "Edit branch name: " -i "$branch_name" branch_name
+            echo -n "Edit branch name [$branch_name]: "
+            read new_name
+            [ -n "$new_name" ] && branch_name="$new_name"
             ;;
         esac
       else
@@ -423,7 +427,8 @@
         __gwt_print_warning "You have uncommitted changes"
         git status --short
         echo ""
-        read -p "Continue anyway? (y/n): " response
+        echo -n "Continue anyway? (y/n): "
+        read response
         [[ "$response" != "y" ]] && return 1
       fi
 
@@ -525,7 +530,8 @@
         # Remove ALL worktrees except main
         echo "⚠️  Removing ALL worktrees except main branch!"
         echo ""
-        read -p "Are you sure? (yes/no): " confirm
+        echo -n "Are you sure? (yes/no): "
+        read confirm
         if [[ "$confirm" != "yes" ]]; then
           echo "Cancelled."
           return 0

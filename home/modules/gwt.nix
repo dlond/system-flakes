@@ -184,9 +184,11 @@
       # Return suggested branch name based on analysis
       if [ ''${#issues[@]} -eq 1 ]; then
         # Single issue - use sanitized title
-        local sanitized_title=$(__gwt_sanitize_for_branch "''${titles[0]}")
-        local result="''${sanitized_title}-''${issues[0]}"
-        echo "$result"
+        local title_text="''${titles[0]}"
+        local issue_num="''${issues[0]}"
+        local sanitized_title
+        sanitized_title=$(__gwt_sanitize_for_branch "$title_text")
+        echo "''${sanitized_title}-''${issue_num}"
       else
         # Multiple issues - find common theme
         local common_component=""

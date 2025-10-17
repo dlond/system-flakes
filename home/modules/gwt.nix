@@ -184,7 +184,9 @@
       # Return suggested branch name based on analysis
       if [ ''${#issues[@]} -eq 1 ]; then
         # Single issue - use sanitized title
-        echo "$(__gwt_sanitize_for_branch "''${titles[0]}")-''${issues[0]}"
+        local sanitized_title=$(__gwt_sanitize_for_branch "''${titles[0]}")
+        local result="''${sanitized_title}-''${issues[0]}"
+        echo "$result"
       else
         # Multiple issues - find common theme
         local common_component=""
@@ -277,27 +279,34 @@
         # Analyze issues and suggest branch name
         branch_name=$(__gwt_analyze_issues "''${issue_numbers[@]}")
         
-        echo ""
-        echo "💡 Suggested branch name: $branch_name"
-        echo ""
-        echo -n "Use this name? (y/n/edit): "
-        read response
+        # Check if branch name was generated
+        if [ -z "$branch_name" ]; then
+          echo "❌ Failed to generate branch name suggestion" >&2
+          echo -n "Enter custom branch name: "
+          read branch_name
+        else
+          echo ""
+          echo "💡 Suggested branch name: $branch_name"
+          echo ""
+          echo -n "Use this name? (y/n/edit): "
+          read response
 
-        case "$response" in
-          y|Y|yes|YES|"")
-            # Use suggested name
-            ;;
-          n|N|no|NO)
-            echo -n "Enter custom branch name: "
-            read branch_name
-            ;;
-          *)
-            # Allow editing the suggested name
-            echo -n "Edit branch name [$branch_name]: "
-            read new_name
-            [ -n "$new_name" ] && branch_name="$new_name"
-            ;;
-        esac
+          case "$response" in
+            y|Y|yes|YES|"")
+              # Use suggested name
+              ;;
+            n|N|no|NO)
+              echo -n "Enter custom branch name: "
+              read branch_name
+              ;;
+            *)
+              # Allow editing the suggested name
+              echo -n "Edit branch name [$branch_name]: "
+              read new_name
+              [ -n "$new_name" ] && branch_name="$new_name"
+              ;;
+          esac
+        fi
       else
         # Custom branch name provided
         branch_name=$(__gwt_sanitize_for_branch "$1")

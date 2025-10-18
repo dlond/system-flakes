@@ -43,8 +43,6 @@ in {
       defaultEditor = true;
       vimAlias = true;
       vimdiffAlias = true;
-      withPython3 = true;
-      withNodeJs = true;
       extraPackages =
         packages.neovim.packages
         ++ lib.optionals cfg.withDebugger packages.debuggers.all
@@ -79,7 +77,7 @@ in {
           -- Settings controlled by Nix configuration
           -- Set Python host program to use system Python with debugging/Jupyter packages
           vim.g.python3_host_prog = '${packages.pythonWithEssentials}/bin/python3'
-          
+
           vim.g.copilot_enabled = ${
             if cfg.withCopilot
             then "true"

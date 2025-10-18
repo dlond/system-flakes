@@ -1,0 +1,36 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# Conan
+CMakeUserPresets.json
+conan.lock
+graph_info.json
+
+# Compile commands
+compile_commands.json
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Direnv
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Binaries
+*.exe
+*.out
+*.app
+*.o
+*.obj
+*.so
+*.dylib
+*.dll

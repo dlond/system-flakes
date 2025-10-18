@@ -4,7 +4,7 @@
   pkgs,
   # Global version defaults (can be overridden per-language or in dev-shells)
   llvmVersion ? "20", # System default: LLVM 20
-  pythonVersion ? "3.11", # System default: Python 3.11
+  pythonVersion ? "3.13", # System default: Python 3.13 (stable)
   ...
 }: let
   inherit (pkgs) lib;
@@ -427,6 +427,7 @@ in rec {
         pkgs.ruff # Python linter/formatter
         pkgs.imagemagick # For Jupyter/Molten visualization
         pkgs.poppler_utils # For Jupyter/Molten PDF support
+        pkgs.nodejs # Node.js runtime for copilot.lua
       ];
     # Note: debuggers are conditionally added in neovim.nix based on withDebugger option
 

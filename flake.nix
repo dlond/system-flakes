@@ -2,15 +2,15 @@
   description = "nix-darwin + home-manager for macOS, standalone home-manager for Linux";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     nix-darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+      url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -44,7 +44,6 @@
     mkPkgs = import ./lib/mkPkgs.nix {
       inherit (inputs) nixpkgs;
     };
-
   in {
     #### macOS full-system (nix-darwin + HM)
     darwinConfigurations.mbp = let
@@ -103,7 +102,7 @@
           packages = import ./lib/packages.nix {inherit pkgs;};
         };
       };
-    
+
     #### Development Templates
     templates = {
       python = {

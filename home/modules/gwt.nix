@@ -159,12 +159,12 @@
       # Fetch all issue data
       for issue in "''${issues[@]}"; do
         local info
-        info=$(__gwt_fetch_issue_info "$issue")
+        info=$(__gwt_fetch_issue_info "''$issue")
         
         if [ $? -ne 0 ]; then
           # Failed to fetch, use fallback with issue number
-          echo "  #$issue: (failed to fetch)" >&2
-          titles+=("issue-$issue")
+          echo "  #''$issue: (failed to fetch)" >&2
+          titles+=("issue-''$issue")
         else
           local title
           title=$(echo "$info" | jq -r '.title')
@@ -174,7 +174,7 @@
           labels=$(echo "$info" | jq -r '.labels[].name' | tr '\n' ' ')
           labels_all+=("$labels")
 
-          echo "  #$issue: $title" >&2
+          echo "  #''$issue: $title" >&2
           [ -n "$labels" ] && echo "    Labels: $labels" >&2
         fi
       done
@@ -184,8 +184,8 @@
       # Return suggested branch name based on analysis
       if [ ''${#issues[@]} -eq 1 ]; then
         # Single issue - use sanitized title
-        local title_text="''${titles[0]}"
-        local issue_num="''${issues[0]}"
+        local title_text="''${titles[1]}"
+        local issue_num="''${issues[1]}"
         local sanitized_title
         sanitized_title=$(__gwt_sanitize_for_branch "$title_text")
         echo "''${sanitized_title}-''${issue_num}"
@@ -510,10 +510,10 @@
         if [ -n "$issue_numbers" ]; then
           __gwt_print_working "Closing related issues: $issue_numbers"
           for issue in $issue_numbers; do
-            if gh issue close "$issue" 2>/dev/null; then
-              __gwt_print_success "Closed issue #$issue"
+            if gh issue close "''$issue" 2>/dev/null; then
+              __gwt_print_success "Closed issue #''$issue"
             else
-              echo "   Issue #$issue is already closed or doesn't exist"
+              echo "   Issue #''$issue is already closed or doesn't exist"
             fi
           done
         fi
@@ -525,6 +525,15 @@
       fi
 
       __gwt_print_success "Worktree and branch cleanup complete!"
+
+      # Update main branch with latest changes from remote
+      __gwt_print_working "Updating $main_branch with latest changes from remote..."
+      if git pull origin "$main_branch" --ff-only 2>/dev/null; then
+        __gwt_print_success "$main_branch branch updated successfully"
+      else
+        __gwt_print_warning "Could not fast-forward $main_branch (may have local commits or conflicts)"
+        echo "   Run 'git pull origin $main_branch' manually to resolve"
+      fi
 
       # We're now safely in the main worktree
       pwd

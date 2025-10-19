@@ -117,6 +117,18 @@
         path = ./templates/python-cpp;
         description = "Combined Python + C++ environment for bindings and mixed projects";
       };
+      ocaml = {
+        path = ./templates/ocaml;
+        description = "OCaml environment with Core/Async libraries for functional programming";
+      };
+      python-jax = {
+        path = ./templates/python-jax;
+        description = "Python + JAX ML environment with LaTeX for quantitative research";
+      };
+      cpp-lowlat = {
+        path = ./templates/cpp-lowlat;
+        description = "C++ low-latency environment for high-performance systems development";
+      };
     };
   };
 }

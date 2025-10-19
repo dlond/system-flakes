@@ -1,0 +1,77 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "conan-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "toolchainFile": "${sourceDir}/build/${presetName}/generators/conan_toolchain.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "conan-debug",
+      "displayName": "Debug",
+      "inherits": "conan-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "conan-release",
+      "displayName": "Release",
+      "inherits": "conan-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON"
+      }
+    },
+    {
+      "name": "conan-relwithdebinfo",
+      "displayName": "RelWithDebInfo",
+      "inherits": "conan-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "conan-debug",
+      "configurePreset": "conan-debug"
+    },
+    {
+      "name": "conan-release",
+      "configurePreset": "conan-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "conan-relwithdebinfo",
+      "configurePreset": "conan-relwithdebinfo"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "conan-debug",
+      "configurePreset": "conan-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "conan-release",
+      "configurePreset": "conan-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

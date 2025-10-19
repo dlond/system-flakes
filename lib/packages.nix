@@ -270,6 +270,43 @@ in rec {
     formatters = [];
   };
 
+  # OCaml development packages
+  ocaml = rec {
+    # Function to get OCaml packages with specific versions
+    packages = args: let
+      withJaneStreet = args.withJaneStreet or true;
+      withTools = args.withTools or true;
+    in
+      with pkgs;
+        [
+          ocaml
+          opam
+          dune_3
+          ocamlformat
+          ocaml-lsp
+          utop # REPL
+        ]
+        ++ lib.optionals withJaneStreet (with ocamlPackages; [
+          core
+          core_unix
+          async
+          ppx_jane
+        ])
+        ++ lib.optionals withTools [
+          merlin
+          ocp-indent
+        ];
+
+    # Convenience: default OCaml packages for system
+    default = packages {};
+
+    # Just the LSP for neovim
+    lsp = with pkgs; [ocaml-lsp];
+
+    # Formatters for neovim
+    formatters = with pkgs; [ocamlformat];
+  };
+
   # Additional language servers for neovim
   lsp = {
     scripting = with pkgs; [
@@ -294,6 +331,7 @@ in rec {
       cpp.lsp
       ++ python.lsp
       ++ latex.lsp
+      ++ ocaml.lsp
       ++ lsp.scripting
       ++ lsp.config
       ++ lsp.docs;
@@ -305,6 +343,7 @@ in rec {
       cpp.formatters
       ++ python.formatters
       ++ latex.formatters
+      ++ ocaml.formatters
       ++ (with pkgs; [
         stylua # Lua
         alejandra # Nix
@@ -361,6 +400,14 @@ in rec {
         luarocks
         shellcheck
         tree-sitter
+        
+        # OCaml tools for Jane Street prep
+        ocaml
+        opam
+        dune_3
+        ocamlformat
+        ocaml-lsp
+        utop
         
         # Project tools (vanilla configs, available for quick prototyping)
         conan

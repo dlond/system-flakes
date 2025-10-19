@@ -1,5 +1,5 @@
 {
-  description = "OCaml development environment with Core libraries";
+  description = "OCaml development environment with Jane Street essentials for learning";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -23,67 +23,52 @@
           inherit pkgs;
         };
 
-        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_5_2;
-        
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = [
-            # OCaml compiler and tools
-            ocamlPackages.ocaml
-            ocamlPackages.dune_3
-            ocamlPackages.ocaml-lsp
-            ocamlPackages.ocamlformat
-            ocamlPackages.utop
-            ocamlPackages.odoc
-            pkgs.opam
+          buildInputs = with pkgs; [
+            # OCaml compiler and build tools
+            ocaml
+            dune_3
+            opam  # For additional packages as needed
 
-            # Core OCaml libraries (keeping for now as requested)
+            # Jane Street essentials (complex to set up via opam)
             ocamlPackages.core
             ocamlPackages.core_unix
             ocamlPackages.async
             ocamlPackages.ppx_jane
 
-            # Testing and benchmarking
-            ocamlPackages.alcotest
-            ocamlPackages.qcheck
-            ocamlPackages.benchmark
-            ocamlPackages.core_bench
-
-            # Data structures and algorithms
-            ocamlPackages.containers
-            ocamlPackages.iter
-
-            # Math and statistics
-            ocamlPackages.owl-base
+            # Development tools
+            ocamlPackages.utop       # REPL with completion
+            ocamlPackages.ocaml-lsp  # LSP for neovim
+            ocamlformat              # Code formatter
+            ocamlPackages.odoc       # Documentation generation
           ] ++ packages.core.essential
             ++ packages.core.search
             ++ packages.core.utils;
 
           shellHook = ''
-            echo "🐫 OCaml Development Environment"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🐫 OCaml Development Environment (Jane Street Focused)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "OCaml version: $(ocaml --version | head -n 1)"
             echo "Dune version: $(dune --version)"
+            echo "Opam version: $(opam --version | head -n 1)"
+            echo ""
+            echo "Jane Street libraries included:"
+            echo "  ✓ Core - Enhanced standard library"
+            echo "  ✓ Async - Concurrent programming"
+            echo "  ✓ PPX - Syntax extensions"
             echo ""
             echo "Quick start:"
-            echo "  • utop              - Interactive OCaml REPL"
-            echo "  • dune init project - Create new project"
-            echo "  • dune build        - Build project"
-            echo "  • dune test         - Run tests"
-            echo "  • dune exec         - Execute main program"
+            echo "  • utop                - Interactive REPL"
+            echo "  • dune init project   - Create new project"
+            echo "  • dune build         - Build project"
+            echo "  • dune test          - Run tests"
             echo ""
-            echo "Libraries included:"
-            echo "  • Core, Async, PPX extensions"
-            echo "  • Testing: Alcotest, QCheck, Benchmark"
-            echo "  • Data structures: Containers, Iter"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            # Set up OPAM environment if needed
-            if [ ! -d "$HOME/.opam" ]; then
-              echo "Initializing OPAM..."
-              opam init --disable-sandboxing -n
-            fi
-            
+            echo "Additional packages:"
+            echo "  • opam install <package> - Install via opam"
+            echo "  • opam search <keyword>  - Search packages"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
             # Create project structure if starting fresh
             if [ ! -f "dune-project" ]; then
               echo ""
@@ -91,8 +76,6 @@
               echo "   dune init project my_project"
             fi
           '';
-          
-          OCAMLPATH = "${ocamlPackages.core}/lib/ocaml/${ocamlPackages.ocaml.version}/site-lib";
         };
       });
 }

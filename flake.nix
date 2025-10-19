@@ -119,7 +119,7 @@
       };
       ocaml = {
         path = ./templates/ocaml;
-        description = "OCaml environment with Core/Async libraries for functional programming";
+        description = "OCaml learning environment with Jane Street Core/Async essentials";
       };
       python-jax = {
         path = ./templates/python-jax;

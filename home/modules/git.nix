@@ -49,7 +49,6 @@
     # Co-Authored-By: Claude <noreply@anthropic.com>
   '';
 
-
   programs.zsh.shellAliases = {
     # GitHub CLI workflow aliases
     gpr = "git push -u origin $(git branch --show-current) && gh pr create";
@@ -89,65 +88,67 @@
   programs.git = {
     enable = true;
 
-    userName = "dlond";
-    userEmail = "dlond@me.com";
+    signing =
+      {
+        key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
+        format = "ssh";
+      }
+      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+        signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
+      };
+    settings = {
+      user.name = "dlond";
+      user.email = "dlond@me.com";
 
-    signing = {
-      key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKDBuv1nRNSziTjf2UuGhFk7ftnDXOuMfew5FMeINM66";
-      format = "ssh";
-    } // lib.optionalAttrs pkgs.stdenv.isDarwin {
-      signer = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
-    };
-    aliases = {
-      # Basic shortcuts
-      co = "checkout";
-      br = "branch";
-      ci = "commit";
-      st = "status";
-      unstage = "reset HEAD --";
-      last = "log -1 HEAD";
+      alias = {
+        # Basic shortcuts
+        co = "checkout";
+        br = "branch";
+        ci = "commit";
+        st = "status";
+        unstage = "reset HEAD --";
+        last = "log -1 HEAD";
 
-      # Worktree shortcuts
-      wt = "worktree";
-      wtl = "worktree list";
-      wta = "worktree add";
-      wtr = "worktree remove";
-      wtp = "worktree prune";
+        # Worktree shortcuts
+        wt = "worktree";
+        wtl = "worktree list";
+        wta = "worktree add";
+        wtr = "worktree remove";
+        wtp = "worktree prune";
 
-      # Better logging
-      lg = "log --oneline --graph --decorate";
-      ll = "log --pretty=format:'%C(yellow)%h%Creset %C(blue)%ad%Creset %C(green)%an%Creset %s' --date=short";
-      lp = "log --patch";
+        # Better logging
+        lg = "log --oneline --graph --decorate";
+        ll = "log --pretty=format:'%C(yellow)%h%Creset %C(blue)%ad%Creset %C(green)%an%Creset %s' --date=short";
+        lp = "log --patch";
 
-      # Diff shortcuts
-      d = "diff";
-      ds = "diff --staged";
-      dn = "diff --name-only";
+        # Diff shortcuts
+        d = "diff";
+        ds = "diff --staged";
+        dn = "diff --name-only";
 
-      # Difftool shortcuts
-      dt = "difftool";
-      dtd = "difftool --dir-diff"; # All files at once!
-      dts = "difftool --staged";
-      dtsd = "difftool --staged --dir-diff"; # All staged files at once
-      mt = "mergetool";
+        # Difftool shortcuts
+        dt = "difftool";
+        dtd = "difftool --dir-diff"; # All files at once!
+        dts = "difftool --staged";
+        dtsd = "difftool --staged --dir-diff"; # All staged files at once
+        mt = "mergetool";
 
-      # Stash management
-      sl = "stash list";
-      sp = "stash pop";
-      ss = "stash show";
+        # Stash management
+        sl = "stash list";
+        sp = "stash pop";
+        ss = "stash show";
 
-      # Branch management
-      bd = "branch -d";
-      bD = "branch -D";
-      ba = "branch -a";
+        # Branch management
+        bd = "branch -d";
+        bD = "branch -D";
+        ba = "branch -a";
 
-      # Undo/recovery
-      undo = "reset --soft HEAD~1";
-      undoh = "reset --hard HEAD~1";
-      uncommit = "reset --mixed HEAD~1";
-    };
+        # Undo/recovery
+        undo = "reset --soft HEAD~1";
+        undoh = "reset --hard HEAD~1";
+        uncommit = "reset --mixed HEAD~1";
+      };
 
-    extraConfig = {
       color.ui = true;
       commit.template = "${config.home.homeDirectory}/.config/git/commit-template";
       core.editor = "nvim";

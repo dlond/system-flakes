@@ -428,12 +428,48 @@
       local target_branch=$(git rev-parse --abbrev-ref HEAD)
       local main_branch=$(__gwt_get_main_branch)
 
-      # Don't run on main/master branch
+      # If on main/master branch, show fzf selector
       if [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
-        __gwt_print_error "Cannot run gwt-done on main/master branch"
-        return 1
+        echo "📋 Select a worktree to complete:"
+        echo ""
+
+        # Get list of non-main worktrees
+        local all_wts=$(git worktree list --porcelain | awk '
+          /^worktree / { path=$2 }
+          /^branch / {
+            branch=$2
+            gsub("refs/heads/", "", branch)
+            if (branch != "" && branch != "main" && branch != "master") {
+              printf "%s\t%s\n", path, branch
+            }
+          }
+        ')
+
+        if [ -z "$all_wts" ]; then
+          __gwt_print_warning "No worktrees available to complete"
+          return 1
+        fi
+
+        local selected=$(echo "$all_wts" | fzf \
+          --header="Select worktree to complete (ESC to cancel)" \
+          --preview="echo 'Branch: {2}'; echo 'Path: {1}'; echo '---'; echo 'Recent commits:'; git -C {1} log --oneline -5 2>/dev/null" \
+          --preview-window=right:50%:wrap \
+          --delimiter=$'\t' \
+          --with-nth=2 \
+          --prompt="Complete worktree> ")
+
+        if [ -z "$selected" ]; then
+          echo "Cancelled."
+          return 0
+        fi
+
+        worktree_dir=$(echo "$selected" | cut -f1)
+        target_branch=$(echo "$selected" | cut -f2)
+
+        echo ""
       fi
 
+      # Now proceed with completing the worktree
       echo "🎯 Completing work on worktree"
       echo "   Branch: $target_branch"
       echo "   Path: $worktree_dir"
@@ -664,7 +700,7 @@
     Commands:
       new [--cwd] <issue|name>    Create new worktree from issue(s) or custom name
       switch, sw                   Interactive worktree switcher (fzf)
-      done [--no-close]           Complete work on current worktree
+      done [--no-close]           Complete work on worktree (fzf selector if on main)
       clean [--all]               Clean up merged/old worktrees
       help                        Show this help
 

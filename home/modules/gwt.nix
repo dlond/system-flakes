@@ -97,15 +97,15 @@
     __gwt_get_pr_state() {
       local branch=$1
       local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-      echo "$pr_status" | jq -r '.state'
+      printf '%s\n' "$pr_status" | jq -r '.state'
     }
 
     # Check if PR is merged
     __gwt_is_pr_merged() {
       local branch=$1
       local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-      local pr_state=$(echo "$pr_status" | jq -r '.state')
-      local pr_merged=$(echo "$pr_status" | jq -r '.mergedAt')
+      local pr_state=$(printf '%s\n' "$pr_status" | jq -r '.state')
+      local pr_merged=$(printf '%s\n' "$pr_status" | jq -r '.mergedAt')
       [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]
     }
 
@@ -144,7 +144,8 @@
         return 1
       }
 
-      echo "$info"
+      # Use printf instead of echo to avoid zsh interpretation of special characters
+      printf '%s\n' "$info"
     }
 
     # Analyze multiple issues for common themes
@@ -167,11 +168,11 @@
           titles+=("issue-''$issue")
         else
           local title
-          title=$(echo "$info" | jq -r '.title')
+          title=$(printf '%s\n' "$info" | jq -r '.title')
           titles+=("$title")
 
           local labels
-          labels=$(echo "$info" | jq -r '.labels[].name' | tr '\n' ' ')
+          labels=$(printf '%s\n' "$info" | jq -r '.labels[].name' | tr '\n' ' ')
           labels_all+=("$labels")
 
           echo "  #''$issue: $title" >&2

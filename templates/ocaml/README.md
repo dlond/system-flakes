@@ -1,6 +1,6 @@
 # OCaml Development Environment
 
-Complete OCaml development environment with Core libraries for functional programming and systems development.
+OCaml learning environment with Jane Street Core/Async libraries pre-installed for interview preparation.
 
 ## Usage
 
@@ -9,25 +9,67 @@ Complete OCaml development environment with Core libraries for functional progra
 nix flake init -t github:dlond/system-flakes#ocaml
 nix develop
 
-# Start interactive REPL
+# Start interactive REPL with Core
 utop
+# In utop:
+#require "core";;
+open Core;;
 
 # Create a new project
 dune init project my_project
+cd my_project
 
 # Build and run
 dune build
-dune exec ./main.exe
+dune exec ./bin/main.exe
 ```
 
-## Included Libraries
+## Quick Example in REPL
 
-- **Core**: Alternative standard library with additional data structures
+```ocaml
+# Start utop and try Core immediately:
+utop
+
+#require "core";;
+open Core;;
+
+(* Jane Street style - using Core's List module *)
+let sum = List.fold ~init:0 ~f:(+) [1;2;3;4;5];;
+
+(* Using pipe operators *)
+[1;2;3;4;5]
+|> List.map ~f:(fun x -> x * 2)
+|> List.filter ~f:(fun x -> x > 5);;
+
+(* Time operations *)
+let start = Time_ns.now ();;
+let elapsed = Time_ns.diff (Time_ns.now ()) start;;
+```
+
+## Pre-Installed Jane Street Essentials
+
+- **Core**: Enhanced standard library with better data structures
+- **Core_unix**: Unix system programming utilities
 - **Async**: Concurrent programming framework
-- **PPX**: Syntax extensions for metaprogramming
-- **Testing**: Alcotest, QCheck for property-based testing
-- **Benchmarking**: Core_bench for performance analysis
-- **Data structures**: Containers, Iter libraries
+- **PPX_jane**: Syntax extensions used at Jane Street
+
+## Additional Packages via Opam
+
+For learning and experimentation, you can install additional packages:
+
+```bash
+# Testing frameworks
+opam install alcotest qcheck
+
+# Benchmarking
+opam install core_bench benchmark
+
+# Data structures
+opam install containers iter
+
+# Web development
+opam install dream cohttp-async
+```
 
 ## Example: Order Book Implementation
 

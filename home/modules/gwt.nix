@@ -161,7 +161,7 @@
       for issue in "''${issues[@]}"; do
         local info
         info=$(__gwt_fetch_issue_info "''$issue")
-        
+
         if [ $? -ne 0 ]; then
           # Failed to fetch, use fallback with issue number
           echo "  #''$issue: (failed to fetch)" >&2
@@ -281,7 +281,7 @@
 
         # Analyze issues and suggest branch name
         branch_name=$(__gwt_analyze_issues "''${issue_numbers[@]}")
-        
+
         # Check if branch name was generated
         if [ -z "$branch_name" ]; then
           echo "❌ Failed to generate branch name suggestion" >&2
@@ -430,7 +430,7 @@
       local main_branch=$(__gwt_get_main_branch)
 
       # If on main/master branch, show fzf selector
-      if [[ "$target_branch" == "main" ]] || [[ "$target_branch" == "master" ]]; then
+      if [[ "$target_branch" == "$main_branch" ]]; then
         echo "📋 Select a worktree to complete:"
         echo ""
 
@@ -440,7 +440,7 @@
           /^branch / {
             branch=$2
             gsub("refs/heads/", "", branch)
-            if (branch != "" && branch != "main" && branch != "master") {
+            if (branch != "" && branch != "$main_branch") {
               printf "%s\t%s\n", path, branch
             }
           }
@@ -488,7 +488,7 @@
 
       # Fetch latest changes from remote
       __gwt_print_working "Fetching latest changes from remote..."
-      git fetch origin "$main_branch:refs/remotes/origin/$main_branch" || {
+      git fetch origin "''${main_branch}:refs/remotes/origin/$main_branch" || {
         __gwt_print_warning "Failed to fetch latest changes from remote"
         echo "   Continuing with local state..."
       }
@@ -533,12 +533,6 @@
       git worktree remove "$worktree_dir" --force || {
         __gwt_print_error "Failed to remove worktree"
         return 1
-      }
-
-      # Delete the branch
-      __gwt_print_working "Deleting branch..."
-      git branch -D "$target_branch" 2>/dev/null || {
-        __gwt_print_warning "Could not delete branch (might be protected or already deleted)"
       }
 
       # Close related issues if requested

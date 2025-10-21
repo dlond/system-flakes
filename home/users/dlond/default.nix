@@ -86,5 +86,9 @@
     source = ./themes/dlond.ghostty;
   };
 
+  xdg.configFile.".ocamlformat" = {
+    source = ./configs/dlond.ocamlformat;
+  };
+
   sops.age.keyFile = "${config.home.homeDirectory}/Library/Application Support/sops/age/keys.txt";
 }

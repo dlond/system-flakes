@@ -20,6 +20,7 @@
 
     nvim-config = {
       url = "github:dlond/nvim";
+      # url = "path:/Users/dlond/dev/projects/nvim";
       flake = false;
     };
 

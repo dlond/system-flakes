@@ -1,0 +1,25 @@
+# .ocamlformat configuration for Jane Street style
+# Place this in the root of your OCaml project
+
+version = 0.26.2
+profile = janestreet
+
+# Indentation
+indent-after-in = 2
+
+# Break lines
+break-cases = fit-or-vertical
+break-fun-decl = fit-or-vertical
+break-infix = fit-or-vertical
+break-infix-before-func = false
+
+# Spacing
+space-around-arrays = true
+space-around-lists = true
+space-around-records = true
+
+# Other preferences
+doc-comments = before
+field-space = loose
+if-then-else = keyword-first
+let-binding-spacing = compact

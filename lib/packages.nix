@@ -30,16 +30,17 @@
   llvmPkg = selectLLVM llvmVersion;
   pythonPkg = selectPython pythonVersion;
   # Python with essential packages for system-wide use
-  pythonWithEssentials = pythonPkg.withPackages (ps: with ps; [
-    debugpy      # Python DAP debugging
-    pynvim       # Neovim Python host
-    jupyter-client # Molten communication with kernels
-    ipykernel    # Create Python kernels
-  ]);
+  pythonWithEssentials = pythonPkg.withPackages (ps:
+    with ps; [
+      debugpy # Python DAP debugging
+      pynvim # Neovim Python host
+      jupyter-client # Molten communication with kernels
+      ipykernel # Create Python kernels
+    ]);
 in rec {
   # Export the base packages for reference
   inherit pythonPkg pythonWithEssentials llvmPkg;
-  
+
   # Core tools needed everywhere (system + all dev shells)
   core = {
     # Essential development tools
@@ -170,12 +171,13 @@ in rec {
       withJupyter = args.withJupyter or true;
       python = selectPython pyVersion;
       # Python with essential packages for Neovim debugging and Jupyter
-      pythonWithPackages = python.withPackages (ps: with ps; [
-        debugpy      # Python DAP debugging
-        pynvim       # Neovim Python host
-        jupyter-client # Molten communication with kernels
-        ipykernel    # Create Python kernels
-      ]);
+      pythonWithPackages = python.withPackages (ps:
+        with ps; [
+          debugpy # Python DAP debugging
+          pynvim # Neovim Python host
+          jupyter-client # Molten communication with kernels
+          ipykernel # Create Python kernels
+        ]);
     in
       with pkgs;
         [
@@ -393,10 +395,10 @@ in rec {
         luarocks
         shellcheck
         tree-sitter
-        
+
         # OCaml package manager (LSP and formatter are in lsp.all and formatters.all)
         opam
-        
+
         # Project tools (vanilla configs, available for quick prototyping)
         conan
         cmake
@@ -404,10 +406,10 @@ in rec {
         cmake-language-server
         ninja
         ccache
-        bear  # For compile_commands.json generation
-        gtest  # Google Test framework
+        bear # For compile_commands.json generation
+        gtest # Google Test framework
         pkg-config
-        llvmPkg.lldb  # LLDB debugger with lldb-dap for DAP support
+        llvmPkg.lldb # LLDB debugger with lldb-dap for DAP support
 
         # Security
         gnupg
@@ -464,7 +466,6 @@ in rec {
         pkgs.poppler_utils # For Jupyter/Molten PDF support
         pkgs.nodejs # Node.js runtime for copilot.lua
       ];
-    # Note: debuggers are conditionally added in neovim.nix based on withDebugger option
 
     pythonPackages = python.pythonPackages;
   };

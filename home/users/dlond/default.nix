@@ -64,7 +64,7 @@
   programs.neovim-cfg = {
     enable = true;
     withCopilot = true;
-    withDebugger = true;
+    withTrainingMode = false;
   };
 
   xdg.configFile."ghostty/config" = {

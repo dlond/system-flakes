@@ -15,20 +15,10 @@ in {
       default = true;
       description = "Enable GitHub Copilot plugin.";
     };
-    withDebugger = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable DAP debugger support";
-    };
     withTrainingMode = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = "Enable vim training mode to build better navigation habits.";
-    };
-    withMolten = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable Molten for Jupyter notebook support in Neovim.";
     };
     extraLSPs = lib.mkOption {
       type = lib.types.listOf lib.types.package;
@@ -45,7 +35,7 @@ in {
       vimdiffAlias = true;
       extraPackages =
         packages.neovim.packages
-        ++ lib.optionals cfg.withDebugger packages.debuggers.all
+        ++ packages.debuggers.all
         ++ cfg.extraLSPs;
       extraLuaPackages = ps:
         with ps; [
@@ -83,18 +73,8 @@ in {
             then "true"
             else "false"
           }
-          vim.g.debugger_enabled = ${
-            if cfg.withDebugger
-            then "true"
-            else "false"
-          }
           vim.g.training_mode_enabled = ${
             if cfg.withTrainingMode
-            then "true"
-            else "false"
-          }
-          vim.g.molten_enabled = ${
-            if cfg.withMolten
             then "true"
             else "false"
           }

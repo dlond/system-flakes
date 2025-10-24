@@ -11,11 +11,11 @@
 
     shellAliases = {
       # Better ls aliases
-      ls = "eza --icons"; # Simple list with icons
-      ll = "eza -la --header --git --icons"; # List ALL including hidden
-      la = "eza -la --header --git --icons"; # Same as ll for muscle memory
-      lh = "eza -ld .* --icons"; # List ONLY hidden files/dirs
-      lt = "eza -l --header --git --icons --tree"; # Tree view with details
+      ls = "eza --icons=always"; # Simple list with icons
+      ll = "eza -la --header --git --icons=always"; # List ALL including hidden
+      la = "eza -la --header --git --icons=always"; # Same as ll for muscle memory
+      lh = "eza -ld .* --icons=always"; # List ONLY hidden files/dirs
+      lt = "eza -l --header --git --icons=always --tree"; # Tree view with details
       tree = "eza --tree";
 
       # File tools
@@ -85,7 +85,7 @@
       (lib.mkBefore ''
         # Add ~/.local/bin to PATH for user scripts
         export PATH="$HOME/.local/bin:$PATH"
-        
+
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
 

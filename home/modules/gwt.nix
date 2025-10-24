@@ -350,7 +350,7 @@
       # Run direnv allow if .envrc exists
       if [ -f "$worktree_path/.envrc" ]; then
         echo "🔐 Running direnv allow..."
-        (cd "$worktree_path" && direnv allow)
+        direnv allow "$worktree_path"
       fi
 
       # Change to the new worktree unless --cwd was specified
@@ -381,24 +381,34 @@
 
       local current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
 
-      local all_wts=$(git worktree list --porcelain | awk '
+      local all_wts=$(git worktree list --porcelain | awk -v cur="$current_wt" '
         /^worktree / { path=$2 }
         /^branch / {
           branch=$2
           gsub("refs/heads/", "", branch)
           if (branch == "") branch="(detached)"
-          printf "%s\t%s\n", path, branch
+          if (path != cur)
+            printf "%s\t%s\n", path, branch
         }
       ')
 
-      local selected=$(echo "$all_wts" | fzf \
-        --header="Select worktree (current: $(basename "$current_wt"))" \
-        --preview="echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
-        --preview-window=right:50%:wrap \
-        --delimiter=$'\t' \
-        --with-nth=2 \
-        --bind='ctrl-d:reload(git worktree list --porcelain | awk "/^worktree / { path=\$2 } /^branch / { branch=\$2; gsub(\"refs/heads/\", \"\", branch); if (branch == \"\") branch=\"(detached)\"; printf \"%s\\t%s\\n\", path, branch }")' \
-        --prompt="Worktree> " | cut -f1)
+      local count=$(printf "%s\n" "$all_wts" | sed '/^\s*$/d' | wc -l | tr -d ' ')
+
+      if (( count == 0 )); then
+        echo "No other worktrees found."
+        return 1
+      elif (( count == 1 )); then
+        local selected=$(printf "%s\n" "$all_wts" | cut -f1)
+      else
+        local selected=$(echo "$all_wts" | fzf \
+          --header="Select worktree (current: $(basename "$current_wt"))" \
+          --preview="echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
+          --preview-window=right:50%:wrap \
+          --delimiter=$'\t' \
+          --with-nth=2 \
+          --bind='ctrl-d:reload(git worktree list --porcelain | awk "/^worktree / { path=\$2 } /^branch / { branch=\$2; gsub(\"refs/heads/\", \"\", branch); if (branch == \"\") branch=\"(detached)\"; printf \"%s\\t%s\\n\", path, branch }")' \
+          --prompt="Worktree> " | cut -f1)
+      fi
 
       # Navigate to selected worktree
       if [ -n "$selected" ]; then
@@ -416,10 +426,21 @@
       local close_issues=true
 
       # Parse flags
-      if [[ "$1" == "--no-close" ]]; then
-        close_issues=false
-        shift
-      fi
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --no-close)
+            close_issues=true
+            shift
+            ;;
+          *)
+            args+=("$1")
+            shift
+            ;;
+        esac
+      done
+
+      # Restore positional parameters
+      set -- "''${args[@]}"
 
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
@@ -429,8 +450,10 @@
       local target_branch=$(git rev-parse --abbrev-ref HEAD)
       local main_branch=$(__gwt_get_main_branch)
 
-      # If on main/master branch, show fzf selector
-      if [[ "$target_branch" == "$main_branch" ]]; then
+      if [[ "$1" =~ ^[0-9]+$ ]]; then
+        target_branch=$(__gwt_find_branch_by_issue "$1")
+        worktree_dir=$(__gwt_get_worktree_path "$target_branch")
+      elif [[ "$target_branch" == "$main_branch" ]]; then
         echo "📋 Select a worktree to complete:"
         echo ""
 
@@ -477,13 +500,12 @@
       echo ""
 
       # Check for uncommitted changes
-      if ! git diff --quiet || ! git diff --cached --quiet; then
+      if ! git diff --quiet -- "$target_branch" || ! git diff --staged --quiet -- "$target_branch"; then
         __gwt_print_warning "You have uncommitted changes"
         git status --short
         echo ""
-        echo -n "Continue anyway? (y/n): "
-        read response
-        [[ "$response" != "y" ]] && return 1
+        echo "Unable to complete worktree with uncommitted changes."
+        return 1
       fi
 
       # Fetch latest changes from remote
@@ -506,7 +528,7 @@
         fi
       else
         # Check if branch is merged locally (check against remote)
-        if ! __gwt_is_branch_merged "$target_branch" "origin/$main_branch"; then
+        if ! __gwt_is_branch_merged "$target_branch" "$main_branch"; then
           __gwt_print_warning "No PR found and branch is not merged to origin/$main_branch"
           echo "   Create a PR with: gh pr create"
           echo "   Or merge locally first"
@@ -515,18 +537,20 @@
         __gwt_print_info "No PR, but branch is merged to origin/$main_branch"
       fi
 
-      # Find the main worktree
-      local main_worktree=$(git worktree list --porcelain | grep -B1 "branch refs/heads/$main_branch" | grep "^worktree" | cut -d" " -f2)
+      if [ "$worktree_dir" = "$PWD" ]; then
+        # Find the main worktree
+        local main_worktree=$(git worktree list --porcelain | grep -B1 "branch refs/heads/$main_branch" | grep "^worktree" | cut -d" " -f2)
 
-      if [ -z "$main_worktree" ]; then
-        # If no main worktree, use the git common dir parent
-        main_worktree=$(dirname "$(git rev-parse --git-common-dir)")
+        if [ -z "$main_worktree" ]; then
+          # If no main worktree, use the git common dir parent
+          main_worktree=$(dirname "$(git rev-parse --git-common-dir)")
+        fi
+
+        # Switch to main worktree before removing current one
+        echo ""
+        __gwt_print_working "Switching to main worktree..."
+        cd "$main_worktree" || return 1
       fi
-
-      # Switch to main worktree before removing current one
-      echo ""
-      __gwt_print_working "Switching to main worktree..."
-      cd "$main_worktree" || return 1
 
       # Remove the worktree
       __gwt_print_working "Removing worktree..."
@@ -541,10 +565,10 @@
         if [ -n "$issue_numbers" ]; then
           __gwt_print_working "Closing related issues: $issue_numbers"
           for issue in $issue_numbers; do
-            if gh issue close "''$issue" 2>/dev/null; then
-              __gwt_print_success "Closed issue #''$issue"
+            if gh issue close "$issue" 2>/dev/null; then
+              __gwt_print_success "Closed issue #$issue"
             else
-              echo "   Issue #''$issue is already closed or doesn't exist"
+              echo "   Issue #$issue is already closed or doesn't exist"
             fi
           done
         fi

@@ -53,6 +53,75 @@
       git worktree list --porcelain | grep -q "branch refs/heads/$branch"
     }
 
+    # Resolve user input to a branch name
+    # Returns the branch name or empty if not found
+    __gwt_resolve_to_branch() {
+      local input=$1
+      local resolved_branch=""
+
+      # Case 1: given a number, could be issue number or pr number
+      if [[ "$input" =~ ^[0-9]+$ ]]; then
+        resolved_branch=$(__gwt_find_branch_by_issue "$input")
+        if [ -n "$resolved_branch" ]; then
+          echo "$resolved_branch"
+          return 0
+        fi
+      fi
+
+      # Case 2: PR format (pr-123, #123, pr/123)
+      if [[ "$input" =~ ^(pr-|pr/|#)?([0-9]+)$ ]]; then
+        local pr_num="''${BASH_REMATCH[2]}"
+        resolved_branch=$(gh pr view "$pr_num" --json headRefName -q .headRefName 2>/dev/null)
+        if [ -n "$resolved_branch" ] && __gwt_branch_exists "$resolved_branch"; then
+          echo "$resolved_branch"
+          return 0
+        fi
+      fi
+
+      # Case 3: Git reflog format (@{-1} = previous branch)
+      if [[ "$input" =~ ^@\{-[0-9]+\}$ ]]; then
+        resolved_branch=$(git rev-parse --abbref-ref "$input" 2>/dev/null)
+        if [ -n "$resolved_branch" ] && [ "$resolved_branch" != "HEAD" ]; then
+          echo "$resolved_branch"
+          return 0
+        fi
+      fi
+
+      # Case 4: full branch name
+      if __gwt_branch_exists "$input"; then
+        echo "$input"
+        return 0
+      fi
+
+      # Case 5: partial branch name
+      # local matches=$(git for-each-ref --format='%(refname:short)' "refs/heads/*$input*")
+      # if [ -n "$matches" ]; then
+      #   echo "$matches"
+      #   return 0
+      # fi
+
+      return 1
+    }
+
+
+    # Get worktree path from user input
+    __gwt_resolve_to_worktree_path() {
+      local input=$1
+      local branch=$(__gwt_resolve_to_branch "$input")
+
+      if [ -z "$branch" ]; then
+        return 1
+      fi
+
+      local path=$(__gwt_get_worktree_path "$branch")
+      if [ -n "$path" ]; then
+        echo "$path"
+        return 0
+      fi
+
+      return 1
+    }
+
     # Get worktree path for a branch
     __gwt_get_worktree_path() {
       local branch=$1
@@ -369,15 +438,40 @@
     # ----------------------------------------------------------------------------
 
     __gwt_cmd_switch() {
-      if [ $# -gt 0 ]; then
-        echo "Usage: gwt switch"
-        echo ""
-        echo "Interactive worktree switcher using fzf."
-        return 1
-      fi
-
       # Check if we're in a git repository
       __gwt_check_git_repo || return 1
+
+      if [ $# -eq 1 ]; then
+        local branch=$(__gwt_resolve_to_branch "$1")
+
+        if [ -z "$branch" ]; then
+          __gwt_print_error "Could not resolve '$1' to a branch"
+          echo "  Tried: issue number, PR number, branch name, reflog"
+          return 1
+        fi
+
+        local target_path=$(__gwt_get_worktree_path "$branch")
+        if [-z "$target_path" ]; then
+          __gwt_print_error "Branch '$branch' exists but has no worktree"
+          echo "  Create one with: gwt new $branch"
+          return 1
+        fi
+
+        cd "$target_path" || return 1
+        __gwt_print_success "Switched to: $branch"
+        pwd
+        return 0
+      elif [ $# -gt 1 ]; then
+        echo "Usage: gwt switch [target]"
+        echo ""
+        echo "Target can be:"
+        echo "  - branch name: gwt switch feature-auth-123"
+        echo "  - issue number: gwt switch 123"
+        echo "  - PR number: gwt switch pr-123 or gwt switch #123"
+        echo "  - previous branch: gwt switch @{-1}"
+        echo "  - (no args): interactive fzf selector"
+        return 1
+      fi
 
       local current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
 
@@ -392,12 +486,14 @@
         }
       ')
 
-      local count=$(printf "%s\n" "$all_wts" | sed '/^\s*$/d' | wc -l | tr -d ' ')
-
-      if (( count == 0 )); then
+      if [ -z "$all_wts" ]; then
         echo "No other worktrees found."
         return 1
-      elif (( count == 1 )); then
+      fi
+
+      local count=$(printf "%s\n" "$all_wts" | wc -l)
+
+      if (( count == 1 )); then
         local selected=$(printf "%s\n" "$all_wts" | cut -f1)
         local branch_name=$(printf "%s\n" "$all_wts" | cut -f2)
         __gwt_print_info "Only one other worktree found: $branch_name"
@@ -453,9 +549,22 @@
       local target_branch=$(git rev-parse --abbrev-ref HEAD)
       local main_branch=$(__gwt_get_main_branch)
 
-      if [[ "$1" =~ ^[0-9]+$ ]]; then
-        target_branch=$(__gwt_find_branch_by_issue "$1")
+      if [ $# -gt 0 ]; then
+        local input_branch=$(__gwt_resolve_to_branch "$1")
+
+        if [ -z "$input_branch" ]; then
+          __gwt_print_error "Could not resolve '$1' to a branch"
+          echo "  Tried: issue number, PR number, branch name"
+          return 1
+        fi
+
+        target_branch="$input_branch"
         worktree_dir=$(__gwt_get_worktree_path "$target_branch")
+
+        if [ -z "$worktree_dir" ]; then
+          __gwt_print_error "Branch '$target_branch' has no worktree"
+          return 1
+        fi
       elif [[ "$target_branch" == "$main_branch" ]]; then
         echo "📋 Select a worktree to complete:"
         echo ""

@@ -399,6 +399,8 @@
         return 1
       elif (( count == 1 )); then
         local selected=$(printf "%s\n" "$all_wts" | cut -f1)
+        local branch_name=$(printf "%s\n" "$all_wts" | cut -f2)
+        __gwt_print_info "Only one other worktree found: $branch_name"
       else
         local selected=$(echo "$all_wts" | fzf \
           --header="Select worktree (current: $(basename "$current_wt"))" \
@@ -424,12 +426,13 @@
 
     __gwt_cmd_done() {
       local close_issues=true
+      local args=()
 
       # Parse flags
       while [ $# -gt 0 ]; do
         case "$1" in
           --no-close)
-            close_issues=true
+            close_issues=false
             shift
             ;;
           *)
@@ -458,12 +461,12 @@
         echo ""
 
         # Get list of non-main worktrees
-        local all_wts=$(git worktree list --porcelain | awk '
+        local all_wts=$(git worktree list --porcelain | awk -v main="$main_branch" '
           /^worktree / { path=$2 }
           /^branch / {
             branch=$2
             gsub("refs/heads/", "", branch)
-            if (branch != "" && branch != "$main_branch") {
+            if (branch != "" && branch != main) {
               printf "%s\t%s\n", path, branch
             }
           }
@@ -500,11 +503,16 @@
       echo ""
 
       # Check for uncommitted changes
-      if ! git diff --quiet -- "$target_branch" || ! git diff --staged --quiet -- "$target_branch"; then
-        __gwt_print_warning "You have uncommitted changes"
-        git status --short
+      if ! git -C "$worktree_dir" diff --quiet -- "$target_branch" || ! git -C "$worktree_dir" diff --staged --quiet -- "$target_branch"; then
+        __gwt_print_warning "You have uncommitted changes in $target_branch"
+        git -C "$worktree_dir" status --short
         echo ""
         echo "Unable to complete worktree with uncommitted changes."
+        echo "Please commit or stash your changes first:"
+        echo "  cd $worktree_dir"
+        echo "  git commit -am 'your_message'"
+        echo "  # or"
+        echo "  git stash"
         return 1
       fi
 
@@ -528,7 +536,7 @@
         fi
       else
         # Check if branch is merged locally (check against remote)
-        if ! __gwt_is_branch_merged "$target_branch" "$main_branch"; then
+        if ! __gwt_is_branch_merged "$target_branch" "origin/$main_branch"; then
           __gwt_print_warning "No PR found and branch is not merged to origin/$main_branch"
           echo "   Create a PR with: gh pr create"
           echo "   Or merge locally first"

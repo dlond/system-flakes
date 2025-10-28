@@ -33,7 +33,7 @@
       nfc = "nix flake check";
       nfu = "nix flake update";
       nd = "nix develop";
-      drs = "darwin-rebuild switch --flake .#mbp";
+      drs = "sudo darwin-rebuild switch --flake .#mbp";
 
       # Quick navigation
       dev = "cd ~/dev";

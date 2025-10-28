@@ -173,14 +173,12 @@
       #   $2 = header text
       #   $3 = prompt text
       #   $4 = preview command template
-      #   $5 = show_info_on_auto (optional: true/false, default: false)
       # Returns: tab-separated "path\tbranch" on stdout
       __gwt_select_worktree_fzf() {
         local worktree_list=$1
         local header=$2
         local prompt=$3
         local preview=$4
-        local show_info_on_auto=''${5:-false}
 
 
         # Check if list is empty
@@ -193,10 +191,6 @@
 
         # Auto-select if only one
         if (( count == 1 )); then
-          if [ "$show_info_on_auto" = true ]; then
-            local branch=$(echo "$worktree_list" | cut -f2)
-            __gwt_print_info "Only one other worktree found: $branch"
-          fi
           echo "$worktree_list"
           return 0
         fi
@@ -601,8 +595,7 @@
           "$other_wts" \
           "Select worktree (current: $(basename "$current_wt"))" \
           "Worktree> " \
-          "echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20" \
-          true)
+          "echo 'Path: {1}'; echo 'Branch: {2}'; echo '---'; ls -la {1} 2>/dev/null | head -20")
 
         # Navigate to selected worktree
         if [ -n "$selected" ]; then

@@ -2,7 +2,7 @@
   description = "Python development environment with uv";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     system-flakes = {
       url = "github:dlond/system-flakes";

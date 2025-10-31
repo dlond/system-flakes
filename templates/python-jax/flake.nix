@@ -29,6 +29,17 @@
         pythonVersion = "3.12"; # Use Python 3.12 for JAX compatibility
       };
 
+      pythonEnv = packages.pythonPkg.withPackages (ps:
+        with ps; [
+          debugpy
+          pynvim
+          jupyter-client
+          ipkernel
+          jupyterlab
+          matplotlib
+          scipy
+        ]);
+
       # LaTeX distribution
       texlive = pkgs.texlive.combine {
         inherit
@@ -51,22 +62,23 @@
       };
     in {
       devShells.default = pkgs.mkShell {
-        buildInputs =
-          # Python tools from system-flakes
-          packages.python.packages {
-            pythonVersion = "3.12";
-            withJupyter = true;
-          }
-          # LaTeX support
-          ++ [texlive]
-          # BLAS/LAPACK for numerical computing
-          ++ (with pkgs; [blas lapack])
-          # Core development tools from system-flakes
-          ++ packages.core.essential
-          ++ packages.core.search
-          ++ packages.core.utils
-          # System monitoring
-          ++ [pkgs.htop];
+        name = "python-jax-dev";
+
+        buildInputs = [
+          pythonEnv
+          pkgs.uv
+          pkgs.basedpyright
+          pkgs.ruff
+          packages.pythonPkg.pkgs.pytest
+          texlive
+          pkgs.blas
+          pkgs.lapack
+          packages.core.essential
+          packages.core.search
+          pkgs.imagemagick
+          pkgs.poppler-utils
+          pkgs.htop
+        ];
 
         shellHook = ''
           echo "🧮 Python + JAX ML Environment"

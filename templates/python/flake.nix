@@ -57,7 +57,7 @@
 
           # Optional: Jupyter support for notebooks
           imagemagick
-          poppler_utils
+          poppler-utils
         ];
 
         shellHook = ''
@@ -89,4 +89,3 @@
       };
     });
 }
-

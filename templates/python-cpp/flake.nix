@@ -82,7 +82,7 @@
 
             # For Jupyter/visualization
             pkgs.imagemagick
-            pkgs.poppler_utils
+            pkgs.poppler-utils
           ];
 
         shellHook = ''
@@ -130,4 +130,3 @@
       };
     });
 }
-

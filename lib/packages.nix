@@ -189,7 +189,7 @@ in rec {
         ++ lib.optionals withJupyter [
           # System packages for Jupyter/Molten visualization
           imagemagick
-          poppler_utils
+          poppler-utils
         ];
 
     # Convenience: default Python packages for system
@@ -256,7 +256,7 @@ in rec {
           inkscape
           gnuplot
           graphviz
-          poppler_utils
+          poppler-utils
         ]
         ++ lib.optionals stdenv.isLinux [
           zathura # PDF viewer (Linux only)
@@ -428,7 +428,7 @@ in rec {
         pkgs.ruff # Python linter/formatter
         pythonPkg.pkgs.pytest # Python testing framework (matches Python version)
         pkgs.imagemagick # For Jupyter/Molten visualization
-        pkgs.poppler_utils # For Jupyter/Molten PDF support
+        pkgs.poppler-utils # For Jupyter/Molten PDF support
       ]
       ++ latex.lsp # Include texlab
       ++ formatters.all # Include alejandra and other formatters
@@ -463,7 +463,7 @@ in rec {
         pkgs.basedpyright # Python LSP
         pkgs.ruff # Python linter/formatter
         pkgs.imagemagick # For Jupyter/Molten visualization
-        pkgs.poppler_utils # For Jupyter/Molten PDF support
+        pkgs.poppler-utils # For Jupyter/Molten PDF support
         pkgs.nodejs # Node.js runtime for copilot.lua
       ];
 

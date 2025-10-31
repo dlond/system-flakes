@@ -34,7 +34,7 @@
           debugpy
           pynvim
           jupyter-client
-          ipkernel
+          ipykernel
           jupyterlab
           matplotlib
           scipy

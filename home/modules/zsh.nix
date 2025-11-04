@@ -198,14 +198,8 @@
         }
 
         smart_ctrl_d() {
-          # Debug logging
-          echo "=== smart_ctrl_d called ===" >> /tmp/zsh-debug.log
-          echo "BUFFER: '$BUFFER'" >> /tmp/zsh-debug.log
-          echo "VIRTUAL_ENV: '$VIRTUAL_ENV'" >> /tmp/zsh-debug.log
-
           if [[ -z "$BUFFER" ]]; then
             if [[ -n "$VIRTUAL_ENV" ]] || [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
-              echo "=== Deactivating venv ===" >> /tmp/zsh-debug.log
               if type deactivate &>/dev/null; then
                 deactivate
                 local precmd
@@ -214,15 +208,12 @@
                 done
                 zle reset-prompt
               else
-                echo "=== No deactivate function found ===" >> /tmp/zsh-debug.log
                 exit 0
               fi
             else
-              echo "=== No venv, exiting shell ===" >> /tmp/zsh-debug.log
               exit 0
             fi
           else
-            echo "=== Buffer not empty, deleting char ===" >> /tmp/zsh-debug.log
             zle delete-char-or-list
           fi
         }

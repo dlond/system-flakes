@@ -17,24 +17,11 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Export compile commands
-if(DEFINED ENV{CMAKE_EXPORT_COMPILE_COMMANDS})
-  set(CMAKE_EXPORT_COMPILE_COMMANDS $ENV{CMAKE_EXPORT_COMPILE_COMMANDS})
-else()
-  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-endif()
+# Export compile commands (always ON for LSP support)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Build type (if not already set by preset)
-if(NOT CMAKE_BUILD_TYPE AND DEFINED ENV{CMAKE_BUILD_TYPE})
-  set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
-endif()
-
-# Shared/static libraries
-if(DEFINED ENV{BUILD_SHARED_LIBS})
-  set(BUILD_SHARED_LIBS $ENV{BUILD_SHARED_LIBS})
-else()
-  set(BUILD_SHARED_LIBS OFF)
-endif()
+# Note: Build type is set by Conan presets
+# Note: Shared/static libraries are configured via Conan
 
 # ============================================================================
 # Helper functions

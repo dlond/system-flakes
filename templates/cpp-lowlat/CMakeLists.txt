@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.20)
 project(
-  lowlat_trading
+  MyLowLatProject
   VERSION 1.0.0
   LANGUAGES CXX)
 
@@ -197,19 +197,18 @@ endif()
 # Main library
 # ============================================================================
 
-add_library(trading_core STATIC src/order_book.cpp src/matching_engine.cpp
-                                src/memory_pool.cpp src/lock_free_queue.cpp)
+add_library(myproject_core STATIC src/core.cpp)
 
 target_include_directories(
-  trading_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  myproject_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                       $<INSTALL_INTERFACE:include>)
 
-target_link_libraries(trading_core PUBLIC Threads::Threads Boost::boost
+target_link_libraries(myproject_core PUBLIC Threads::Threads Boost::boost
                                           fmt::fmt spdlog::spdlog)
 
 # Apply cache-line alignment to the library
 if(ALIGN_FOR_CACHE)
-  target_compile_definitions(trading_core PUBLIC CACHE_LINE_SIZE=64
+  target_compile_definitions(myproject_core PUBLIC CACHE_LINE_SIZE=64
                                                  ALIGN_FOR_CACHE)
 endif()
 
@@ -217,21 +216,21 @@ endif()
 # Main executable
 # ============================================================================
 
-add_executable(trading_engine src/main.cpp)
-target_link_libraries(trading_engine PRIVATE trading_core)
+add_executable(myapp src/main.cpp)
+target_link_libraries(myapp PRIVATE myproject_core)
 
 # ============================================================================
 # Benchmarks
 # ============================================================================
 
 if(ENABLE_BENCHMARKS AND benchmark_FOUND)
-  add_executable(bench_orderbook bench/bench_orderbook.cpp)
-  target_link_libraries(bench_orderbook PRIVATE trading_core
+  add_executable(bench_myproject bench/bench_main.cpp)
+  target_link_libraries(bench_myproject PRIVATE myproject_core
                                                 benchmark::benchmark)
 
   # Ensure benchmarks are built with maximum optimization
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set_target_properties(bench_orderbook PROPERTIES COMPILE_FLAGS "-O3")
+    set_target_properties(bench_myproject PROPERTIES COMPILE_FLAGS "-O3")
   endif()
 endif()
 
@@ -240,12 +239,10 @@ endif()
 # ============================================================================
 
 if(ENABLE_TESTING AND GTest_FOUND)
-  add_executable(test_trading tests/test_order_book.cpp
-                              tests/test_matching_engine.cpp)
-  target_link_libraries(test_trading PRIVATE trading_core GTest::gtest_main)
+  add_executable(test_myproject tests/test_core.cpp)
+  target_link_libraries(test_myproject PRIVATE myproject_core GTest::gtest_main)
 
-  include(GoogleTest)
-  gtest_discover_tests(test_trading)
+  gtest_discover_tests(test_myproject)
 endif()
 
 # ============================================================================
@@ -315,7 +312,7 @@ endif()
 # ============================================================================
 
 install(
-  TARGETS trading_core trading_engine
+  TARGETS myproject_core myapp
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin)

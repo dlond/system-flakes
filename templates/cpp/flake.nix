@@ -33,6 +33,7 @@
 
         # Build settings
         buildType = "Release"; # Default build type
+        defaultProfile = "release"; # Which profile to use as default (debug/release)
         enableLTO = false; # Link-time optimization
         enableExceptions = true;
         enableRTTI = true;
@@ -89,7 +90,7 @@
             fi
 
             # Link our Nix-generated profiles
-            ln -sf ${env.profiles.release} $CONAN_HOME/profiles/default
+            ln -sf ${env.profiles.${config.defaultProfile or "release"}} $CONAN_HOME/profiles/default
             ln -sf ${env.profiles.release} $CONAN_HOME/profiles/release
             ln -sf ${env.profiles.debug} $CONAN_HOME/profiles/debug
 
@@ -101,6 +102,7 @@
             echo "  Conan: $(conan --version)"
             echo "  CMake: $(cmake --version | head -1)"
             echo "  Clang: $(clang --version | head -1)"
+            ${env.ccacheInfo}
             echo ""
             echo "Setup steps:"
             echo ""

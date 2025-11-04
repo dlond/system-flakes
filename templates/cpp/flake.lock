@@ -195,8 +195,8 @@
         "sops-nix": "sops-nix"
       },
       "locked": {
-        "lastModified": 1762256569,
-        "narHash": "sha256-2MK+/C78bTwuCGCzX55cXUWClWt3jp+pOqGVZuOUSw0=",
+        "lastModified": 1762260626,
+        "narHash": "sha256-daiXWCYmWFwRPzFGutaiIu8xPA9tQSt5tFXKIOdzsrU=",
         "path": "/Users/dlond/dev/worktrees/system-flakes/refactor-dev-flakes-235",
         "type": "path"
       },

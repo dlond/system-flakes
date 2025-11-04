@@ -165,6 +165,9 @@ in rec {
           [conf]
           tools.cmake.cmaketoolchain:generator=Ninja
           tools.build:jobs=${toString (finalConfig.buildJobs or 12)}
+          ${lib.optionalString (finalConfig.enableCcache or true) ''
+            tools.cmake.cmaketoolchain:extra_variables={"CMAKE_C_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache", "CMAKE_CXX_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache"}
+          ''}
 
           ${lib.optionalString ((finalConfig.buildType or "Release") == "Release" && (finalConfig.enableLTO or false)) ''
             [buildenv]
@@ -211,6 +214,9 @@ in rec {
         ALIGN_FOR_CACHE = boolToCMake (config.alignForCache or false);
         WARNING_LEVEL = config.warningLevel or "all";
         CMAKE_EXPORT_COMPILE_COMMANDS = boolToCMake (config.generateCompileCommands or true);
+      } // lib.optionalAttrs (config.enableCcache or true) {
+        CCACHE_DIR = "$HOME/.ccache";
+        CCACHE_MAXSIZE = config.ccacheMaxSize or "5G";
       };
 
       # Generate configuration summary for shell
@@ -237,6 +243,14 @@ in rec {
         echo "  CXXFLAGS: ${mkCxxFlags config}"
         echo "  LDFLAGS: ${mkLdFlags config}"
       '';
+
+      # Generate ccache info for shell
+      mkCcacheInfo = config:
+        lib.optionalString (config.enableCcache or true) ''
+          if command -v ccache >/dev/null 2>&1; then
+            echo "  ccache: enabled ($(ccache --version | head -1 | cut -d' ' -f3))"
+          fi
+        '';
     };
 
     # ============================================================================
@@ -267,6 +281,7 @@ in rec {
 
         # Helper to generate standard summary (templates can use or ignore)
         configSummary = helpers.mkConfigSummary config;
+        ccacheInfo = helpers.mkCcacheInfo config;
       };
 
       # Low-latency/high-performance C++ environment components
@@ -310,6 +325,7 @@ in rec {
 
         # Additional helpers for low-latency
         configSummary = baseEnv.configSummary;
+        ccacheInfo = baseEnv.ccacheInfo;
         perfFlagsSummary = helpers.mkPerfFlagsSummary config;
 
         # Export the individual package groups (in case template wants them separately)
@@ -386,6 +402,7 @@ in rec {
         };
 
         configSummary = baseEnv.configSummary;
+        ccacheInfo = baseEnv.ccacheInfo;
       };
     };
 

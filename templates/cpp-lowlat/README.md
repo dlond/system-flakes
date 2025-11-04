@@ -1,255 +1,208 @@
-# C++ Low-Latency Development Environment
+# C++ Low-Latency Development
 
-High-performance C++ environment for systems requiring minimal latency and maximum throughput.
+High-performance C++ development environment optimized for low-latency systems.
 
-## Usage
+## Features
 
-```bash
-# Initialize environment
-nix flake init -t github:dlond/system-flakes#cpp-lowlat
+- ⚡ **Maximum Performance** - Aggressive optimizations enabled
+- 🚀 **C++23** - Latest language features
+- 🔥 **LTO** - Link-time optimization enabled (ThinLTO)
+- 🎯 **CPU-Specific** - Native architecture targeting
+- 📊 **Benchmarking** - Performance measurement tools
+- 💾 **Cache Alignment** - Optimized for cache lines
+- 🐧 **Linux Perf Tools** - Advanced profiling capabilities
+
+
+## Configuration
+
+### Configuration Options
+
+All available configuration options with defaults and explanations:
+
+| Option | Default | Description | Current |
+|--------|---------|-------------|---------|
+| **cpp.essential** | | *Core compilation settings* | |
+| \`cppStandard\` | \`20\` | C++ standard version (17, 20, 23) | **23** |
+| \`defaultProfile\` | \`"release"\` | Default Conan profile | release |
+| \`enableLTO\` | \`false\` | Link-time optimization | **true** |
+| \`useThinLTO\` | \`false\` | Use ThinLTO (faster than full LTO) | **true** |
+| \`enableExceptions\` | \`true\` | C++ exception handling | **false** |
+| \`enableRTTI\` | \`true\` | Runtime type information | **false** |
+| \`optimizationLevel\` | \`2\` | Optimization (-O0 to -O3, s, z) | **3** |
+| \`marchNative\` | \`false\` | CPU-specific optimizations | **true** |
+| \`alignForCache\` | \`false\` | Cache-line alignment (64 bytes) | **true** |
+| \`warningLevel\` | \`"all"\` | Compiler warnings (none/default/all/extra) | extra |
+| **cpp.devTools** | | *Development productivity tools* | |
+| \`enable\` | \`true\` | Include dev tools | true |
+| \`enableClangTidy\` | \`false\` | Static analysis linting | false |
+| \`enableCppCheck\` | \`false\` | Additional static analysis | false |
+| \`enableCcache\` | \`true\` | Build caching | true |
+| \`ccacheMaxSize\` | \`"5G"\` | Cache size limit | 5G |
+| \`enablePreCommitHooks\` | \`false\` | Git pre-commit hooks | false |
+| **cpp.testing** | | *Testing framework configuration* | |
+| \`enable\` | \`true\` | Include test framework | true |
+| \`testFramework\` | \`"gtest"\` | Framework (gtest/catch2/doctest) | gtest |
+| \`enableCoverage\` | \`false\` | Code coverage reporting | false |
+| \`enableSanitizers\` | \`false\` | Memory/UB sanitizers (debug) | false |
+| **cpp.performance** | | *Performance optimization tools* | |
+| \`enable\` | \`false\` | Include performance libraries | **true** |
+| \`enableBenchmarks\` | \`false\` | Google Benchmark library | **true** |
+| **cpp.linuxPerf** | | *Linux-specific performance tools* | |
+| \`enable\` | \`false\` | DPDK, perf-tools, io_uring | **true** |
+| **cpp.docs** | | *Documentation generation* | |
+| \`enable\` | \`false\` | Include doc tools | false |
+| \`enableDocs\` | \`false\` | Doxygen + Sphinx | false |
+
+**Bold** values indicate overrides from defaults.
+
+### Current Configuration
+
+Settings from \`flake.nix\`:
+
+\`\`\`nix
+config = {
+  cpp.essential = {
+    cppStandard = 23;enableLTO = true;useThinLTO = true;
+enableExceptions = false;
+enableRTTI = false;
+optimizationLevel = 3;marchNative = true;alignForCache = true;
+  };cpp.performance = {
+  enable = true;
+  enableBenchmarks = true;
+};cpp.linuxPerf = {
+  enable = true;
+};
+};
+\`\`\`
+
+## Compiler Flags
+
+**Release Build:**
+- \`-O3\` - Optimization level
+- `-march=native -mtune=native` - CPU-specific instructions
+- `-flto=thin` - Link-time optimization
+- `-fno-exceptions` - No exception handling
+- `-fno-rtti` - No RTTI overhead
+- `-falign-functions=64` - Cache-line alignment
+
+
+**Debug Build:**
+- \`-O0 -g3\` - No optimization, full debug info
+
+
+## Quick Start
+
+\`\`\`bash
+# Enter the development environment
 nix develop
 
-# Setup Conan profile
-conan profile detect --force
+# Debug build
+conan install . --profile=debug --build=missing
+cmake --preset=conan-debug
+cmake --build --preset=conan-debug
+./build/Debug/app
 
-# Install dependencies with Conan
-conan install . --build=missing -pr:b=default
-
-# Build with CMake presets + Ninja
-cmake --preset conan-release
-cmake --build --preset conan-release
-
-# Or for debug build
-cmake --preset conan-debug
-cmake --build --preset conan-debug
-
-# Run tests
-ctest --preset conan-release
-
-# Run benchmarks
-./build/conan-release/bench_orderbook
-
-# Profile (Linux only)
-perf record -g ./build/conan-release/app
-perf report
-```
-
-## Key Concepts for Low-Latency Systems
-
-### 1. Lock-Free Data Structures
-
-```cpp
-template<typename T, size_t Size>
-class LockFreeQueue {
-    alignas(64) std::atomic<size_t> head_{0};  // Cache line aligned
-    alignas(64) std::atomic<size_t> tail_{0};
-    std::array<T, Size> buffer_;
-
-public:
-    bool try_push(const T& item) noexcept {
-        const auto current_tail = tail_.load(std::memory_order_relaxed);
-        const auto next_tail = (current_tail + 1) % Size;
-
-        if (next_tail == head_.load(std::memory_order_acquire)) {
-            return false; // Queue full
-        }
-
-        buffer_[current_tail] = item;
-        tail_.store(next_tail, std::memory_order_release);
-        return true;
-    }
-
-    std::optional<T> try_pop() noexcept {
-        const auto current_head = head_.load(std::memory_order_relaxed);
-
-        if (current_head == tail_.load(std::memory_order_acquire)) {
-            return std::nullopt; // Queue empty
-        }
-
-        T item = buffer_[current_head];
-        head_.store((current_head + 1) % Size, std::memory_order_release);
-        return item;
-    }
-};
-```
-
-### 2. Memory Pool Allocator
-
-```cpp
-template<typename T, size_t PoolSize>
-class MemoryPool {
-    alignas(alignof(T)) char buffer_[PoolSize * sizeof(T)];
-    std::array<T*, PoolSize> free_list_;
-    std::atomic<size_t> free_count_{PoolSize};
-
-public:
-    MemoryPool() {
-        for (size_t i = 0; i < PoolSize; ++i) {
-            free_list_[i] = reinterpret_cast<T*>(&buffer_[i * sizeof(T)]);
-        }
-    }
-
-    [[nodiscard]] T* allocate() noexcept {
-        const auto idx = free_count_.fetch_sub(1, std::memory_order_acq_rel);
-        if (idx == 0) return nullptr;
-        return free_list_[idx - 1];
-    }
-
-    void deallocate(T* ptr) noexcept {
-        const auto idx = free_count_.fetch_add(1, std::memory_order_acq_rel);
-        free_list_[idx] = ptr;
-    }
-};
-```
-
-### 3. High-Performance Event Processing
-
-```cpp
-struct Event {
-    uint64_t id;
-    uint64_t timestamp;
-    int32_t value;  // Use integers for precision
-    uint32_t type;
-};
-
-class EventProcessor {
-    // Separate queues for different priorities
-    LockFreeQueue<Event, 10000> high_priority_;
-    LockFreeQueue<Event, 50000> normal_priority_;
-
-    // Pre-allocated memory pools
-    MemoryPool<Event, 100000> event_pool_;
-
-public:
-    void process_event(Event event) noexcept;
-    void batch_process() noexcept;
-};
-```
-
-## Performance Optimization Checklist
-
-### CPU Optimizations
-- [ ] Cache line alignment (64 bytes)
-- [ ] False sharing prevention
-- [ ] Branch prediction hints (`[[likely]]`, `[[unlikely]]`)
-- [ ] SIMD instructions for batch operations
-- [ ] CPU affinity and core isolation
-
-### Memory Optimizations
-- [ ] Custom allocators (pools, arenas)
-- [ ] Minimize allocations in hot path
-- [ ] Huge pages for large data structures
-- [ ] NUMA awareness (multi-socket systems)
-
-### Compiler Optimizations
-- [ ] Profile-guided optimization (PGO)
-- [ ] Link-time optimization (LTO)
-- [ ] Function inlining hints
-- [ ] Loop unrolling
-
-### Network Optimizations (Linux)
-- [ ] Kernel bypass (io_uring)
-- [ ] Zero-copy techniques
-- [ ] TCP_NODELAY for low latency
-- [ ] Batch packet processing
-
-## Benchmarking with Google Benchmark
-
-```cpp
-#include <benchmark/benchmark.h>
-
-static void BM_LockFreeQueue(benchmark::State& state) {
-    LockFreeQueue<int, 1000> queue;
-
-    for (auto _ : state) {
-        queue.try_push(42);
-        auto val = queue.try_pop();
-        benchmark::DoNotOptimize(val);
-    }
-
-    state.SetItemsProcessed(state.iterations());
-}
-BENCHMARK(BM_LockFreeQueue);
-
-static void BM_MemoryPool(benchmark::State& state) {
-    MemoryPool<Event, 10000> pool;
-
-    for (auto _ : state) {
-        auto* ptr = pool.allocate();
-        benchmark::DoNotOptimize(ptr);
-        pool.deallocate(ptr);
-    }
-
-    state.SetItemsProcessed(state.iterations());
-}
-BENCHMARK(BM_MemoryPool);
-
-BENCHMARK_MAIN();
-```
-
-## Profiling and Analysis
-
-### Linux Tools
-```bash
-# CPU profiling
-perf record -g ./app
-perf report
-
-# Cache analysis
-valgrind --tool=cachegrind ./app
-cg_annotate cachegrind.out.<pid>
-
-# Memory profiling
-valgrind --tool=massif ./app
-ms_print massif.out.<pid>
-```
-
-### Cross-Platform
-```bash
-# LLDB for debugging
-lldb ./app
-(lldb) breakpoint set --name main
-(lldb) run
-(lldb) thread backtrace
-
-# Time measurement
-time ./app
-
-# Google Benchmark
-./bench_app --benchmark_format=json > results.json
-```
-
-## Best Practices
-
-1. **Measure First**: Profile before optimizing
-2. **Minimize Allocations**: Use pools and pre-allocation
-3. **Data Locality**: Keep hot data together
-4. **Avoid Contention**: Use lock-free where possible
-5. **Batch Operations**: Process multiple items together
+# Release build
+conan install . --profile=release --build=missing
+cmake --preset=conan-release
+cmake --build --preset=conan-release
+./build/Release/app
+\`\`\`
 
 ## Project Structure
 
-```
-low_latency_project/
-├── CMakeLists.txt
-├── CMakePresets.json     # Generated by Conan
-├── conanfile.txt         # Dependencies
-├── include/
-│   ├── lock_free/
-│   ├── memory/
-│   └── utils/
-├── src/
+\`\`\`
+.
+├── flake.nix              # Nix environment configuration
+├── CMakeLists.txt         # CMake build configuration
+├── conanfile.txt          # Conan dependencies
+├── .conan2/               # Local Conan profiles
+├── include/               # Header files
+├── src/                   # Source files
 │   └── main.cpp
-├── tests/
-│   └── test_performance.cpp
-└── benchmarks/
-    └── bench_all.cpp
-```
+├── tests/                 # Unit tests
+├── bench/                 # Benchmarks
+└── build/                 # Build output (git-ignored)
+    ├── Debug/
+    └── Release/
+\`\`\`
 
-## Resources
+## Adding Dependencies
 
-- [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/)
-- [Lock-Free Programming](https://www.1024cores.net/)
-- [Mechanical Sympathy](https://mechanical-sympathy.blogspot.com/)
-- [CppCon Talks on Performance](https://www.youtube.com/user/CppCon)
-- [Google Benchmark Documentation](https://github.com/google/benchmark)
+Add to \`conanfile.txt\`:
+
+\`\`\`ini
+[requires]
+fmt/10.1.1
+spdlog/1.12.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout
+\`\`\`
+
+Then reinstall:
+\`\`\`bash
+conan install . --profile=release --build=missing
+cmake --preset=conan-release
+\`\`\`
+
+## Tools Included
+
+- **Compiler**: Clang with libc++
+- **Build**: CMake, Ninja
+- **Package Manager**: Conan 2.x
+- **Language Server**: clangd
+- **Formatter**: clang-format
+- **Cache**: ccache
+- **Testing**: gtest
+- **Benchmarking**: Google Benchmark
+
+
+## Development Tips
+
+1. **IDE Integration**: The environment generates \`compile_commands.json\` for clangd support
+2. **Clean Build**: \`rm -rf build/ && conan install . --profile=release --build=missing\`
+3. **Switch Profiles**: Use \`--preset=conan-debug\` or \`--preset=conan-release\`
+4. **Faster Builds**: ccache enabled - subsequent builds will be faster
+## Benchmarking
+
+\`\`\`cpp
+#include <benchmark/benchmark.h>
+
+static void BM_Example(benchmark::State& state) {
+    for (auto _ : state) {
+        // Code to benchmark
+    }
+}
+BENCHMARK(BM_Example);
+\`\`\`
+
+Run: \`./build/Release/bench_app\`
+
+
+## Troubleshooting
+
+**Conan packages not found:**
+\`\`\`bash
+conan remove "*" -c
+conan install . --profile=release --build=missing
+\`\`\`
+
+**CMake preset not found:**
+\`\`\`bash
+ls CMakePresets.json  # Should exist after conan install
+\`\`\`
+
+**Build errors:**
+\`\`\`bash
+# Force rebuild dependencies
+conan install . --profile=release --build=missing --build=<package>
+\`\`\`
+
+---
+*Generated by nix develop based on flake.nix configuration*
+

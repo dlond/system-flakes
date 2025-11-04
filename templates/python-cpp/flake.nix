@@ -86,6 +86,18 @@
           ];
 
         shellHook = ''
+          # Set Conan to use local profile directory
+          export CONAN_HOME=$(pwd)/.conan2
+          mkdir -p $CONAN_HOME/profiles
+
+          # Link global Conan cache and settings (if they exist)
+          if [ -d "$HOME/.conan2" ]; then
+            # Link all subdirectories except profiles (cache, settings, etc.)
+            for conanDir in $(fd -td -d1 -Eprofiles . $HOME/.conan2 2>/dev/null || true); do
+              ln -sfn $conanDir $CONAN_HOME/
+            done
+          fi
+
           echo "Python + C++ development environment"
           echo "Python: $(python --version)"
           echo "Conan: $(conan --version)"

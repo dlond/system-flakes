@@ -186,7 +186,17 @@
         fi
 
         # Make <Ctrl-D> deactivate venv if present, otherwise proceed as normal
-        # ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(smart_ctrl_d)
+        activate_conan() {
+          source "$1"
+          export CONAN_VIRTUAL_ENV="$(cd "$(dirname "$1")" && pwd)"
+
+          deactivate() {
+            [[ -f "$CONAN_VIRTUAL_ENV/deactivate_conanrun.sh" ]] && source "$CONAN_VIRTUAL_ENV/deactivate_conanrun.sh"
+            unset CONAN_VIRTUAL_ENV
+            unset -f deactivate
+          }
+        }
+
         smart_ctrl_d() {
           # Debug logging
           echo "=== smart_ctrl_d called ===" >> /tmp/zsh-debug.log
@@ -194,22 +204,19 @@
           echo "VIRTUAL_ENV: '$VIRTUAL_ENV'" >> /tmp/zsh-debug.log
 
           if [[ -z "$BUFFER" ]]; then
-            if [[ -n "$VIRTUAL_ENV" ]]; then
-              echo "=== Deactivating Python venv ===" >> /tmp/zsh-debug.log
-              deactivate
-              local precmd
-              for precmd in $precmd_functions; do
-                $precmd
-              done
-              zle reset-prompt
-            elif [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
-              echo "=== Deactivating Conan env ===" >> /tmp/zsh-debug.log
-              source deactivate_conanrun.sh
-              local precmd
-              for precmd in $precmd_functions; do
-                $precmd
-              done
-              zle reset-prompt
+            if [[ -n "$VIRTUAL_ENV" ]] || [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
+              echo "=== Deactivating venv ===" >> /tmp/zsh-debug.log
+              if type deactivate &>/dev/null; then
+                deactivate
+                local precmd
+                for precmd in $precmd_functions; do
+                  $precmd
+                done
+                zle reset-prompt
+              else
+                echo "=== No deactivate function found ===" >> /tmp/zsh-debug.log
+                exit 0
+              fi
             else
               echo "=== No venv, exiting shell ===" >> /tmp/zsh-debug.log
               exit 0
@@ -219,6 +226,7 @@
             zle delete-char-or-list
           fi
         }
+
         zle -N smart_ctrl_d
         bindkey '^D' smart_ctrl_d
 

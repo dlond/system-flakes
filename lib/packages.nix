@@ -110,7 +110,10 @@ in rec {
       };
 
       # Get environment setup
-      env = environments.mkCppEnv {config = flatConfig; inherit pkgs;};
+      conan = helpers.mkConanSetup {config = flatConfig; inherit pkgs;};
+      cmakeEnv = helpers.mkCMakeEnv flatConfig;
+      preCommitHook = helpers.mkPreCommitHook flatConfig;
+      docsSetup = helpers.mkDocsSetup flatConfig;
 
       # Generate README content
       readmeContent = helpers.mkReadme {
@@ -118,14 +121,14 @@ in rec {
         config = flatConfig;
       };
     in
-      pkgs.mkShell (env.cmakeEnv // {
+      pkgs.mkShell (cmakeEnv // {
         inherit name;
         nativeBuildInputs = packages;
 
         shellHook = ''
-          ${env.conan.setup}
-          ${env.preCommitHook}
-          ${env.docsSetup}
+          ${conan.setup}
+          ${preCommitHook}
+          ${docsSetup}
 
           # Generate README.md if it doesn't exist or is outdated
           if [ ! -f README.md ] || [ flake.nix -nt README.md ]; then
@@ -593,39 +596,6 @@ conan install . --profile=release --build=missing --build=<package>
           CCACHE_MAXSIZE = config.ccacheMaxSize;
         };
 
-      # Generate configuration summary for shell
-      mkConfigSummary = config: ''
-        echo "Configuration (from flake.nix):"
-        echo "  C++ Standard: ${toString config.cppStandard}"
-        echo "  Default Profile: ${config.defaultProfile}"
-        echo "  Testing: ${boolToCMake config.enableTesting} (${config.testFramework})"
-        echo "  LTO: ${boolToCMake config.enableLTO}${lib.optionalString config.enableLTO " (${
-          if config.useThinLTO
-          then "thin"
-          else "full"
-        })"}"
-        echo "  Warnings: ${config.warningLevel}"
-        ${lib.optionalString config.enableBenchmarks ''echo "  Benchmarks: ON"''}
-        ${lib.optionalString config.marchNative ''echo "  March Native: ON"''}
-        ${lib.optionalString (!config.enableExceptions) ''echo "  Exceptions: OFF"''}
-        ${lib.optionalString (!config.enableRTTI) ''echo "  RTTI: OFF"''}
-      '';
-
-      # Generate performance flags summary (for low-latency template)
-      mkPerfFlagsSummary = config: ''
-        echo "Performance Flags:"
-        echo "  CXXFLAGS: ${mkCxxFlags config}"
-        echo "  LDFLAGS: ${mkLdFlags config}"
-      '';
-
-      # Generate ccache info for shell
-      mkCcacheInfo = config:
-        lib.optionalString config.enableCcache ''
-          if command -v ccache >/dev/null 2>&1; then
-            echo "  ccache: enabled ($(ccache --version | head -1 | cut -d' ' -f3))"
-          fi
-        '';
-
       # Generate pre-commit hook installation
       mkPreCommitHook = config:
         lib.optionalString config.enablePreCommitHooks ''
@@ -636,14 +606,6 @@ conan install . --profile=release --build=missing --build=<package>
               pre-commit install --install-hooks >/dev/null 2>&1 || true
             fi
           fi
-        '';
-
-      # Generate documentation info
-      mkDocsInfo = config:
-        lib.optionalString config.enableDocs ''
-          echo "  Documentation: enabled (Sphinx + Breathe)"
-          echo "    Build docs: cmake --build build --target docs"
-          echo "    View docs:  open build/docs/html/index.html"
         '';
 
       # Generate documentation setup helper
@@ -762,30 +724,6 @@ conan install . --profile=release --build=missing --build=<package>
       dpdk
     ]);
 
-    # ============================================================================
-    # Environment Builder - Provides essential C++ infrastructure
-    # ============================================================================
-    environments = {
-      # Minimal C++ environment - just essential infrastructure
-      mkCppEnv = {
-        config,  # Expects complete config (use mkConfigDefaults in template)
-        pkgs,
-      }: let
-        conan = helpers.mkConanSetup {inherit config pkgs;};
-      in {
-        # Essential C++ infrastructure - always provided
-        conan = conan;  # Contains .profiles and .setup
-        cmakeEnv = helpers.mkCMakeEnv config;
-
-        # Optional helpers - templates can use or ignore
-        configSummary = helpers.mkConfigSummary config;
-        ccacheInfo = helpers.mkCcacheInfo config;
-        preCommitHook = helpers.mkPreCommitHook config;
-        docsInfo = helpers.mkDocsInfo config;
-        docsSetup = helpers.mkDocsSetup config;
-        perfFlagsSummary = helpers.mkPerfFlagsSummary config;
-      };
-    };
 
     # For backward compatibility / system-wide (uses top-level llvmPkg)
     lsp = [llvmPkg.clang-tools];

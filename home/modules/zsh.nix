@@ -94,6 +94,7 @@
         # shell options
         setopt globdots
         setopt pushd_silent
+        setopt IGNOREEOF  # Prevent ^D from immediately exiting, let our widget handle it
 
         # keybindings
         bindkey '^y' autosuggest-accept
@@ -170,24 +171,56 @@
         zle -N edit-command-line
         bindkey '^x^e' edit-command-line  # Ctrl-X Ctrl-E to edit command in editor (standard emacs binding)
 
-        _update_dirstack_conan() {
+        _update_dirstack() {
           export MY_DIRSTACK_COUNT=$#dirstack
-          if [[ -n "$DYLD_LIBRARY_PATH" ]] && [[ "$DYLD_LIBRARY_PATH" == *".conan2"* ]]; then
-            export IN_CONAN_ENV="1"
-          else
-            unset IN_CONAN_ENV
-          fi
         }
 
         if [[ -z "$precmd_functions" ]]; then
           precmd_functions=()
         fi
-        precmd_functions+=(_update_dirstack_conan)
+        precmd_functions+=(_update_dirstack)
 
         # Load FZF keybindings manually (Claude Code runs zsh with ZLE off)
         if command -v fzf &> /dev/null; then
           eval "$(fzf --zsh)"
         fi
+
+        # Make <Ctrl-D> deactivate venv if present, otherwise proceed as normal
+        # ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(smart_ctrl_d)
+        smart_ctrl_d() {
+          # Debug logging
+          echo "=== smart_ctrl_d called ===" >> /tmp/zsh-debug.log
+          echo "BUFFER: '$BUFFER'" >> /tmp/zsh-debug.log
+          echo "VIRTUAL_ENV: '$VIRTUAL_ENV'" >> /tmp/zsh-debug.log
+
+          if [[ -z "$BUFFER" ]]; then
+            if [[ -n "$VIRTUAL_ENV" ]]; then
+              echo "=== Deactivating Python venv ===" >> /tmp/zsh-debug.log
+              deactivate
+              local precmd
+              for precmd in $precmd_functions; do
+                $precmd
+              done
+              zle reset-prompt
+            elif [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
+              echo "=== Deactivating Conan env ===" >> /tmp/zsh-debug.log
+              source deactivate_conanrun.sh
+              local precmd
+              for precmd in $precmd_functions; do
+                $precmd
+              done
+              zle reset-prompt
+            else
+              echo "=== No venv, exiting shell ===" >> /tmp/zsh-debug.log
+              exit 0
+            fi
+          else
+            echo "=== Buffer not empty, deleting char ===" >> /tmp/zsh-debug.log
+            zle delete-char-or-list
+          fi
+        }
+        zle -N smart_ctrl_d
+        bindkey '^D' smart_ctrl_d
 
         # Fuzzy functions
         fkill() {

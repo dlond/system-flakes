@@ -75,10 +75,24 @@
 
           nativeBuildInputs = env.packages;
 
-          CONAN_PROFILE_HOST = "${env.profile}";
-          CONAN_PROFILE_BUILD = "${env.profile}";
-
           shellHook = ''
+            # Set Conan to use local profile directory
+            export CONAN_HOME=$(pwd)/.conan2
+            mkdir -p $CONAN_HOME/profiles
+
+            # Link global Conan cache and settings (if they exist)
+            if [ -d "$HOME/.conan2" ]; then
+              # Link all subdirectories except profiles (cache, settings, etc.)
+              for conanDir in $(fd -td -d1 -Eprofiles . $HOME/.conan2 2>/dev/null || true); do
+                ln -sfn $conanDir $CONAN_HOME/
+              done
+            fi
+
+            # Link our Nix-generated profiles
+            ln -sf ${env.profiles.release} $CONAN_HOME/profiles/default
+            ln -sf ${env.profiles.release} $CONAN_HOME/profiles/release
+            ln -sf ${env.profiles.debug} $CONAN_HOME/profiles/debug
+
             echo "C++ Development Environment"
             echo "================================"
             ${env.configSummary}
@@ -89,14 +103,19 @@
             echo "  Clang: $(clang --version | head -1)"
             echo ""
             echo "Setup steps:"
-            echo "  1. Install deps:"
-            echo "     > conan install . --build=missing --profile:host=$\{CONAN_PROFILE_HOST} --profile:build=$\{CONAN_PROFILE_BUILD}"
-            echo "  2. Configure:"
-            echo "     > cmake --preset=conan-release"
-            echo "  3. Build:"
-            echo "     > cmake --build --preset=conan-release"
             echo ""
-            echo "Note: All build settings are configured in flake.nix"
+            echo "  Debug build:"
+            echo "    > conan install . --profile=debug --build=missing"
+            echo "    > cmake --preset=conan-debug"
+            echo "    > cmake --build --preset=conan-debug"
+            echo ""
+            echo "  Release build:"
+            echo "    > conan install . --profile=release --build=missing"
+            echo "    > cmake --preset=conan-release"
+            echo "    > cmake --build --preset=conan-release"
+            echo ""
+            echo "Note: Both debug and release profiles are available"
+            echo "      All build settings are configured in flake.nix"
           '';
         });
     });

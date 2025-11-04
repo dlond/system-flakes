@@ -195,17 +195,14 @@
         "sops-nix": "sops-nix"
       },
       "locked": {
-        "lastModified": 1762243107,
-        "narHash": "sha256-gGX/n3G/TSmm+y/YtTgvKq7KCcQu14Yl3VS5miBKjtM=",
-        "owner": "dlond",
-        "repo": "system-flakes",
-        "rev": "61820930a6ec6dace49bfab64996ee86c001d431",
-        "type": "github"
+        "lastModified": 1762256569,
+        "narHash": "sha256-2MK+/C78bTwuCGCzX55cXUWClWt3jp+pOqGVZuOUSw0=",
+        "path": "/Users/dlond/dev/worktrees/system-flakes/refactor-dev-flakes-235",
+        "type": "path"
       },
       "original": {
-        "owner": "dlond",
-        "repo": "system-flakes",
-        "type": "github"
+        "path": "/Users/dlond/dev/worktrees/system-flakes/refactor-dev-flakes-235",
+        "type": "path"
       }
     },
     "systems": {

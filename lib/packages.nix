@@ -117,8 +117,22 @@ in rec {
       mkConanProfile = {
         config,
         pkgs,
+        variant ? "release",
       }:
-        pkgs.writeText "conan-profile" ''
+        let
+          # Apply debug overrides if variant is debug
+          finalConfig =
+            if variant == "debug" then
+              config // {
+                buildType = "Debug";
+                optimizationLevel = "0";
+                enableSanitizers = true;
+                marchNative = false;
+              }
+            else
+              config;
+        in
+        pkgs.writeText "conan-profile-${variant}" ''
           [settings]
           os=${
             if pkgs.stdenv.isDarwin
@@ -135,29 +149,44 @@ in rec {
             else "Unknown"
           }
           compiler=${
-            if config.compiler or "clang" == "clang"
+            if finalConfig.compiler or "clang" == "clang"
             then "clang"
             else "gcc"
           }
-          compiler.version=${toString (config.llvmVersion or llvmVersion)}
+          compiler.version=${toString (finalConfig.llvmVersion or llvmVersion)}
           compiler.libcxx=${
-            if config.compiler or "clang" == "clang"
+            if finalConfig.compiler or "clang" == "clang"
             then "libc++"
             else "libstdc++11"
           }
-          compiler.cppstd=${toString (config.cppStandard or 20)}
-          build_type=${config.buildType or "Release"}
+          compiler.cppstd=${toString (finalConfig.cppStandard or 20)}
+          build_type=${finalConfig.buildType or "Release"}
 
           [conf]
           tools.cmake.cmaketoolchain:generator=Ninja
-          tools.build:jobs=${toString (config.buildJobs or 12)}
+          tools.build:jobs=${toString (finalConfig.buildJobs or 12)}
 
-          ${lib.optionalString ((config.buildType or "Release") == "Release" && (config.enableLTO or false)) ''
+          ${lib.optionalString ((finalConfig.buildType or "Release") == "Release" && (finalConfig.enableLTO or false)) ''
             [buildenv]
-            CXXFLAGS=${mkCxxFlags config}
-            LDFLAGS=${mkLdFlags config}
+            CXXFLAGS=${mkCxxFlags finalConfig}
+            LDFLAGS=${mkLdFlags finalConfig}
           ''}
         '';
+
+      # Generate both debug and release Conan profiles
+      mkConanProfiles = {
+        config,
+        pkgs,
+      }: {
+        release = mkConanProfile {
+          inherit config pkgs;
+          variant = "release";
+        };
+        debug = mkConanProfile {
+          inherit config pkgs;
+          variant = "debug";
+        };
+      };
 
       # Generate environment variables for CMake
       mkCMakeEnv = config: {
@@ -228,10 +257,12 @@ in rec {
             withAnalysis = config.enableClangTidy or false;
             withDocs = config.enableDocs or false;
           }
-          ++ core.essential ++ core.search;
+          ++ core.essential ++ core.search
+          ++ [pkgs.fd]; # For Conan cache symlinking
 
         # Generated artifacts
-        profile = helpers.mkConanProfile {inherit config pkgs;};
+        profiles = helpers.mkConanProfiles {inherit config pkgs;};
+        profile = helpers.mkConanProfile {inherit config pkgs;}; # Keep for backward compat
         cmakeEnv = helpers.mkCMakeEnv config;
 
         # Helper to generate standard summary (templates can use or ignore)
@@ -273,7 +304,8 @@ in rec {
         packages = baseEnv.packages ++ performanceLibs ++ linuxTools;
 
         # Inherit generated artifacts
-        profile = baseEnv.profile;
+        profiles = baseEnv.profiles;
+        profile = baseEnv.profile; # Keep for backward compat
         cmakeEnv = baseEnv.cmakeEnv;
 
         # Additional helpers for low-latency
@@ -333,7 +365,8 @@ in rec {
         packages = baseEnv.packages ++ pythonTools;
 
         # Inherit C++ artifacts
-        profile = baseEnv.profile;
+        profiles = baseEnv.profiles;
+        profile = baseEnv.profile; # Keep for backward compat
         cmakeEnv =
           baseEnv.cmakeEnv
           // {

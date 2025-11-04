@@ -13,18 +13,10 @@
   selectLLVM = version:
     pkgs."llvmPackages_${version}" or pkgs.llvmPackages;
 
-  selectPython = version:
-    if version == "3.10"
-    then pkgs.python310
-    else if version == "3.11"
-    then pkgs.python311
-    else if version == "3.12"
-    then pkgs.python312
-    else if version == "3.13"
-    then pkgs.python313
-    else if version == "3.14"
-    then pkgs.python314
-    else throw "Unsupported Python version: ${version}. Available: 3.10, 3.11, 3.12, 3.13, 3.14";
+  selectPython = version: let
+    ver = lib.concatStrings (lib.splitString "." version);
+  in
+    pkgs."python${ver}";
 
   # Default package selections
   llvmPkg = selectLLVM llvmVersion;
@@ -73,9 +65,168 @@ in rec {
   # C++ development packages
   cpp = rec {
     # ============================================================================
-    # Shared Configuration Helpers - Used by all C++ templates
+    # Main API for templates - single entry point
+    # ============================================================================
+    mkShell = {
+      pkgs,
+      config ? {},  # User config (partial)
+      name ? "cpp-dev",  # Optional shell name
+      extraPackages ? [],  # Optional extra packages
+    }: let
+      # Apply defaults to get complete config
+      defaults = helpers.mkConfigDefaults {};
+      finalConfig = lib.recursiveUpdate defaults config;
+      cfg = finalConfig.cpp;  # Shorthand
+
+      # Compose packages based on config
+      packages = essential
+        ++ core.essential
+        ++ core.search
+        ++ lib.optionals (cfg.devTools.enable or true) devTools
+        ++ lib.optionals (cfg.devTools.enableCcache or true) [pkgs.ccache]
+        ++ lib.optionals (cfg.devTools.enablePreCommitHooks or false) [pkgs.pre-commit]
+        ++ debugging  # Always include
+        ++ lib.optionals (cfg.analysis.enable or false) analysis
+        ++ lib.optionals (cfg.docs.enable or false) docs
+        ++ lib.optionals (cfg.testing.enable or true) (testFrameworks.${cfg.testing.testFramework or "gtest"} or [])
+        ++ lib.optionals (cfg.performance.enable or false) performance
+        ++ lib.optionals (cfg.linuxPerf.enable or false) linuxPerf  # linuxPerf already checks isLinux
+        ++ extraPackages;
+
+      # Flatten config for compatibility with existing helpers
+      flatConfig = cfg.essential // {
+        enableCcache = cfg.devTools.enableCcache or true;
+        ccacheMaxSize = cfg.devTools.ccacheMaxSize or "5G";
+        enableClangTidy = cfg.devTools.enableClangTidy or false;
+        enablePreCommitHooks = cfg.devTools.enablePreCommitHooks or false;
+        enableCppCheck = cfg.analysis.enableCppCheck or false;
+        enableIncludeWhatYouUse = cfg.analysis.enableIncludeWhatYouUse or false;
+        enableDocs = cfg.docs.enableDocs or false;
+        enableTesting = cfg.testing.enableTesting or true;
+        testFramework = cfg.testing.testFramework or "gtest";
+        enableCoverage = cfg.testing.enableCoverage or false;
+        enableSanitizers = cfg.testing.enableSanitizers or false;
+        enableBenchmarks = cfg.performance.enableBenchmarks or false;
+      };
+
+      # Get environment setup
+      env = environments.mkCppEnv {config = flatConfig; inherit pkgs;};
+    in
+      pkgs.mkShell (env.cmakeEnv // {
+        inherit name;
+        nativeBuildInputs = packages;
+
+        shellHook = ''
+          ${env.conan.setup}
+          ${env.preCommitHook}
+          ${env.docsSetup}
+
+          echo "${name} Environment"
+          echo "================================"
+          ${env.configSummary}
+          ${lib.optionalString (cfg.performance.enableBenchmarks or false) ''
+            echo "  Optimization: -O${toString cfg.essential.optimizationLevel}"
+            ${lib.optionalString (cfg.essential.alignForCache or false) ''echo "  Cache Alignment: ON"''}
+          ''}
+          echo ""
+          ${lib.optionalString (cfg.performance.enableBenchmarks or false) env.perfFlagsSummary}
+          ${lib.optionalString (cfg.performance.enableBenchmarks or false) ''echo ""''}
+          echo "Tools:"
+          echo "  Conan: $(conan --version)"
+          echo "  CMake: $(cmake --version | head -1)"
+          echo "  Clang: $(clang --version | head -1)"
+          ${env.ccacheInfo}
+          ${env.docsInfo}
+          echo ""
+          echo "Setup steps:"
+          echo ""
+          echo "  Debug build:"
+          echo "    > conan install . --profile=debug --build=missing"
+          echo "    > cmake --preset=conan-debug"
+          echo "    > cmake --build --preset=conan-debug"
+          echo ""
+          echo "  Release build:"
+          echo "    > conan install . --profile=release --build=missing"
+          echo "    > cmake --preset=conan-release"
+          echo "    > cmake --build --preset=conan-release"
+          echo ""
+          echo "Note: Both debug and release profiles are available"
+          echo "      All build settings are configured in flake.nix"
+        '';
+      });
+
+    # ============================================================================
+    # Internal Implementation - Not for template use
     # ============================================================================
     helpers = rec {
+      # Get default configuration structure for C++ projects
+      mkConfigDefaults = {}: {
+        cpp = {
+          # Core settings - always applied
+          essential = {
+            cppStandard = 20;
+            defaultProfile = "release";
+            enableLTO = false;
+            useThinLTO = false;
+            enableExceptions = true;
+            enableRTTI = true;
+            optimizationLevel = 2;
+            marchNative = false;
+            enableFastMath = false;
+            alignForCache = false;
+            warningLevel = "all";
+          };
+
+          # Development tools - conditionally included
+          devTools = {
+            enable = true;  # Include by default
+            enablePreCommitHooks = false;
+            enableCcache = true;
+            ccacheMaxSize = "5G";
+            enableClangTidy = false;  # These enable checks, don't add packages
+          };
+
+          # Debugging - always included
+          debugging = {
+            # No options - always included when cpp.devTools.enable = true
+          };
+
+          # Static analysis - conditionally included
+          analysis = {
+            enable = false;  # Off by default
+            enableCppCheck = false;
+            enableIncludeWhatYouUse = false;
+          };
+
+          # Documentation - conditionally included
+          docs = {
+            enable = false;  # Off by default
+            enableDocs = false;
+          };
+
+          # Testing - conditionally included
+          testing = {
+            enable = true;  # Include by default
+            enableTesting = true;
+            testFramework = "gtest";  # gtest, catch2, doctest
+            enableCoverage = false;
+            enableSanitizers = false;  # For debug builds
+          };
+
+          # Performance & benchmarking - conditionally included
+          performance = {
+            enable = false;  # Off by default
+            enableBenchmarks = false;
+          };
+
+          # Linux performance - conditionally included (Linux only)
+          linuxPerf = {
+            enable = false;  # Off by default
+            enableDPDK = false;
+          };
+        };
+      };
+
       # Convert boolean to cmake ON/OFF string
       boolToCMake = b:
         if b
@@ -85,28 +236,28 @@ in rec {
       # Generate CXXFLAGS from config
       mkCxxFlags = config:
         lib.concatStringsSep " " (
-          ["-O${toString (config.optimizationLevel or 2)}"]
-          ++ lib.optionals (config.marchNative or false) ["-march=native" "-mtune=native"]
-          ++ lib.optionals (config.enableLTO or false) [
+          ["-O${toString config.optimizationLevel}"]
+          ++ lib.optionals config.marchNative ["-march=native" "-mtune=native"]
+          ++ lib.optionals config.enableLTO [
             (
-              if config.useThinLTO or false
+              if config.useThinLTO
               then "-flto=thin"
               else "-flto"
             )
           ]
-          ++ lib.optionals (!(config.enableExceptions or true)) ["-fno-exceptions"]
-          ++ lib.optionals (!(config.enableRTTI or true)) ["-fno-rtti"]
-          ++ lib.optionals (config.enableFastMath or false) ["-ffast-math"]
-          ++ lib.optionals (config.alignForCache or false) ["-falign-functions=64"]
+          ++ lib.optionals (!config.enableExceptions) ["-fno-exceptions"]
+          ++ lib.optionals (!config.enableRTTI) ["-fno-rtti"]
+          ++ lib.optionals config.enableFastMath ["-ffast-math"]
+          ++ lib.optionals config.alignForCache ["-falign-functions=64"]
         );
 
       # Generate LDFLAGS from config
       mkLdFlags = config:
         lib.concatStringsSep " " (
           ["-fuse-ld=lld"]
-          ++ lib.optionals (config.enableLTO or false) [
+          ++ lib.optionals config.enableLTO [
             (
-              if config.useThinLTO or false
+              if config.useThinLTO
               then "-flto=thin"
               else "-flto"
             )
@@ -118,20 +269,20 @@ in rec {
         config,
         pkgs,
         variant ? "release",
-      }:
-        let
-          # Apply debug overrides if variant is debug
-          finalConfig =
-            if variant == "debug" then
-              config // {
-                buildType = "Debug";
-                optimizationLevel = "0";
-                enableSanitizers = true;
-                marchNative = false;
-              }
-            else
-              config;
-        in
+      }: let
+        # Apply debug overrides if variant is debug
+        finalConfig =
+          if variant == "debug"
+          then
+            config
+            // {
+              buildType = "Debug";
+              optimizationLevel = "0";
+              enableSanitizers = true;
+              marchNative = false;
+            }
+          else config;
+      in
         pkgs.writeText "conan-profile-${variant}" ''
           [settings]
           os=${
@@ -192,50 +343,61 @@ in rec {
       };
 
       # Generate environment variables for CMake
-      mkCMakeEnv = config: {
-        CMAKE_CXX_STANDARD = toString (config.cppStandard or 20);
-        CMAKE_BUILD_TYPE = config.buildType or "Release";
-        BUILD_SHARED_LIBS = boolToCMake (config.buildSharedLibs or false);
-        ENABLE_LTO = boolToCMake (config.enableLTO or false);
-        USE_THIN_LTO = boolToCMake (config.useThinLTO or false);
-        ENABLE_EXCEPTIONS = boolToCMake (config.enableExceptions or true);
-        ENABLE_RTTI = boolToCMake (config.enableRTTI or true);
-        ENABLE_TESTING = boolToCMake (config.enableTesting or true);
-        TEST_FRAMEWORK = config.testFramework or "gtest";
-        ENABLE_BENCHMARKS = boolToCMake (config.enableBenchmarks or false);
-        ENABLE_COVERAGE = boolToCMake (config.enableCoverage or false);
-        ENABLE_SANITIZERS = boolToCMake (config.enableSanitizers or false);
-        ENABLE_CLANG_TIDY = boolToCMake (config.enableClangTidy or false);
-        ENABLE_CPPCHECK = boolToCMake (config.enableCppCheck or false);
-        ENABLE_IWYU = boolToCMake (config.enableIncludeWhatYouUse or false);
-        ENABLE_DOCS = boolToCMake (config.enableDocs or false);
-        OPTIMIZATION_LEVEL = toString (config.optimizationLevel or 2);
-        MARCH_NATIVE = boolToCMake (config.marchNative or false);
-        ENABLE_FAST_MATH = boolToCMake (config.enableFastMath or false);
-        ALIGN_FOR_CACHE = boolToCMake (config.alignForCache or false);
-        WARNING_LEVEL = config.warningLevel or "all";
-        CMAKE_EXPORT_COMPILE_COMMANDS = boolToCMake (config.generateCompileCommands or true);
-      } // lib.optionalAttrs (config.enableCcache or true) {
-        CCACHE_DIR = "$HOME/.ccache";
-        CCACHE_MAXSIZE = config.ccacheMaxSize or "5G";
-      };
+      mkCMakeEnv = config:
+        {
+          # Essential build configuration
+          CMAKE_CXX_STANDARD = toString config.cppStandard;
+          CMAKE_EXPORT_COMPILE_COMMANDS = "ON";  # Always generate for LSP
+
+          # C++ feature flags
+          ENABLE_LTO = boolToCMake config.enableLTO;
+          USE_THIN_LTO = boolToCMake config.useThinLTO;
+          ENABLE_EXCEPTIONS = boolToCMake config.enableExceptions;
+          ENABLE_RTTI = boolToCMake config.enableRTTI;
+
+          # Testing configuration
+          ENABLE_TESTING = boolToCMake config.enableTesting;
+          TEST_FRAMEWORK = config.testFramework;
+          ENABLE_BENCHMARKS = boolToCMake config.enableBenchmarks;
+          ENABLE_COVERAGE = boolToCMake config.enableCoverage;
+
+          # Development tools
+          ENABLE_SANITIZERS = boolToCMake config.enableSanitizers;
+          ENABLE_CLANG_TIDY = boolToCMake config.enableClangTidy;
+          ENABLE_CPPCHECK = boolToCMake config.enableCppCheck;
+          ENABLE_IWYU = boolToCMake config.enableIncludeWhatYouUse;
+          ENABLE_DOCS = boolToCMake config.enableDocs;
+
+          # Performance/optimization flags
+          OPTIMIZATION_LEVEL = toString config.optimizationLevel;
+          MARCH_NATIVE = boolToCMake config.marchNative;
+          ENABLE_FAST_MATH = boolToCMake config.enableFastMath;
+          ALIGN_FOR_CACHE = boolToCMake config.alignForCache;
+
+          # Compiler configuration
+          WARNING_LEVEL = config.warningLevel;
+        }
+        // lib.optionalAttrs config.enableCcache {
+          CCACHE_DIR = "$HOME/.ccache";
+          CCACHE_MAXSIZE = config.ccacheMaxSize;
+        };
 
       # Generate configuration summary for shell
       mkConfigSummary = config: ''
         echo "Configuration (from flake.nix):"
-        echo "  C++ Standard: ${toString (config.cppStandard or 20)}"
-        echo "  Build Type: ${config.buildType or "Release"}"
-        echo "  Testing: ${boolToCMake (config.enableTesting or true)} (${config.testFramework or "gtest"})"
-        echo "  LTO: ${boolToCMake (config.enableLTO or false)}${lib.optionalString (config.enableLTO or false) " (${
-          if config.useThinLTO or false
+        echo "  C++ Standard: ${toString config.cppStandard}"
+        echo "  Default Profile: ${config.defaultProfile}"
+        echo "  Testing: ${boolToCMake config.enableTesting} (${config.testFramework})"
+        echo "  LTO: ${boolToCMake config.enableLTO}${lib.optionalString config.enableLTO " (${
+          if config.useThinLTO
           then "thin"
           else "full"
         })"}"
-        echo "  Warnings: ${config.warningLevel or "all"}"
-        ${lib.optionalString (config.enableBenchmarks or false) ''echo "  Benchmarks: ON"''}
-        ${lib.optionalString (config.marchNative or false) ''echo "  March Native: ON"''}
-        ${lib.optionalString (!(config.enableExceptions or true)) ''echo "  Exceptions: OFF"''}
-        ${lib.optionalString (!(config.enableRTTI or true)) ''echo "  RTTI: OFF"''}
+        echo "  Warnings: ${config.warningLevel}"
+        ${lib.optionalString config.enableBenchmarks ''echo "  Benchmarks: ON"''}
+        ${lib.optionalString config.marchNative ''echo "  March Native: ON"''}
+        ${lib.optionalString (!config.enableExceptions) ''echo "  Exceptions: OFF"''}
+        ${lib.optionalString (!config.enableRTTI) ''echo "  RTTI: OFF"''}
       '';
 
       # Generate performance flags summary (for low-latency template)
@@ -247,7 +409,7 @@ in rec {
 
       # Generate ccache info for shell
       mkCcacheInfo = config:
-        lib.optionalString (config.enableCcache or true) ''
+        lib.optionalString config.enableCcache ''
           if command -v ccache >/dev/null 2>&1; then
             echo "  ccache: enabled ($(ccache --version | head -1 | cut -d' ' -f3))"
           fi
@@ -255,7 +417,7 @@ in rec {
 
       # Generate pre-commit hook installation
       mkPreCommitHook = config:
-        lib.optionalString (config.enablePreCommitHooks or false) ''
+        lib.optionalString config.enablePreCommitHooks ''
           # Install pre-commit hooks if config exists
           if [ -f .pre-commit-config.yaml ] && command -v pre-commit >/dev/null 2>&1; then
             if [ ! -f .git/hooks/pre-commit ]; then
@@ -267,7 +429,7 @@ in rec {
 
       # Generate documentation info
       mkDocsInfo = config:
-        lib.optionalString (config.enableDocs or false) ''
+        lib.optionalString config.enableDocs ''
           echo "  Documentation: enabled (Sphinx + Breathe)"
           echo "    Build docs: cmake --build build --target docs"
           echo "    View docs:  open build/docs/html/index.html"
@@ -275,7 +437,7 @@ in rec {
 
       # Generate documentation setup helper
       mkDocsSetup = config:
-        lib.optionalString (config.enableDocs or false) ''
+        lib.optionalString config.enableDocs ''
           # Create docs structure if it doesn't exist
           if [ ! -f docs/conf.py ] && [ -f CMakeLists.txt ]; then
             echo "Setting up documentation structure..."
@@ -283,263 +445,142 @@ in rec {
             # We'll populate these files in the template
           fi
         '';
+
+      # Generate complete Conan setup - profiles and home directory setup
+      mkConanSetup = {
+        config,
+        pkgs,
+      }: let
+        profiles = mkConanProfiles {inherit config pkgs;};
+        defaultProfile = config.defaultProfile;
+      in {
+        # The generated profiles
+        inherit profiles;
+
+        # Shell setup script
+        setup = ''
+          # Set Conan to use local profile directory
+          export CONAN_HOME=$(pwd)/.conan2
+          mkdir -p $CONAN_HOME/profiles
+
+          # Link global Conan cache and settings (if they exist)
+          if [ -d "$HOME/.conan2" ]; then
+            # Link all subdirectories except profiles (cache, settings, etc.)
+            for conanDir in $(fd -td -d1 -Eprofiles . $HOME/.conan2 2>/dev/null || true); do
+              ln -sfn $conanDir $CONAN_HOME/
+            done
+          fi
+
+          # Link our Nix-generated profiles
+          ln -sf ${profiles.${defaultProfile}} $CONAN_HOME/profiles/default
+          ln -sf ${profiles.release} $CONAN_HOME/profiles/release
+          ln -sf ${profiles.debug} $CONAN_HOME/profiles/debug
+        '';
+      };
     };
 
     # ============================================================================
-    # Template-Specific Package Builders - Return components for flexibility
+    # Package Groups - Templates compose what they need
+    # ============================================================================
+
+    # Essential C++ packages - minimum to compile C++
+    essential = [
+      llvmPkg.clang # Compiler
+      llvmPkg.lld # Linker
+      llvmPkg.libcxx # C++ standard library
+      llvmPkg.libcxx.dev # C++ headers
+      pkgs.cmake # Build system
+      pkgs.ninja # Build tool
+      pkgs.conan # Package manager (architectural choice)
+    ];
+
+    # Developer tools - LSPs, formatters, linters, productivity
+    devTools = [
+      llvmPkg.clang-tools # clangd, clang-format, clang-tidy
+      pkgs.cmake-format
+      pkgs.cmake-language-server
+      pkgs.ccache
+      pkgs.pre-commit  # Git hooks for formatting
+    ];
+
+    # Debugging tools
+    debugging =
+      [
+        llvmPkg.lldb # LLDB debugger
+      ]
+      ++ lib.optionals pkgs.stdenv.isLinux [
+        pkgs.gdb
+        pkgs.valgrind
+      ];
+
+    # Static analysis tools
+    analysis = with pkgs; [
+      cppcheck
+      include-what-you-use
+    ];
+
+    # Documentation tools
+    docs = with pkgs; [
+      doxygen
+      graphviz
+      sphinx
+      python3Packages.breathe
+      python3Packages.sphinx-rtd-theme
+    ];
+
+    # Test frameworks
+    testFrameworks = {
+      gtest = [pkgs.gtest];
+      catch2 = [pkgs.catch2_3];
+      doctest = [pkgs.doctest];
+    };
+
+    # Performance & benchmarking libraries
+    performance = with pkgs; [
+      gbenchmark
+      boost
+      jemalloc
+      mimalloc
+      tbb
+    ];
+
+    # Linux-specific performance tools
+    linuxPerf = lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+      perf-tools
+      liburing
+      dpdk
+    ]);
+
+    # ============================================================================
+    # Environment Builder - Provides essential C++ infrastructure
     # ============================================================================
     environments = {
-      # Standard C++ development environment components
-      mkStandardEnv = {
-        config,
+      # Minimal C++ environment - just essential infrastructure
+      mkCppEnv = {
+        config,  # Expects complete config (use mkConfigDefaults in template)
         pkgs,
-      }: {
-        # Core C++ packages
-        packages =
-          packages {
-            llvmVersion = config.llvmVersion or llvmVersion;
-            packageManager = "conan";
-            testFramework = config.testFramework or "gtest";
-            withAnalysis = config.enableClangTidy or false;
-            withDocs = config.enableDocs or false;
-          }
-          ++ core.essential ++ core.search
-          ++ [pkgs.fd] # For Conan cache symlinking
-          ++ lib.optionals (config.enablePreCommitHooks or false) [pkgs.pre-commit]
-          ++ lib.optionals (config.enableDocs or false) [
-            pkgs.doxygen
-            pkgs.graphviz # For Doxygen graphs
-            pkgs.sphinx
-            pkgs.python3Packages.breathe
-            pkgs.python3Packages.sphinx-rtd-theme
-          ];
-
-        # Generated artifacts
-        profiles = helpers.mkConanProfiles {inherit config pkgs;};
-        profile = helpers.mkConanProfile {inherit config pkgs;}; # Keep for backward compat
+      }: let
+        conan = helpers.mkConanSetup {inherit config pkgs;};
+      in {
+        # Essential C++ infrastructure - always provided
+        conan = conan;  # Contains .profiles and .setup
         cmakeEnv = helpers.mkCMakeEnv config;
 
-        # Helper to generate standard summary (templates can use or ignore)
+        # Optional helpers - templates can use or ignore
         configSummary = helpers.mkConfigSummary config;
         ccacheInfo = helpers.mkCcacheInfo config;
         preCommitHook = helpers.mkPreCommitHook config;
         docsInfo = helpers.mkDocsInfo config;
         docsSetup = helpers.mkDocsSetup config;
-      };
-
-      # Low-latency/high-performance C++ environment components
-      mkLowLatencyEnv = {
-        config,
-        pkgs,
-      }: let
-        baseEnv = environments.mkStandardEnv {inherit config pkgs;};
-
-        # Performance-specific packages
-        performanceLibs = with pkgs;
-          [
-            gbenchmark
-            boost
-            jemalloc
-            mimalloc
-            tbb
-          ]
-          ++ lib.optionals (config.additionalTestFrameworks or false) [
-            catch2_3
-          ];
-
-        # Linux-specific performance tools
-        linuxTools = lib.optionals pkgs.stdenv.isLinux (with pkgs;
-          [
-            perf-tools
-            valgrind
-            liburing
-          ]
-          ++ lib.optionals (config.enableDPDK or false) [
-            dpdk
-          ]);
-      in {
-        # Combine base packages with performance tools
-        packages = baseEnv.packages ++ performanceLibs ++ linuxTools;
-
-        # Inherit generated artifacts
-        profiles = baseEnv.profiles;
-        profile = baseEnv.profile; # Keep for backward compat
-        cmakeEnv = baseEnv.cmakeEnv;
-
-        # Additional helpers for low-latency
-        configSummary = baseEnv.configSummary;
-        ccacheInfo = baseEnv.ccacheInfo;
-        preCommitHook = baseEnv.preCommitHook;
-        docsInfo = baseEnv.docsInfo;
-        docsSetup = baseEnv.docsSetup;
         perfFlagsSummary = helpers.mkPerfFlagsSummary config;
-
-        # Export the individual package groups (in case template wants them separately)
-        packageGroups = {
-          base = baseEnv.packages;
-          performance = performanceLibs;
-          linux = linuxTools;
-        };
-      };
-
-      # Python + C++ hybrid environment components
-      mkHybridEnv = {
-        config,
-        pkgs,
-      }: let
-        baseEnv = environments.mkStandardEnv {
-          config =
-            config
-            // {
-              # Force C++17 for Python bindings compatibility
-              cppStandard = config.cppStandard or "17";
-            };
-          inherit pkgs;
-        };
-
-        # Python environment
-        pythonVersion = config.pythonVersion or pythonVersion;
-        pythonWithPackages = (selectPython pythonVersion).withPackages (ps:
-          with ps; [
-            debugpy
-            pynvim
-            jupyter-client
-            ipykernel
-            pybind11
-            setuptools
-            wheel
-            build
-          ]);
-
-        pythonTools = with pkgs;
-          [
-            pythonWithPackages
-            uv
-            basedpyright
-            ruff
-          ]
-          ++ lib.optionals (config.withJupyter or true) [
-            imagemagick
-            poppler-utils
-          ];
-      in {
-        # Combine C++ and Python packages
-        packages = baseEnv.packages ++ pythonTools;
-
-        # Inherit C++ artifacts
-        profiles = baseEnv.profiles;
-        profile = baseEnv.profile; # Keep for backward compat
-        cmakeEnv =
-          baseEnv.cmakeEnv
-          // {
-            Python3_EXECUTABLE = "${pythonWithPackages}/bin/python";
-          };
-
-        # Export components separately for flexibility
-        packageGroups = {
-          cpp = baseEnv.packages;
-          python = pythonTools;
-        };
-
-        # Additional environment variables for Python
-        pythonEnv = {
-          UV_PROJECT_ENVIRONMENT = ".venv";
-          Python3_EXECUTABLE = "${pythonWithPackages}/bin/python";
-        };
-
-        configSummary = baseEnv.configSummary;
-        ccacheInfo = baseEnv.ccacheInfo;
       };
     };
 
-    # Function to get C++ packages with specific versions
-    packages = args: let
-      llvmVer = args.llvmVersion or llvmVersion;
-      packageManager = args.packageManager or "conan";
-      testFramework = args.testFramework or "gtest";
-      withBazel = args.withBazel or false;
-      withDocs = args.withDocs or false;
-      withAnalysis = args.withAnalysis or false;
-      llvm = selectLLVM llvmVer;
-
-      # Core compiler toolchain
-      compiler = [
-        llvm.clang
-        llvm.clang-tools # clangd, clang-format, clang-tidy
-        llvm.lld
-        llvm.lldb # Includes lldb-dap
-        llvm.libcxx
-        llvm.libcxx.dev
-      ];
-
-      # Build tools (always included)
-      buildTools = with pkgs; [
-        cmake
-        cmake-format
-        cmake-language-server
-        ninja
-        ccache
-        bear # For compile_commands.json generation
-      ];
-
-      # Package managers
-      packageManagers = {
-        conan = [pkgs.conan];
-        vcpkg = [pkgs.vcpkg];
-        cpm = []; # CPM is CMake-native
-        none = [];
-      };
-
-      # Testing frameworks
-      testFrameworks = {
-        gtest = [pkgs.gtest];
-        catch2 = [pkgs.catch2_3];
-        doctest = [pkgs.doctest];
-        boost = [pkgs.boost];
-        none = [];
-      };
-
-      # Optional tools
-      bazelTools = lib.optionals withBazel (with pkgs; [
-        bazel
-        bazel-buildtools
-        buildifier
-      ]);
-
-      docsTools = lib.optionals withDocs (with pkgs; [
-        doxygen
-        graphviz
-      ]);
-
-      analysisTools = lib.optionals withAnalysis (with pkgs;
-        [
-          cppcheck
-          include-what-you-use
-          clang-analyzer
-        ]
-        ++ lib.optionals stdenv.isLinux [
-          gdb
-          valgrind
-        ]);
-    in
-      compiler
-      ++ buildTools
-      ++ (packageManagers.${packageManager} or packageManagers.conan)
-      ++ (testFrameworks.${testFramework} or testFrameworks.gtest)
-      ++ bazelTools
-      ++ docsTools
-      ++ analysisTools;
-
-    # Convenience: default C++ packages for system
-    default = packages {};
-
-    # Just the LSP for neovim
+    # For backward compatibility / system-wide (uses top-level llvmPkg)
     lsp = [llvmPkg.clang-tools];
-
-    # Just the formatter for neovim
-    formatters = with pkgs; [
+    formatters = [
       llvmPkg.clang-tools # clang-format
-      cmake-format
+      pkgs.cmake-format
     ];
   };
 

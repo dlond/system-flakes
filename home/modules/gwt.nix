@@ -61,7 +61,7 @@
         local response
 
         echo -n "$prompt "
-        read response
+        read -r response
 
         if [ -z "$response" ] && [ -n "$default" ]; then
           response="$default"
@@ -84,16 +84,16 @@
       # Returns: user input on stdout
       __gwt_prompt() {
         local prompt=$1
-        local default=$2
+        local default=''${2:-""}
         local response
 
         if [ -n "$default" ]; then
-          echo -n "$prompt [$default]: "
+          echo -n "$prompt [$default]: " >&2
         else
-          echo -n "$prompt: "
+          echo -n "$prompt: " >&2
         fi
 
-        read response
+        read -r response
 
         if [ -z "$response" ] && [ -n "$default" ]; then
           response="$default"
@@ -106,30 +106,40 @@
       # Args:
       #   $1 = prompt message
       #   $2 = value to edit
-      # Returns: 0=yes(use as-is), 1=no(reject), 2=edit
+      # Returns: 0=yes or edit, 1=no
       # Sets __gwt_prompt_result to the final value
       __gwt_confirm_or_edit() {
         local prompt=$1
         local value=$2
         local response
 
-        echo -n "$prompt (y/n/edit): "
-        read response
+        while true; do
+          echo -n "$prompt $value (y/n/edit): "
+          read -r response
 
-        case "$response" in
-          y|Y|yes|YES|"")
-            __gwt_prompt_result="$value"
-            return 0
-            ;;
-          n|N|no|NO)
-            __gwt_prompt_result=""
-            return 1
-            ;;
-          *)
-            __gwt_prompt_result=$(__gwt_prompt "Edit value" "$value")
-            return 2
-            ;;
-        esac
+          case "$response" in
+            y|Y|yes|YES|"")
+              __gwt_prompt_result="$value"
+              return 0
+              ;;
+            n|N|no|NO)
+              __gwt_prompt_result=""
+              echo "Cancelled."
+              return 1
+              ;;
+            e|E|edit|EDIT)
+              __gwt_prompt_result=$(__gwt_prompt "Edit value" "$value")
+              if [[ -n "$__gwt_prompt_result" ]]; then
+                return 0
+              else
+                echo "Edit cancelled, try again."
+              fi
+              ;;
+            *)
+              echo "Invalid response, please enter y, n, or edit."
+              ;;
+          esac
+        done
       }
 
       # Get the main branch name (main or master)
@@ -170,6 +180,39 @@
         dirname "$(git rev-parse --git-common-dir)"
       }
 
+      # Fetch remote branch with standard error handling
+      # Args: $1 = branch name
+      # Returns: 0 on success, 1 on failure (non-fatal)
+      __gwt_fetch_remote() {
+        local branch=$1
+        __gwt_print_working "Fetching latest changes from remote..."
+
+        if git fetch origin "refs/heads/''${branch}:refs/remotes/origin/''${branch}" 2>/dev/null; then
+          return 0
+        else
+          __gwt_print_warning "Failed to fetch latest changes from remote"
+          echo "   Continuing with local state..."
+          return 1
+        fi
+      }
+
+      # Pull remote branch with standard error handling
+      # Args: $1 = branch name
+      # Returns: 0 on success, 1 on failure (non-fatal)
+      __gwt_pull_remote() {
+        local branch=$1
+        __gwt_print_working "Updating $branch with latest changes from remote..."
+
+        if git pull origin "$branch" --ff-only 2>/dev/null; then
+          __gwt_print_success "$branch branch updated successfully"
+          return 0
+        else
+          __gwt_print_warning "Could not fast-forward $branch (may have local commits or conflicts)"
+          echo "   Run 'git pull origin $branch' manually to resolve"
+          return 1
+        fi
+      }
+
       # Check if branch exists locally
       __gwt_branch_exists() {
         local branch=$1
@@ -201,10 +244,9 @@
         local branch=$2
 
         if ! __gwt_is_worktree_clean "$worktree"; then
-          __gwt_print_warning "You have uncommitted changes in $branch"
+          __gwt_print_error "Uncommitted changes detected in $branch"
           git -C "$worktree" status --short
           echo ""
-          echo "Unable to proceed with uncommitted changes."
           echo "Please commit or stash your changes first:"
           echo "  cd $worktree"
           echo "  git commit -am 'your message'"
@@ -481,8 +523,8 @@
         # Return suggested branch name based on analysis
         if [ ''${#issues[@]} -eq 1 ]; then
           # Single issue - use sanitized title
-          local title_text="''${titles[1]}"
-          local issue_num="''${issues[1]}"
+          local title_text="''${titles[0]}"
+          local issue_num="''${issues[0]}"
           local sanitized_title
           sanitized_title=$(__gwt_sanitize_for_branch "$title_text")
           echo "''${sanitized_title}-''${issue_num}"
@@ -563,22 +605,21 @@
 
           # Analyze issues and suggest branch name
           branch=$(__gwt_analyze_issues "''${issue_numbers[@]}")
-          local prompt_result
-          __gwt_confirm_or_edit "Use this name?" "$branch"
-          case $? in
-            0)
-              prompt_result="$__gwt_prompt_result"
-              ;;
-            1)
-              prompt_result=$(__gwt_prompt "Enter custom branch name")
-              ;;
-            2)
-              prompt_result="$__gwt_prompt_result"
-              ;;
-          esac
-
-          branch=$(__gwt_sanitize_for_branch "$prompt_result")
+        else
+          branch=$(__gwt_sanitize_for_branch "$1")
         fi
+
+        # local prompt_result
+        __gwt_confirm_or_edit "Use this name?" "$branch"
+        case $? in
+          0)
+            branch="$__gwt_prompt_result"
+            ;;
+          1)
+            # branch=$(__gwt_prompt "Enter custom branch name")
+            return 1
+            ;;
+        esac
 
         local worktree_base=$(__gwt_get_worktree_base)
         local worktree="$worktree_base/$branch"
@@ -586,6 +627,8 @@
         if __gwt_worktree_exists "$branch"; then
           worktree=$(__gwt_get_worktree "$branch")
           __gwt_print_info "Worktree already exists: nothing to do"
+          __gwt_print_info "$branch"
+          __gwt_print_info "$worktree"
         else
           mkdir -p "$worktree"
 
@@ -751,11 +794,7 @@
         __gwt_require_clean_worktree "$wt_to_complete" "$br_to_complete" || return 1
 
         # Fetch latest changes from remote
-        __gwt_print_working "Fetching latest changes from remote..."
-        git fetch origin "''${main_branch}:refs/remotes/origin/$main_branch" || {
-          __gwt_print_warning "Failed to fetch latest changes from remote"
-          echo "   Continuing with local state..."
-        }
+        __gwt_fetch_remote "$main_branch"
 
         # Check if PR exists and is merged
         if __gwt_pr_exists "$br_to_complete"; then
@@ -791,10 +830,15 @@
 
         # Remove the worktree
         __gwt_print_working "Removing worktree..."
-        git worktree remove "$wt_to_complete" --force || {
-          __gwt_print_error "Failed to remove worktree"
-          return 1
+        git worktree remove "$wt_to_complete" || {
+          __gwt_print_error "Failed to remove worktree '$wt_to_complete'"
         }
+
+
+        git branch -d "$br_to_complete" || {
+          __gwt_print_warning "Failed to delete branch '$br_to_complete' (may have unmerged changes)"
+        }
+
 
         # Close related issues if requested
         local issue_numbers=$(__gwt_extract_issue_numbers "$br_to_complete")
@@ -816,13 +860,7 @@
         __gwt_print_success "Worktree and branch cleanup complete!"
 
         # Update main branch with latest changes from remote
-        __gwt_print_working "Updating $main_branch with latest changes from remote..."
-        if git pull origin "$main_branch" --ff-only 2>/dev/null; then
-          __gwt_print_success "$main_branch branch updated successfully"
-        else
-          __gwt_print_warning "Could not fast-forward $main_branch (may have local commits or conflicts)"
-          echo "   Run 'git pull origin $main_branch' manually to resolve"
-        fi
+        __gwt_pull_remote "$main_branch"
 
         # We're now safely in the main worktree
         pwd

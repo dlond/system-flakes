@@ -1,8 +1,8 @@
 [requires]
 benchmark/1.8.4
-gtest/1.14.0
+gtest/1.17.0
 boost/1.85.0
-fmt/10.2.1
+fmt/12.1.0
 spdlog/1.14.1
 
 [generators]

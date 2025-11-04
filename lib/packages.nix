@@ -72,6 +72,104 @@ in rec {
 
   # C++ development packages
   cpp = rec {
+    # ============================================================================
+    # Shared Configuration Helpers - Used by all C++ templates
+    # ============================================================================
+    helpers = rec {
+      # Convert boolean to cmake ON/OFF string
+      boolToCMake = b: if b then "ON" else "OFF";
+
+      # Generate CXXFLAGS from config
+      mkCxxFlags = config: lib.concatStringsSep " " (
+        ["-O${toString (config.optimizationLevel or 2)}"]
+        ++ lib.optionals (config.marchNative or false) ["-march=native" "-mtune=native"]
+        ++ lib.optionals (config.enableLTO or false) [
+          (if config.useThinLTO or false then "-flto=thin" else "-flto")
+        ]
+        ++ lib.optionals (!(config.enableExceptions or true)) ["-fno-exceptions"]
+        ++ lib.optionals (!(config.enableRTTI or true)) ["-fno-rtti"]
+        ++ lib.optionals (config.enableFastMath or false) ["-ffast-math"]
+        ++ lib.optionals (config.alignForCache or false) ["-falign-functions=64"]
+      );
+
+      # Generate LDFLAGS from config
+      mkLdFlags = config: lib.concatStringsSep " " (
+        ["-fuse-ld=lld"]
+        ++ lib.optionals (config.enableLTO or false) [
+          (if config.useThinLTO or false then "-flto=thin" else "-flto")
+        ]
+      );
+
+      # Generate Conan profile from config
+      mkConanProfile = {config, pkgs}: pkgs.writeText "conan-profile" ''
+        [settings]
+        os=${if pkgs.stdenv.isDarwin then "Macos" else if pkgs.stdenv.isLinux then "Linux" else "Unknown"}
+        arch=${if pkgs.stdenv.isAarch64 then "armv8" else if pkgs.stdenv.isx86_64 then "x86_64" else "Unknown"}
+        compiler=${if config.compiler or "clang" == "clang" then "clang" else "gcc"}
+        compiler.version=${toString (config.llvmVersion or llvmVersion)}
+        compiler.libcxx=${if config.compiler or "clang" == "clang" then "libc++" else "libstdc++11"}
+        compiler.cppstd=${toString (config.cppStandard or 20)}
+        build_type=${config.buildType or "Release"}
+
+        [conf]
+        tools.cmake.cmaketoolchain:generator=Ninja
+        tools.build:jobs=${toString (config.buildJobs or 12)}
+        ${lib.optionalString (config.buildParallel or true) "tools.cmake.cmake:build_parallel=${toString (config.buildJobs or 12)}"}
+
+        ${lib.optionalString ((config.buildType or "Release") == "Release" && (config.enableLTO or false)) ''
+        [buildenv]
+        CXXFLAGS=${mkCxxFlags config}
+        LDFLAGS=${mkLdFlags config}
+        ''}
+      '';
+
+      # Generate environment variables for CMake
+      mkCMakeEnv = config: {
+        CMAKE_CXX_STANDARD = toString (config.cppStandard or 20);
+        CMAKE_BUILD_TYPE = config.buildType or "Release";
+        BUILD_SHARED_LIBS = boolToCMake (config.buildSharedLibs or false);
+        ENABLE_LTO = boolToCMake (config.enableLTO or false);
+        USE_THIN_LTO = boolToCMake (config.useThinLTO or false);
+        ENABLE_EXCEPTIONS = boolToCMake (config.enableExceptions or true);
+        ENABLE_RTTI = boolToCMake (config.enableRTTI or true);
+        ENABLE_TESTING = boolToCMake (config.enableTesting or true);
+        TEST_FRAMEWORK = config.testFramework or "gtest";
+        ENABLE_BENCHMARKS = boolToCMake (config.enableBenchmarks or false);
+        ENABLE_COVERAGE = boolToCMake (config.enableCoverage or false);
+        ENABLE_SANITIZERS = boolToCMake (config.enableSanitizers or false);
+        ENABLE_CLANG_TIDY = boolToCMake (config.enableClangTidy or false);
+        ENABLE_CPPCHECK = boolToCMake (config.enableCppCheck or false);
+        ENABLE_IWYU = boolToCMake (config.enableIncludeWhatYouUse or false);
+        OPTIMIZATION_LEVEL = toString (config.optimizationLevel or 2);
+        MARCH_NATIVE = boolToCMake (config.marchNative or false);
+        ENABLE_FAST_MATH = boolToCMake (config.enableFastMath or false);
+        ALIGN_FOR_CACHE = boolToCMake (config.alignForCache or false);
+        WARNING_LEVEL = config.warningLevel or "all";
+        CMAKE_EXPORT_COMPILE_COMMANDS = boolToCMake (config.generateCompileCommands or true);
+      };
+
+      # Generate configuration summary for shell
+      mkConfigSummary = config: ''
+        echo "Configuration (from flake.nix):"
+        echo "  C++ Standard: ${toString (config.cppStandard or 20)}"
+        echo "  Build Type: ${config.buildType or "Release"}"
+        echo "  Testing: ${boolToCMake (config.enableTesting or true)} (${config.testFramework or "gtest"})"
+        echo "  LTO: ${boolToCMake (config.enableLTO or false)}${lib.optionalString (config.enableLTO or false) " (${if config.useThinLTO or false then "thin" else "full"})"}"
+        echo "  Warnings: ${config.warningLevel or "all"}"
+        ${lib.optionalString (config.enableBenchmarks or false) ''echo "  Benchmarks: ON"''}
+        ${lib.optionalString (config.marchNative or false) ''echo "  March Native: ON"''}
+        ${lib.optionalString (!(config.enableExceptions or true)) ''echo "  Exceptions: OFF"''}
+        ${lib.optionalString (!(config.enableRTTI or true)) ''echo "  RTTI: OFF"''}
+      '';
+
+      # Generate performance flags summary (for low-latency template)
+      mkPerfFlagsSummary = config: ''
+        echo "Performance Flags:"
+        echo "  CXXFLAGS: ${mkCxxFlags config}"
+        echo "  LDFLAGS: ${mkLdFlags config}"
+      '';
+    };
+
     # Function to get C++ packages with specific versions
     packages = args: let
       llvmVer = args.llvmVersion or llvmVersion;

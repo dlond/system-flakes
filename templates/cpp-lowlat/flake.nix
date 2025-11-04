@@ -10,105 +10,140 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, system-flakes, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
-        };
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    system-flakes,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
 
-        # Import packages from system-flakes with LLVM 18 for performance
-        packages = import "${system-flakes}/lib/packages.nix" {
-          inherit pkgs;
-          llvmVersion = "18";  # Latest LLVM for performance optimizations
-        };
-      in {
-        devShells.default = pkgs.mkShell {
-          buildInputs =
-            # C++ packages with analysis tools enabled
-            packages.cpp.packages {
-              llvmVersion = "18";
-              packageManager = "conan";
-              testFramework = "gtest";
-              withAnalysis = true;
-              withDocs = false;
-              withBazel = false;
-            }
-            # Additional performance libraries
-            ++ (with pkgs; [
-              google-benchmark
-              boost
-              jemalloc
-              mimalloc
-              tbb
-              catch2_3  # Additional testing framework
-            ])
-            # Linux-specific performance tools
-            ++ pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
-              perf-tools
-              valgrind
-              liburing
-              dpdk
-            ])
-            # Core development tools from system-flakes
-            ++ packages.core.search
-            ++ packages.core.utils;
+      # ============================================================================
+      # Configuration - Single source of truth for low-latency systems
+      # ============================================================================
+      config = {
+        # Compiler settings
+        llvmVersion = "18";  # Stable for production
+        cppStandard = "23";  # Latest features for performance
 
-          shellHook = ''
-            echo "⚡ C++ Low-Latency Development Environment"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "Clang: $(clang --version | head -n 1)"
-            echo "CMake: $(cmake --version | head -n 1)"
-            echo "Conan: $(conan --version)"
-            echo ""
-            echo "Quick start:"
-            echo "  • conan profile detect --force  - Setup Conan profile"
-            echo "  • conan install . --build=missing"
-            echo "  • cmake --preset conan-release"
-            echo "  • cmake --build --preset conan-release"
-            echo ""
-            echo "Available presets:"
-            echo "  • conan-debug     - Debug symbols, sanitizers"
-            echo "  • conan-release   - Optimized, LTO enabled"
-            echo "  • conan-relwithdebinfo - Optimized with debug info"
-            echo ""
-            echo "Performance tools:"
-            ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-            echo "  • perf record ./app    - CPU profiling (Linux)"
-            echo "  • valgrind --tool=cachegrind ./app (Linux)"
-            ''}
-            echo "  • lldb ./app          - LLVM debugger"
-            echo "  • google-benchmark    - Microbenchmarking"
-            echo ""
-            echo "Key optimization techniques:"
-            echo "  • Lock-free data structures"
-            echo "  • Cache-line optimization"
-            echo "  • Memory pool allocators"
-            echo "  • SIMD instructions"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            # Check for Conan profiles
-            if [ ! -d ~/.conan2/profiles ]; then
-              echo ""
-              echo "No Conan profiles found. Run 'conan profile detect --force' to create default profile."
-            fi
+        # Build settings
+        buildType = "Release";
+        enableLTO = true;        # Essential for performance
+        enableExceptions = false;  # Avoid exception overhead
+        enableRTTI = false;      # Avoid RTTI overhead
 
-            # Check for project files
-            if [ ! -f "CMakeLists.txt" ]; then
-              echo ""
-              echo "💡 No CMake project found. Create one with:"
-              echo "   Use the template CMakeLists.txt provided"
-            fi
+        # Testing
+        enableTesting = true;
+        testFramework = "gtest";
+        enableBenchmarks = true;   # Performance benchmarking
+        enableCoverage = false;
 
-            if [ ! -f "conanfile.txt" ] && [ ! -f "conanfile.py" ]; then
-              echo ""
-              echo "💡 No conanfile found. Use the template conanfile.txt provided"
-            fi
-          '';
+        # Development tools
+        enableSanitizers = false;  # Only in Debug builds
+        enableClangTidy = false;   # Disable for faster builds
+        enableCppCheck = false;
+        enableIncludeWhatYouUse = false;
 
-          # Don't set compiler flags here - let Conan profiles handle it
-          # Conan will manage CC, CXX, CXXFLAGS, LDFLAGS through profiles
-        };
+        # Project structure
+        buildSharedLibs = false;  # Static for performance
+        generateCompileCommands = true;
+
+        # Optimization flags (Release mode)
+        optimizationLevel = "3";  # Maximum optimization
+        marchNative = true;       # CPU-specific optimizations
+        useThinLTO = true;       # Thin LTO for faster builds
+
+        # Additional performance flags
+        enableFastMath = false;   # Keep precise math by default
+        alignForCache = true;     # Cache-line alignment
+
+        # Warning levels
+        warningLevel = "extra";   # Maximum warnings
+      };
+
+      # Import packages from system-flakes
+      packages = import "${system-flakes}/lib/packages.nix" {
+        inherit pkgs;
+        llvmVersion = config.llvmVersion;
+        packageManager = "conan";
+        testFramework = config.testFramework;
+        withAnalysis = config.enableClangTidy;
+        withBenchmark = config.enableBenchmarks;
+      };
+
+      cppEnv = packages.cpp.default;
+      helpers = packages.cpp.helpers;
+
+      # Additional performance libraries (specific to low-latency)
+      performanceLibs = with pkgs; [
+        gbenchmark
+        boost
+        jemalloc
+        mimalloc
+        tbb
+        catch2_3  # Additional testing framework
+      ];
+
+      # Linux-specific performance tools
+      linuxTools = pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+        perf-tools
+        valgrind
+        liburing
+        dpdk
+      ]);
+
+      # Use shared helpers to generate profiles and environment
+      hostProfile = helpers.mkConanProfile { inherit config pkgs; };
+      buildProfile = hostProfile;
+      cmakeEnv = helpers.mkCMakeEnv config;
+    in {
+      devShells.default = pkgs.mkShell (cmakeEnv // {
+        name = "cpp-lowlat-dev";
+
+        nativeBuildInputs =
+          cppEnv
+          ++ performanceLibs
+          ++ linuxTools
+          ++ [
+            # Core tools from system-flakes
+            packages.core.essential
+            packages.core.search
+          ];
+
+        CONAN_PROFILE_HOST = "${hostProfile}";
+        CONAN_PROFILE_BUILD = "${buildProfile}";
+
+        shellHook = ''
+          echo "C++ Low-Latency Development Environment"
+          echo "========================================"
+          ${helpers.mkConfigSummary config}
+          echo "  Optimization: -O${config.optimizationLevel}"
+          ${pkgs.lib.optionalString config.alignForCache ''echo "  Cache Alignment: ON"''}
+          echo ""
+          ${helpers.mkPerfFlagsSummary config}
+          echo ""
+          echo "Tools:"
+          echo "  Clang: $(clang --version | head -1)"
+          echo "  CMake: $(cmake --version | head -1)"
+          echo "  Conan: $(conan --version)"
+          echo ""
+          echo "Setup steps:"
+          echo "  1. Install deps:"
+          echo "     > conan install . --build=missing --profile:host=$\{CONAN_PROFILE_HOST} --profile:build=$\{CONAN_PROFILE_BUILD}"
+          echo "  2. Configure:"
+          echo "     > cmake --preset=conan-release"
+          echo "  3. Build:"
+          echo "     > cmake --build --preset=conan-release"
+          echo "  4. Benchmark:"
+          echo "     > ./build/bench_orderbook"
+          echo ""
+          echo "Note: All build settings are configured in flake.nix"
+        '';
       });
+    });
 }

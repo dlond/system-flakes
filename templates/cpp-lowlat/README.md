@@ -35,10 +35,13 @@ All available configuration options with defaults and explanations:
 | **cpp.devTools** | | *Development productivity tools* | |
 | \`enable\` | \`true\` | Include dev tools | true |
 | \`enableClangTidy\` | \`false\` | Static analysis linting | false |
-| \`enableCppCheck\` | \`false\` | Additional static analysis | false |
 | \`enableCcache\` | \`true\` | Build caching | true |
 | \`ccacheMaxSize\` | \`"5G"\` | Cache size limit | 5G |
 | \`enablePreCommitHooks\` | \`false\` | Git pre-commit hooks | false |
+| **cpp.analysis** | | *Static analysis tools* | |
+| \`enable\` | \`false\` | Include analysis tools | false |
+| \`enableCppCheck\` | \`false\` | CppCheck analysis | false |
+| \`enableIncludeWhatYouUse\` | \`false\` | Include-what-you-use | false |
 | **cpp.testing** | | *Testing framework configuration* | |
 | \`enable\` | \`true\` | Include test framework | true |
 | \`testFramework\` | \`"gtest"\` | Framework (gtest/catch2/doctest) | gtest |
@@ -88,6 +91,7 @@ optimizationLevel = 3;marchNative = true;alignForCache = true;
 
 **Debug Build:**
 - \`-O0 -g3\` - No optimization, full debug info
+- `-fsanitize=address,undefined` - Memory and UB detection
 
 
 ## Quick Start

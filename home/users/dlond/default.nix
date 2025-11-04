@@ -63,7 +63,6 @@
 
   programs.neovim-cfg = {
     enable = true;
-    withCopilot = true;
     withTrainingMode = false;
   };
 

@@ -59,6 +59,10 @@
 
         # Warning levels
         warningLevel = "all"; # none, default, all, extra
+
+        # Development tools
+        enablePreCommitHooks = false; # Auto-install git hooks for formatting
+        enableDocs = false; # Generate documentation with Sphinx+Breathe
       };
 
       # Import packages from system-flakes
@@ -94,6 +98,9 @@
             ln -sf ${env.profiles.release} $CONAN_HOME/profiles/release
             ln -sf ${env.profiles.debug} $CONAN_HOME/profiles/debug
 
+            ${env.preCommitHook}
+            ${env.docsSetup}
+
             echo "C++ Development Environment"
             echo "================================"
             ${env.configSummary}
@@ -103,6 +110,7 @@
             echo "  CMake: $(cmake --version | head -1)"
             echo "  Clang: $(clang --version | head -1)"
             ${env.ccacheInfo}
+            ${env.docsInfo}
             echo ""
             echo "Setup steps:"
             echo ""

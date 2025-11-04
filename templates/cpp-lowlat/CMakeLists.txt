@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
-project(lowlat_trading VERSION 1.0.0 LANGUAGES CXX)
+project(
+  lowlat_trading
+  VERSION 1.0.0
+  LANGUAGES CXX)
 
 # ============================================================================
 # Read configuration from environment (set by flake.nix) with fallbacks
@@ -40,9 +43,13 @@ endif()
 # Helper function to get env var with default
 function(get_env_bool var default)
   if(DEFINED ENV{${var}})
-    set(${var} $ENV{${var}} PARENT_SCOPE)
+    set(${var}
+        $ENV{${var}}
+        PARENT_SCOPE)
   else()
-    set(${var} ${default} PARENT_SCOPE)
+    set(${var}
+        ${default}
+        PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -99,7 +106,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wno-unused-parameter)
 
   # Release optimization
-  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL
+                                            "RelWithDebInfo")
     add_compile_options(-O${OPTIMIZATION_LEVEL})
 
     if(MARCH_NATIVE)
@@ -133,11 +141,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 
     # Additional performance flags
-    add_compile_options(
-      -fomit-frame-pointer
-      -fstrict-aliasing
-      -fno-stack-protector
-    )
+    add_compile_options(-fomit-frame-pointer -fstrict-aliasing
+                        -fno-stack-protector)
   endif()
 
   # Debug flags
@@ -205,31 +210,20 @@ endif()
 # Main library
 # ============================================================================
 
-add_library(trading_core STATIC
-  src/order_book.cpp
-  src/matching_engine.cpp
-  src/memory_pool.cpp
-  src/lock_free_queue.cpp
-)
+add_library(trading_core STATIC src/order_book.cpp src/matching_engine.cpp
+                                src/memory_pool.cpp src/lock_free_queue.cpp)
 
-target_include_directories(trading_core PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
+target_include_directories(
+  trading_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                      $<INSTALL_INTERFACE:include>)
 
-target_link_libraries(trading_core PUBLIC
-  Threads::Threads
-  Boost::boost
-  fmt::fmt
-  spdlog::spdlog
-)
+target_link_libraries(trading_core PUBLIC Threads::Threads Boost::boost
+                                          fmt::fmt spdlog::spdlog)
 
 # Apply cache-line alignment to the library
 if(ALIGN_FOR_CACHE)
-  target_compile_definitions(trading_core PUBLIC
-    CACHE_LINE_SIZE=64
-    ALIGN_FOR_CACHE
-  )
+  target_compile_definitions(trading_core PUBLIC CACHE_LINE_SIZE=64
+                                                 ALIGN_FOR_CACHE)
 endif()
 
 # ============================================================================
@@ -245,16 +239,12 @@ target_link_libraries(trading_engine PRIVATE trading_core)
 
 if(ENABLE_BENCHMARKS AND benchmark_FOUND)
   add_executable(bench_orderbook bench/bench_orderbook.cpp)
-  target_link_libraries(bench_orderbook PRIVATE
-    trading_core
-    benchmark::benchmark
-  )
+  target_link_libraries(bench_orderbook PRIVATE trading_core
+                                                benchmark::benchmark)
 
   # Ensure benchmarks are built with maximum optimization
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set_target_properties(bench_orderbook PROPERTIES
-      COMPILE_FLAGS "-O3"
-    )
+    set_target_properties(bench_orderbook PROPERTIES COMPILE_FLAGS "-O3")
   endif()
 endif()
 
@@ -263,17 +253,59 @@ endif()
 # ============================================================================
 
 if(ENABLE_TESTING AND GTest_FOUND)
-  add_executable(test_trading
-    tests/test_order_book.cpp
-    tests/test_matching_engine.cpp
-  )
-  target_link_libraries(test_trading PRIVATE
-    trading_core
-    GTest::gtest_main
-  )
+  add_executable(test_trading tests/test_order_book.cpp
+                              tests/test_matching_engine.cpp)
+  target_link_libraries(test_trading PRIVATE trading_core GTest::gtest_main)
 
   include(GoogleTest)
   gtest_discover_tests(test_trading)
+endif()
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+get_env_bool(ENABLE_DOCS OFF)
+
+if(ENABLE_DOCS)
+  find_package(Doxygen REQUIRED dot)
+  find_package(Sphinx REQUIRED)
+
+  if(DOXYGEN_FOUND)
+    # Configure Doxyfile
+    set(DOXYGEN_INPUT_DIR ${CMAKE_SOURCE_DIR})
+    set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen)
+    configure_file(${CMAKE_SOURCE_DIR}/docs/Doxyfile.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile @ONLY)
+
+    # Configure Sphinx
+    configure_file(${CMAKE_SOURCE_DIR}/docs/conf.py.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/docs/conf.py @ONLY)
+
+    # Copy other documentation files
+    file(COPY ${CMAKE_SOURCE_DIR}/docs/index.rst
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docs)
+
+    # Create docs target
+    add_custom_target(
+      docs
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
+      COMMAND sphinx-build -b html ${CMAKE_CURRENT_BINARY_DIR}/docs
+              ${CMAKE_CURRENT_BINARY_DIR}/docs/html
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating documentation with Doxygen and Sphinx"
+      VERBATIM)
+
+    message(STATUS "Documentation: ON (target: docs)")
+    message(
+      STATUS "  Build with: cmake --build ${CMAKE_BINARY_DIR} --target docs")
+    message(
+      STATUS "  View at: ${CMAKE_CURRENT_BINARY_DIR}/docs/html/index.html")
+  else()
+    message(WARNING "Doxygen not found, documentation target not created")
+  endif()
+else()
+  message(STATUS "Documentation: OFF (set ENABLE_DOCS=ON to enable)")
 endif()
 
 # ============================================================================
@@ -295,11 +327,11 @@ endif()
 # Installation
 # ============================================================================
 
-install(TARGETS trading_core trading_engine
+install(
+  TARGETS trading_core trading_engine
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+  RUNTIME DESTINATION bin)
 
 install(DIRECTORY include/ DESTINATION include)
 

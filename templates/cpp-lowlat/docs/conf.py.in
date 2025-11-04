@@ -1,0 +1,64 @@
+# Configuration file for the Sphinx documentation builder.
+# Generated from conf.py.in by CMake
+
+import os
+import sys
+
+# -- Project information -----------------------------------------------------
+
+project = '@PROJECT_NAME@'
+copyright = '2024, @PROJECT_NAME@ Contributors'
+author = '@PROJECT_NAME@ Contributors'
+version = '@PROJECT_VERSION@'
+release = '@PROJECT_VERSION@'
+
+# -- General configuration ---------------------------------------------------
+
+extensions = [
+    'breathe',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.graphviz',
+]
+
+# Breathe configuration
+breathe_projects = {
+    '@PROJECT_NAME@': '@CMAKE_CURRENT_BINARY_DIR@/doxygen/xml'
+}
+breathe_default_project = '@PROJECT_NAME@'
+
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ['_templates']
+
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+# -- Options for HTML output -------------------------------------------------
+
+html_theme = 'sphinx_rtd_theme'
+html_static_path = ['_static']
+
+# Theme options
+html_theme_options = {
+    'navigation_depth': 4,
+    'collapse_navigation': False,
+    'sticky_navigation': True,
+    'includehidden': True,
+    'titles_only': False
+}
+
+# Show todo notes
+todo_include_todos = True
+
+# -- Extension configuration -------------------------------------------------
+
+# Breathe specific configs
+breathe_domain_by_extension = {
+    "h": "cpp",
+    "hpp": "cpp",
+}
+
+breathe_show_define_initializer = True
+breathe_show_enumvalue_initializer = True

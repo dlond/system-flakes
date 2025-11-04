@@ -208,6 +208,7 @@ in rec {
         ENABLE_CLANG_TIDY = boolToCMake (config.enableClangTidy or false);
         ENABLE_CPPCHECK = boolToCMake (config.enableCppCheck or false);
         ENABLE_IWYU = boolToCMake (config.enableIncludeWhatYouUse or false);
+        ENABLE_DOCS = boolToCMake (config.enableDocs or false);
         OPTIMIZATION_LEVEL = toString (config.optimizationLevel or 2);
         MARCH_NATIVE = boolToCMake (config.marchNative or false);
         ENABLE_FAST_MATH = boolToCMake (config.enableFastMath or false);
@@ -251,6 +252,37 @@ in rec {
             echo "  ccache: enabled ($(ccache --version | head -1 | cut -d' ' -f3))"
           fi
         '';
+
+      # Generate pre-commit hook installation
+      mkPreCommitHook = config:
+        lib.optionalString (config.enablePreCommitHooks or false) ''
+          # Install pre-commit hooks if config exists
+          if [ -f .pre-commit-config.yaml ] && command -v pre-commit >/dev/null 2>&1; then
+            if [ ! -f .git/hooks/pre-commit ]; then
+              echo "Installing pre-commit hooks..."
+              pre-commit install --install-hooks >/dev/null 2>&1 || true
+            fi
+          fi
+        '';
+
+      # Generate documentation info
+      mkDocsInfo = config:
+        lib.optionalString (config.enableDocs or false) ''
+          echo "  Documentation: enabled (Sphinx + Breathe)"
+          echo "    Build docs: cmake --build build --target docs"
+          echo "    View docs:  open build/docs/html/index.html"
+        '';
+
+      # Generate documentation setup helper
+      mkDocsSetup = config:
+        lib.optionalString (config.enableDocs or false) ''
+          # Create docs structure if it doesn't exist
+          if [ ! -f docs/conf.py ] && [ -f CMakeLists.txt ]; then
+            echo "Setting up documentation structure..."
+            mkdir -p docs
+            # We'll populate these files in the template
+          fi
+        '';
     };
 
     # ============================================================================
@@ -272,7 +304,15 @@ in rec {
             withDocs = config.enableDocs or false;
           }
           ++ core.essential ++ core.search
-          ++ [pkgs.fd]; # For Conan cache symlinking
+          ++ [pkgs.fd] # For Conan cache symlinking
+          ++ lib.optionals (config.enablePreCommitHooks or false) [pkgs.pre-commit]
+          ++ lib.optionals (config.enableDocs or false) [
+            pkgs.doxygen
+            pkgs.graphviz # For Doxygen graphs
+            pkgs.sphinx
+            pkgs.python3Packages.breathe
+            pkgs.python3Packages.sphinx-rtd-theme
+          ];
 
         # Generated artifacts
         profiles = helpers.mkConanProfiles {inherit config pkgs;};
@@ -282,6 +322,9 @@ in rec {
         # Helper to generate standard summary (templates can use or ignore)
         configSummary = helpers.mkConfigSummary config;
         ccacheInfo = helpers.mkCcacheInfo config;
+        preCommitHook = helpers.mkPreCommitHook config;
+        docsInfo = helpers.mkDocsInfo config;
+        docsSetup = helpers.mkDocsSetup config;
       };
 
       # Low-latency/high-performance C++ environment components
@@ -326,6 +369,9 @@ in rec {
         # Additional helpers for low-latency
         configSummary = baseEnv.configSummary;
         ccacheInfo = baseEnv.ccacheInfo;
+        preCommitHook = baseEnv.preCommitHook;
+        docsInfo = baseEnv.docsInfo;
+        docsSetup = baseEnv.docsSetup;
         perfFlagsSummary = helpers.mkPerfFlagsSummary config;
 
         # Export the individual package groups (in case template wants them separately)

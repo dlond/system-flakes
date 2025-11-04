@@ -42,9 +42,13 @@ endif()
 # Helper function to get env var with default
 function(get_env_bool var default)
   if(DEFINED ENV{${var}})
-    set(${var} $ENV{${var}} PARENT_SCOPE)
+    set(${var}
+        $ENV{${var}}
+        PARENT_SCOPE)
   else()
-    set(${var} ${default} PARENT_SCOPE)
+    set(${var}
+        ${default}
+        PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -173,6 +177,53 @@ target_link_libraries(myproject PRIVATE myproject_core)
 
 if(ENABLE_TESTING)
   add_subdirectory(tests)
+endif()
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+get_env_bool(ENABLE_DOCS OFF)
+
+if(ENABLE_DOCS)
+  find_package(Doxygen REQUIRED dot)
+  find_package(Sphinx REQUIRED)
+
+  if(DOXYGEN_FOUND)
+    # Configure Doxyfile
+    set(DOXYGEN_INPUT_DIR ${CMAKE_SOURCE_DIR})
+    set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen)
+    configure_file(${CMAKE_SOURCE_DIR}/docs/Doxyfile.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile @ONLY)
+
+    # Configure Sphinx
+    configure_file(${CMAKE_SOURCE_DIR}/docs/conf.py.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/docs/conf.py @ONLY)
+
+    # Copy other documentation files
+    file(COPY ${CMAKE_SOURCE_DIR}/docs/index.rst
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docs)
+
+    # Create docs target
+    add_custom_target(
+      docs
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
+      COMMAND sphinx-build -b html ${CMAKE_CURRENT_BINARY_DIR}/docs
+              ${CMAKE_CURRENT_BINARY_DIR}/docs/html
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating documentation with Doxygen and Sphinx"
+      VERBATIM)
+
+    message(STATUS "Documentation: ON (target: docs)")
+    message(
+      STATUS "  Build with: cmake --build ${CMAKE_BINARY_DIR} --target docs")
+    message(
+      STATUS "  View at: ${CMAKE_CURRENT_BINARY_DIR}/docs/html/index.html")
+  else()
+    message(WARNING "Doxygen not found, documentation target not created")
+  endif()
+else()
+  message(STATUS "Documentation: OFF (set ENABLE_DOCS=ON to enable)")
 endif()
 
 # ============================================================================

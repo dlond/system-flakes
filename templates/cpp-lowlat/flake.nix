@@ -53,12 +53,10 @@
         };
       };
     in {
-      # That's it! Just call mkShell with config
+      # Create development shell with the configuration above
       devShells.default = packages.cpp.mkShell {
         inherit pkgs config;
         name = "C++ Low-Latency Development";
-        # Add catch2 as extra framework (testing is enabled by default)
-        extraPackages = packages.cpp.testFrameworks.catch2;
       };
     });
 }

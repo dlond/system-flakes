@@ -26,7 +26,7 @@
       # Import packages from system-flakes
       packages = import "${system-flakes}/lib/packages.nix" {
         inherit pkgs;
-        llvmVersion = "20";  # Override system default
+        llvmVersion = "20";  # Latest LLVM/Clang
       };
 
       # ============================================================================
@@ -41,7 +41,7 @@
         };
       };
     in {
-      # That's it! Just call mkShell with config
+      # Create development shell with the configuration above
       devShells.default = packages.cpp.mkShell {
         inherit pkgs config;
         name = "C++ Development";

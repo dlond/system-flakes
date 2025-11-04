@@ -2,7 +2,7 @@
   description = "C++ development environment with Conan and CMake presets";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     system-flakes = {
       url = "github:dlond/system-flakes";
@@ -10,84 +10,107 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, system-flakes, ... }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    system-flakes,
+    ...
+  }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
-      
-      # Import packages from system-flakes - minimal LLVM for tools only
+
+      # ============================================================================
+      # Configuration - Single source of truth for the project
+      # ============================================================================
+      config = {
+        # Compiler settings
+        llvmVersion = "20";
+        cppStandard = "23";
+
+        # Build settings
+        buildType = "Release";  # Default build type
+        enableLTO = false;      # Link-time optimization
+        enableExceptions = true;
+        enableRTTI = true;
+
+        # Testing
+        enableTesting = true;
+        testFramework = "gtest";  # gtest, catch2, doctest
+        enableCoverage = false;
+
+        # Development tools
+        enableSanitizers = false;  # Address & UB sanitizers in Debug
+        enableClangTidy = true;
+        enableCppCheck = false;
+        enableIncludeWhatYouUse = false;
+
+        # Project structure
+        buildSharedLibs = false;
+        generateCompileCommands = true;
+
+        # Optimization flags (Release mode)
+        optimizationLevel = "2";  # 0, 1, 2, 3, s, z
+        marchNative = false;
+
+        # Warning levels
+        warningLevel = "all";  # none, default, all, extra
+      };
+
+      # Import packages from system-flakes
       packages = import "${system-flakes}/lib/packages.nix" {
         inherit pkgs;
-        llvmVersion = "18"; # Version for clangd, clang-format, lldb-dap
+        llvmVersion = config.llvmVersion;
+        packageManager = "conan";
+        testFramework = config.testFramework;
+        withAnalysis = config.enableClangTidy;
       };
-      
-      # Minimal C++ tools - Conan will handle the actual toolchain
-      cppTools = with packages.llvmPkg; [
-        clang-tools  # clangd, clang-format, clang-tidy for Neovim
-        lldb         # lldb-dap for debugging in Neovim
-      ] ++ (with pkgs; [
-        cmake
-        cmake-format
-        cmake-language-server
-        ninja
-        ccache
-        conan
-        bear  # For compile_commands.json generation
-      ]);
-      
+
+      cppEnv = packages.cpp.default;
+      helpers = packages.cpp.helpers;
+
+      # Use shared helpers to generate profiles and environment
+      hostProfile = helpers.mkConanProfile { inherit config pkgs; };
+      buildProfile = hostProfile;
+      cmakeEnv = helpers.mkCMakeEnv config;
     in {
-      devShells.default = pkgs.mkShell {
+      devShells.default = pkgs.mkShell (cmakeEnv // {
         name = "cpp-dev";
-        
-        buildInputs = cppTools ++ [
-          # Core tools from system-flakes
-          packages.core.essential
-          packages.core.search
-        ];
-        
+
+        nativeBuildInputs =
+          cppEnv
+          ++ [
+            # Core tools from system-flakes
+            packages.core.essential
+            packages.core.search
+          ];
+
+        CONAN_PROFILE_HOST = "${hostProfile}";
+        CONAN_PROFILE_BUILD = "${buildProfile}";
+
         shellHook = ''
-          echo "C++ development environment (Conan-managed)"
-          echo "Conan: $(conan --version)"
-          echo "CMake: $(cmake --version | head -1)"
+          echo "C++ Development Environment"
+          echo "================================"
+          ${helpers.mkConfigSummary config}
+          echo ""
+          echo "Tools:"
+          echo "  Conan: $(conan --version)"
+          echo "  CMake: $(cmake --version | head -1)"
+          echo "  Clang: $(clang --version | head -1)"
           echo ""
           echo "Setup steps:"
-          echo "  1. Configure Conan profiles: conan profile detect --force"
-          echo "  2. Install deps: conan install . --build=missing"
-          echo "  3. Configure: cmake --preset conan-default"
-          echo "  4. Build: cmake --build --preset conan-release"
+          echo "  1. Install deps:"
+          echo "     > conan install . --build=missing --profile:host=$\{CONAN_PROFILE_HOST} --profile:build=$\{CONAN_PROFILE_BUILD}"
+          echo "  2. Configure:"
+          echo "     > cmake --preset=conan-release"
+          echo "  3. Build:"
+          echo "     > cmake --build --preset=conan-release"
           echo ""
-          echo "Available tools (for Neovim integration):"
-          echo "  clangd          - Language server"
-          echo "  clang-format    - Code formatter"
-          echo "  clang-tidy      - Static analyzer"
-          echo "  cmake-language-server - CMake LSP"
-          echo "  lldb-dap        - DAP debugger"
-          echo ""
-          echo "Note: Compiler toolchain is managed by Conan profiles"
-          
-          # Check for Conan profiles
-          if [ ! -d ~/.conan2/profiles ]; then
-            echo ""
-            echo "No Conan profiles found. Run 'conan profile detect --force' to create default profile."
-          fi
-          
-          # Check for conanfile
-          if [ ! -f conanfile.txt ] && [ ! -f conanfile.py ]; then
-            echo ""
-            echo "No conanfile found. Create conanfile.txt or conanfile.py to define dependencies."
-          fi
-          
-          # Check for CMakePresets.json
-          if [ ! -f CMakePresets.json ] && [ ! -f CMakeUserPresets.json ]; then
-            echo ""
-            echo "No CMake presets found. Run 'conan install' to generate CMakePresets.json"
-          fi
+          echo "Note: All build settings are configured in flake.nix"
         '';
-        
-        # Don't set CC/CXX - let Conan profiles handle it
-        # CMAKE_EXPORT_COMPILE_COMMANDS will be set in CMakePresets.json
-      };
+      });
     });
 }

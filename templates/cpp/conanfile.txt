@@ -1,6 +1,6 @@
 [requires]
-gtest/1.14.0
-fmt/10.2.1
+gtest/1.17.0
+fmt/12.1.0
 
 [generators]
 CMakeDeps

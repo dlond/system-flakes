@@ -2,7 +2,7 @@
 # System uses defaults, dev-shells can override versions
 {
   pkgs,
-  # Global version defaults (can be overridden per-language or in dev-shells)
+  # Global LLVM version default - templates can override via config.essential.llvmVersion
   llvmVersion ? "20", # System default: LLVM 20
   pythonVersion ? "3.13", # System default: Python 3.13 (stable)
   ...
@@ -74,8 +74,25 @@ in rec {
       extraPackages ? [],  # Optional extra packages
     }: let
       # Apply defaults to get complete config
+      # Manual merge enforces structure - templates must follow defaults structure
       defaults = helpers.mkConfigDefaults {};
-      finalConfig = lib.recursiveUpdate defaults config;
+      finalConfig = {
+        cpp = {
+          essential = defaults.cpp.essential // (config.cpp.essential or {}) // {
+            debug = defaults.cpp.essential.debug // (config.cpp.essential.debug or {});
+            release = defaults.cpp.essential.release // (config.cpp.essential.release or {});
+          };
+          devTools = defaults.cpp.devTools // (config.cpp.devTools or {});
+          testing = defaults.cpp.testing // (config.cpp.testing or {}) // {
+            debug = defaults.cpp.testing.debug // (config.cpp.testing.debug or {});
+            release = defaults.cpp.testing.release // (config.cpp.testing.release or {});
+          };
+          performance = defaults.cpp.performance // (config.cpp.performance or {});
+          linuxPerf = defaults.cpp.linuxPerf // (config.cpp.linuxPerf or {});
+          analysis = defaults.cpp.analysis // (config.cpp.analysis or {});
+          docs = defaults.cpp.docs // (config.cpp.docs or {});
+        };
+      };
       cfg = finalConfig.cpp;  # Shorthand
 
       # Compose packages based on config
@@ -85,40 +102,22 @@ in rec {
         ++ lib.optionals cfg.devTools.enable devTools
         ++ lib.optionals cfg.devTools.enableCcache [pkgs.ccache]
         ++ lib.optionals cfg.devTools.enablePreCommitHooks [pkgs.pre-commit]
-        ++ debugging  # Always include
         ++ lib.optionals cfg.analysis.enable analysis
         ++ lib.optionals cfg.docs.enable docs
-        ++ lib.optionals cfg.testing.enable (testFrameworks.${cfg.testing.testFramework} or [])
+        ++ lib.optionals cfg.testing.enable testFrameworks.${cfg.testing.testFramework}
         ++ lib.optionals cfg.performance.enable performance
         ++ lib.optionals cfg.linuxPerf.enable linuxPerf  # linuxPerf already checks isLinux
         ++ extraPackages;
 
-      # Flatten config for compatibility with existing helpers
-      flatConfig = cfg.essential // {
-        enableCcache = cfg.devTools.enableCcache;
-        ccacheMaxSize = cfg.devTools.ccacheMaxSize;
-        enableClangTidy = cfg.devTools.enableClangTidy;
-        enablePreCommitHooks = cfg.devTools.enablePreCommitHooks;
-        enableCppCheck = cfg.analysis.enableCppCheck;
-        enableIncludeWhatYouUse = cfg.analysis.enableIncludeWhatYouUse;
-        enableDocs = cfg.docs.enableDocs;
-        enableTesting = cfg.testing.enableTesting;
-        testFramework = cfg.testing.testFramework;
-        enableCoverage = cfg.testing.enableCoverage;
-        enableSanitizers = cfg.testing.enableSanitizers;
-        enableBenchmarks = cfg.performance.enableBenchmarks;
-      };
-
-      # Get environment setup
-      conan = helpers.mkConanSetup {config = flatConfig; inherit pkgs;};
-      cmakeEnv = helpers.mkCMakeEnv flatConfig;
-      preCommitHook = helpers.mkPreCommitHook flatConfig;
-      docsSetup = helpers.mkDocsSetup flatConfig;
+      # Get environment setup (pass nested config)
+      conan = helpers.mkConanSetup {config = cfg; inherit pkgs;};
+      cmakeEnv = helpers.mkCMakeEnv cfg;
+      preCommitHook = helpers.mkPreCommitHook cfg;
+      docsSetup = helpers.mkDocsSetup cfg;
 
       # Generate README content
       readmeContent = helpers.mkReadme {
         inherit name cfg;
-        config = flatConfig;
       };
     in
       pkgs.mkShell (cmakeEnv // {
@@ -156,29 +155,25 @@ in rec {
     # ============================================================================
     helpers = rec {
       # Generate README.md content based on configuration
-      mkReadme = {name, cfg, config}: let
-        isLowLat = cfg.performance.enable;
-        hasLTO = cfg.essential.enableLTO;
-        hasBenchmarks = cfg.performance.enableBenchmarks;
-        hasDocs = config.enableDocs;
-        hasAnalysis = config.enableCppCheck or config.enableIncludeWhatYouUse;
-        optimLevel = toString cfg.essential.optimizationLevel;
+      # Access structure directly - no intermediate variables
+      mkReadme = {name, cfg}: let
+        defaultVariant = cfg.essential.defaultProfile;
       in ''
 # ${name}
 
-${if isLowLat then "High-performance C++ development environment optimized for low-latency systems."
+${if cfg.performance.enable then "High-performance C++ development environment optimized for low-latency systems."
   else "Modern C++ development environment with Conan package management and CMake build system."}
 
 ## Features
 
-${if isLowLat then ''- ⚡ **Maximum Performance** - Aggressive optimizations enabled
+${if cfg.performance.enable then ''- ⚡ **Maximum Performance** - Aggressive optimizations enabled
 - 🚀 **C++${toString cfg.essential.cppStandard}** - Latest language features
-${if hasLTO then "- 🔥 **LTO** - Link-time optimization enabled" + (if cfg.essential.useThinLTO then " (ThinLTO)" else "") + "\n" else ""}${if cfg.essential.marchNative then "- 🎯 **CPU-Specific** - Native architecture targeting\n" else ""}${if hasBenchmarks then "- 📊 **Benchmarking** - Performance measurement tools\n" else ""}${if cfg.essential.alignForCache then "- 💾 **Cache Alignment** - Optimized for cache lines\n" else ""}${if cfg.linuxPerf.enable then "- 🐧 **Linux Perf Tools** - Advanced profiling capabilities\n" else ""}''
+${if cfg.essential.${defaultVariant}.enableLTO then "- 🔥 **LTO** - Link-time optimization enabled" + (if cfg.essential.${defaultVariant}.useThinLTO then " (ThinLTO)" else "") + "\n" else ""}${if cfg.essential.${defaultVariant}.marchNative then "- 🎯 **CPU-Specific** - Native architecture targeting\n" else ""}${if cfg.performance.enableBenchmarks then "- 📊 **Benchmarking** - Performance measurement tools\n" else ""}${if cfg.essential.${defaultVariant}.alignForCache then "- 💾 **Cache Alignment** - Optimized for cache lines\n" else ""}${if cfg.linuxPerf.enable then "- 🐧 **Linux Perf Tools** - Advanced profiling capabilities\n" else ""}''
   else ''- 🚀 **C++${toString cfg.essential.cppStandard}** - Modern C++ standard
 - 📦 **Conan 2** - Package management
 - 🔧 **CMake Presets** - Consistent build configuration
 - 🛠️ **LLVM Toolchain** - Latest compiler
-${if config.enableClangTidy then "- 🔍 **clang-tidy** - Static analysis\n" else ""}${if config.enableCcache then "- ⚡ **ccache** - Build acceleration\n" else ""}${if cfg.testing.enable then "- 🧪 **Testing** - " + cfg.testing.testFramework + " framework\n" else ""}''}
+${if cfg.devTools.enableClangTidy then "- 🔍 **clang-tidy** - Static analysis\n" else ""}${if cfg.devTools.enableCcache then "- ⚡ **ccache** - Build acceleration\n" else ""}${if cfg.testing.enable then "- 🧪 **Testing** - " + cfg.testing.testFramework + " framework\n" else ""}''}
 
 ## Configuration
 
@@ -191,34 +186,37 @@ All available configuration options with defaults and explanations:
 | **cpp.essential** | | *Core compilation settings* | |
 | \`cppStandard\` | \`20\` | C++ standard version (17, 20, 23) | **${toString cfg.essential.cppStandard}** |
 | \`defaultProfile\` | \`"release"\` | Default Conan profile | ${cfg.essential.defaultProfile} |
-| \`enableLTO\` | \`false\` | Link-time optimization | ${if hasLTO then "**true**" else "false"} |
-| \`useThinLTO\` | \`false\` | Use ThinLTO (faster than full LTO) | ${if cfg.essential.useThinLTO then "**true**" else "false"} |
+| \`enableLTO\` | \`false\` | Link-time optimization | ${if cfg.essential.${defaultVariant}.enableLTO then "**true**" else "false"} |
+| \`useThinLTO\` | \`false\` | Use ThinLTO (faster than full LTO) | ${if cfg.essential.${defaultVariant}.useThinLTO then "**true**" else "false"} |
 | \`enableExceptions\` | \`true\` | C++ exception handling | ${if cfg.essential.enableExceptions then "true" else "**false**"} |
 | \`enableRTTI\` | \`true\` | Runtime type information | ${if cfg.essential.enableRTTI then "true" else "**false**"} |
-| \`optimizationLevel\` | \`2\` | Optimization (-O0 to -O3, s, z) | ${if optimLevel != "2" then "**" + optimLevel + "**" else "2"} |
-| \`marchNative\` | \`false\` | CPU-specific optimizations | ${if cfg.essential.marchNative then "**true**" else "false"} |
-| \`alignForCache\` | \`false\` | Cache-line alignment (64 bytes) | ${if cfg.essential.alignForCache then "**true**" else "false"} |
+| \`optimizationLevel\` | \`2\` | Optimization (-O0 to -O3, s, z) | ${if (toString cfg.essential.${defaultVariant}.optimizationLevel) != "2" then "**" + (toString cfg.essential.${defaultVariant}.optimizationLevel) + "**" else "2"} |
+| \`marchNative\` | \`false\` | CPU-specific optimizations | ${if cfg.essential.${defaultVariant}.marchNative then "**true**" else "false"} |
+| \`alignForCache\` | \`false\` | Cache-line alignment (64 bytes) | ${if cfg.essential.${defaultVariant}.alignForCache then "**true**" else "false"} |
 | \`warningLevel\` | \`"all"\` | Compiler warnings (none/default/all/extra) | ${cfg.essential.warningLevel} |
 | **cpp.devTools** | | *Development productivity tools* | |
 | \`enable\` | \`true\` | Include dev tools | ${if cfg.devTools.enable then "true" else "**false**"} |
-| \`enableClangTidy\` | \`false\` | Static analysis linting | ${if config.enableClangTidy then "**true**" else "false"} |
-| \`enableCppCheck\` | \`false\` | Additional static analysis | ${if config.enableCppCheck then "**true**" else "false"} |
-| \`enableCcache\` | \`true\` | Build caching | ${if config.enableCcache then "true" else "**false**"} |
+| \`enableClangTidy\` | \`false\` | Static analysis linting | ${if cfg.devTools.enableClangTidy then "**true**" else "false"} |
+| \`enableCcache\` | \`true\` | Build caching | ${if cfg.devTools.enableCcache then "true" else "**false**"} |
 | \`ccacheMaxSize\` | \`"5G"\` | Cache size limit | ${cfg.devTools.ccacheMaxSize} |
-| \`enablePreCommitHooks\` | \`false\` | Git pre-commit hooks | ${if config.enablePreCommitHooks then "**true**" else "false"} |
+| \`enablePreCommitHooks\` | \`false\` | Git pre-commit hooks | ${if cfg.devTools.enablePreCommitHooks then "**true**" else "false"} |
+| **cpp.analysis** | | *Static analysis tools* | |
+| \`enable\` | \`false\` | Include analysis tools | ${if cfg.analysis.enable then "**true**" else "false"} |
+| \`enableCppCheck\` | \`false\` | CppCheck analysis | ${if cfg.analysis.enableCppCheck then "**true**" else "false"} |
+| \`enableIncludeWhatYouUse\` | \`false\` | Include-what-you-use | ${if cfg.analysis.enableIncludeWhatYouUse then "**true**" else "false"} |
 | **cpp.testing** | | *Testing framework configuration* | |
 | \`enable\` | \`true\` | Include test framework | ${if cfg.testing.enable then "true" else "**false**"} |
 | \`testFramework\` | \`"gtest"\` | Framework (gtest/catch2/doctest) | ${cfg.testing.testFramework} |
-| \`enableCoverage\` | \`false\` | Code coverage reporting | ${if cfg.testing.enableCoverage then "**true**" else "false"} |
-| \`enableSanitizers\` | \`false\` | Memory/UB sanitizers (debug) | ${if cfg.testing.enableSanitizers then "**true**" else "false"} |
+| \`enableCoverage\` | \`false\` | Code coverage reporting | ${if cfg.testing.${defaultVariant}.enableCoverage then "**true**" else "false"} |
+| \`enableSanitizers\` | \`false\` | Memory/UB sanitizers (debug) | ${if cfg.testing.${defaultVariant}.enableSanitizers then "**true**" else "false"} |
 | **cpp.performance** | | *Performance optimization tools* | |
 | \`enable\` | \`false\` | Include performance libraries | ${if cfg.performance.enable then "**true**" else "false"} |
-| \`enableBenchmarks\` | \`false\` | Google Benchmark library | ${if hasBenchmarks then "**true**" else "false"} |
+| \`enableBenchmarks\` | \`false\` | Google Benchmark library | ${if cfg.performance.enableBenchmarks then "**true**" else "false"} |
 | **cpp.linuxPerf** | | *Linux-specific performance tools* | |
 | \`enable\` | \`false\` | DPDK, perf-tools, io_uring | ${if cfg.linuxPerf.enable then "**true**" else "false"} |
 | **cpp.docs** | | *Documentation generation* | |
 | \`enable\` | \`false\` | Include doc tools | ${if cfg.docs.enable then "**true**" else "false"} |
-| \`enableDocs\` | \`false\` | Doxygen + Sphinx | ${if hasDocs then "**true**" else "false"} |
+| \`enableDocs\` | \`false\` | Doxygen + Sphinx | ${if cfg.docs.enableDocs then "**true**" else "false"} |
 
 **Bold** values indicate overrides from defaults.
 
@@ -229,18 +227,18 @@ Settings from \`flake.nix\`:
 \`\`\`nix
 config = {
   cpp.essential = {
-    cppStandard = ${toString cfg.essential.cppStandard};${if isLowLat then ''
-    enableLTO = ${if hasLTO then "true" else "false"};${if cfg.essential.useThinLTO then ''
+    cppStandard = ${toString cfg.essential.cppStandard};${if cfg.performance.enable then ''
+    enableLTO = ${if cfg.essential.${defaultVariant}.enableLTO then "true" else "false"};${if cfg.essential.${defaultVariant}.useThinLTO then ''
     useThinLTO = true;'' else ""}
     enableExceptions = ${if cfg.essential.enableExceptions then "true" else "false"};
     enableRTTI = ${if cfg.essential.enableRTTI then "true" else "false"};
-    optimizationLevel = ${optimLevel};${if cfg.essential.marchNative then ''
-    marchNative = true;'' else ""}${if cfg.essential.alignForCache then ''
+    optimizationLevel = ${toString cfg.essential.${defaultVariant}.optimizationLevel};${if cfg.essential.${defaultVariant}.marchNative then ''
+    marchNative = true;'' else ""}${if cfg.essential.${defaultVariant}.alignForCache then ''
     alignForCache = true;'' else ""}'' else ""}
-  };${if config.enableClangTidy then ''
+  };${if cfg.devTools.enableClangTidy then ''
   cpp.devTools = {
     enableClangTidy = true;
-  };'' else ""}${if hasBenchmarks then ''
+  };'' else ""}${if cfg.performance.enableBenchmarks then ''
   cpp.performance = {
     enable = true;
     enableBenchmarks = true;
@@ -254,12 +252,12 @@ config = {
 ## Compiler Flags
 
 **Release Build:**
-- \`-O${optimLevel}\` - Optimization level
-${if cfg.essential.marchNative then "- `-march=native -mtune=native` - CPU-specific instructions\n" else ""}${if hasLTO then "- `-flto" + (if cfg.essential.useThinLTO then "=thin" else "") + "` - Link-time optimization\n" else ""}${if !cfg.essential.enableExceptions then "- `-fno-exceptions` - No exception handling\n" else ""}${if !cfg.essential.enableRTTI then "- `-fno-rtti` - No RTTI overhead\n" else ""}${if cfg.essential.alignForCache then "- `-falign-functions=64` - Cache-line alignment\n" else ""}
+- \`-O${toString cfg.essential.${defaultVariant}.optimizationLevel}\` - Optimization level
+${if cfg.essential.${defaultVariant}.marchNative then "- `-march=native -mtune=native` - CPU-specific instructions\n" else ""}${if cfg.essential.${defaultVariant}.enableLTO then "- `-flto" + (if cfg.essential.${defaultVariant}.useThinLTO then "=thin" else "") + "` - Link-time optimization\n" else ""}${if !cfg.essential.enableExceptions then "- `-fno-exceptions` - No exception handling\n" else ""}${if !cfg.essential.enableRTTI then "- `-fno-rtti` - No RTTI overhead\n" else ""}${if cfg.essential.${defaultVariant}.alignForCache then "- `-falign-functions=64` - Cache-line alignment\n" else ""}
 
 **Debug Build:**
 - \`-O0 -g3\` - No optimization, full debug info
-${if cfg.testing.enableSanitizers then "- `-fsanitize=address,undefined` - Memory and UB detection\n" else ""}
+${if cfg.testing.debug.enableSanitizers then "- `-fsanitize=address,undefined` - Memory and UB detection\n" else ""}
 
 ## Quick Start
 
@@ -291,7 +289,7 @@ cmake --build --preset=conan-release
 ├── include/               # Header files
 ├── src/                   # Source files
 │   └── main.cpp
-${if cfg.testing.enable then "├── tests/                 # Unit tests\n" else ""}${if hasBenchmarks then "├── bench/                 # Benchmarks\n" else ""}└── build/                 # Build output (git-ignored)
+${if cfg.testing.enable then "├── tests/                 # Unit tests\n" else ""}${if cfg.performance.enableBenchmarks then "├── bench/                 # Benchmarks\n" else ""}└── build/                 # Build output (git-ignored)
     ├── Debug/
     └── Release/
 \`\`\`
@@ -326,14 +324,14 @@ cmake --preset=conan-release
 - **Package Manager**: Conan 2.x
 - **Language Server**: clangd
 - **Formatter**: clang-format
-${if config.enableClangTidy then "- **Static Analysis**: clang-tidy\n" else ""}${if config.enableCppCheck then "- **Static Analysis**: cppcheck\n" else ""}${if config.enableCcache then "- **Cache**: ccache\n" else ""}${if cfg.testing.enable then "- **Testing**: " + cfg.testing.testFramework + "\n" else ""}${if hasBenchmarks then "- **Benchmarking**: Google Benchmark\n" else ""}${if hasDocs then "- **Documentation**: Doxygen + Sphinx\n" else ""}
+${if cfg.devTools.enableClangTidy then "- **Static Analysis**: clang-tidy\n" else ""}${if cfg.analysis.enableCppCheck then "- **Static Analysis**: cppcheck\n" else ""}${if cfg.devTools.enableCcache then "- **Cache**: ccache\n" else ""}${if cfg.testing.enable then "- **Testing**: " + cfg.testing.testFramework + "\n" else ""}${if cfg.performance.enableBenchmarks then "- **Benchmarking**: Google Benchmark\n" else ""}${if cfg.docs.enableDocs then "- **Documentation**: Doxygen + Sphinx\n" else ""}
 
 ## Development Tips
 
 1. **IDE Integration**: The environment generates \`compile_commands.json\` for clangd support
 2. **Clean Build**: \`rm -rf build/ && conan install . --profile=release --build=missing\`
 3. **Switch Profiles**: Use \`--preset=conan-debug\` or \`--preset=conan-release\`
-${if config.enableCcache then "4. **Faster Builds**: ccache enabled - subsequent builds will be faster\n" else ""}${if hasBenchmarks then ''
+${if cfg.devTools.enableCcache then "4. **Faster Builds**: ccache enabled - subsequent builds will be faster\n" else ""}${if cfg.performance.enableBenchmarks then ''
 ## Benchmarking
 
 \`\`\`cpp
@@ -378,19 +376,34 @@ conan install . --profile=release --build=missing --build=<package>
         cpp = {
           # Core settings - always applied
           essential = {
+            # Non-variant options (same for debug/release)
             cppStandard = 20;
             defaultProfile = "release";
             compiler = "clang";
+            llvmVersion = llvmVersion;  # Use the input parameter
             buildJobs = 12;
-            enableLTO = false;
-            useThinLTO = false;
+            warningLevel = "all";
             enableExceptions = true;
             enableRTTI = true;
-            optimizationLevel = 2;
-            marchNative = false;
-            enableFastMath = false;
-            alignForCache = false;
-            warningLevel = "all";
+
+            # Variant-specific defaults
+            debug = {
+              optimizationLevel = 0;  # No optimization for better debugging
+              enableLTO = false;
+              useThinLTO = false;
+              marchNative = false;
+              alignForCache = false;
+              enableFastMath = false;
+            };
+
+            release = {
+              optimizationLevel = 2;  # Standard release optimization
+              enableLTO = false;      # Templates can enable for performance
+              useThinLTO = false;
+              marchNative = false;    # Templates can enable for performance
+              alignForCache = false;  # Templates can enable for performance
+              enableFastMath = false; # Templates can enable for performance
+            };
           };
 
           # Development tools - conditionally included
@@ -400,11 +413,6 @@ conan install . --profile=release --build=missing --build=<package>
             enableCcache = true;
             ccacheMaxSize = "5G";
             enableClangTidy = false;  # These enable checks, don't add packages
-          };
-
-          # Debugging - always included
-          debugging = {
-            # No options - always included when cpp.devTools.enable = true
           };
 
           # Static analysis - conditionally included
@@ -422,11 +430,20 @@ conan install . --profile=release --build=missing --build=<package>
 
           # Testing - conditionally included
           testing = {
+            # Non-variant options
             enable = true;  # Include by default
-            enableTesting = true;
             testFramework = "gtest";  # gtest, catch2, doctest
-            enableCoverage = false;
-            enableSanitizers = false;  # For debug builds
+
+            # Variant-specific defaults
+            debug = {
+              enableSanitizers = true;  # Catch memory issues in debug builds
+              enableCoverage = true;    # Enable coverage in debug builds
+            };
+
+            release = {
+              enableSanitizers = false;  # No overhead in release
+              enableCoverage = false;    # No coverage in release
+            };
           };
 
           # Performance & benchmarking - conditionally included
@@ -449,55 +466,44 @@ conan install . --profile=release --build=missing --build=<package>
         then "ON"
         else "OFF";
 
-      # Generate CXXFLAGS from config
-      mkCxxFlags = config:
+      # Generate CXXFLAGS from config structure - access directly
+      mkCxxFlags = config: variant:
         lib.concatStringsSep " " (
-          ["-O${toString config.optimizationLevel}"]
-          ++ lib.optionals config.marchNative ["-march=native" "-mtune=native"]
-          ++ lib.optionals config.enableLTO [
+          ["-O${toString config.essential.${variant}.optimizationLevel}"]
+          ++ lib.optionals config.essential.${variant}.marchNative ["-march=native" "-mtune=native"]
+          ++ lib.optionals config.essential.${variant}.enableLTO [
             (
-              if config.useThinLTO
+              if config.essential.${variant}.useThinLTO
               then "-flto=thin"
               else "-flto"
             )
           ]
-          ++ lib.optionals (!config.enableExceptions) ["-fno-exceptions"]
-          ++ lib.optionals (!config.enableRTTI) ["-fno-rtti"]
-          ++ lib.optionals config.enableFastMath ["-ffast-math"]
-          ++ lib.optionals config.alignForCache ["-falign-functions=64"]
+          ++ lib.optionals (!config.essential.enableExceptions) ["-fno-exceptions"]
+          ++ lib.optionals (!config.essential.enableRTTI) ["-fno-rtti"]
+          ++ lib.optionals config.essential.${variant}.enableFastMath ["-ffast-math"]
+          ++ lib.optionals config.essential.${variant}.alignForCache ["-falign-functions=64"]
         );
 
-      # Generate LDFLAGS from config
-      mkLdFlags = config:
+      # Generate LDFLAGS from config structure - access directly
+      mkLdFlags = config: variant:
         lib.concatStringsSep " " (
           ["-fuse-ld=lld"]
-          ++ lib.optionals config.enableLTO [
+          ++ lib.optionals config.essential.${variant}.enableLTO [
             (
-              if config.useThinLTO
+              if config.essential.${variant}.useThinLTO
               then "-flto=thin"
               else "-flto"
             )
           ]
         );
 
-      # Generate Conan profile from config
+      # Generate Conan profile from config - access structure directly
       mkConanProfile = {
         config,
         pkgs,
         variant ? "release",
       }: let
-        # Apply debug overrides if variant is debug
         buildType = if variant == "debug" then "Debug" else "Release";
-        finalConfig =
-          if variant == "debug"
-          then
-            config
-            // {
-              optimizationLevel = "0";
-              enableSanitizers = true;
-              marchNative = false;
-            }
-          else config;
       in
         pkgs.writeText "conan-profile-${variant}" ''
           [settings]
@@ -515,32 +521,22 @@ conan install . --profile=release --build=missing --build=<package>
             then "x86_64"
             else "Unknown"
           }
-          compiler=${
-            if finalConfig.compiler == "clang"
-            then "clang"
-            else "gcc"
-          }
-          compiler.version=${toString (finalConfig.llvmVersion or llvmVersion)}
-          compiler.libcxx=${
-            if finalConfig.compiler == "clang"
-            then "libc++"
-            else "libstdc++11"
-          }
-          compiler.cppstd=${toString finalConfig.cppStandard}
+          compiler=${config.essential.compiler}
+          compiler.version=${toString config.essential.llvmVersion}
+          compiler.libcxx=${if config.essential.compiler == "clang" then "libc++" else "libstdc++11"}
+          compiler.cppstd=${toString config.essential.cppStandard}
           build_type=${buildType}
 
           [conf]
           tools.cmake.cmaketoolchain:generator=Ninja
-          tools.build:jobs=${toString finalConfig.buildJobs}
-          ${lib.optionalString finalConfig.enableCcache ''
+          tools.build:jobs=${toString config.essential.buildJobs}
+          ${lib.optionalString config.devTools.enableCcache ''
             tools.cmake.cmaketoolchain:extra_variables={"CMAKE_C_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache", "CMAKE_CXX_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache"}
           ''}
 
-          ${lib.optionalString (buildType == "Release" && finalConfig.enableLTO) ''
-            [buildenv]
-            CXXFLAGS=${mkCxxFlags finalConfig}
-            LDFLAGS=${mkLdFlags finalConfig}
-          ''}
+          [buildenv]
+          CXXFLAGS=${mkCxxFlags config variant}
+          LDFLAGS=${mkLdFlags config variant}
         '';
 
       # Generate both debug and release Conan profiles
@@ -559,48 +555,37 @@ conan install . --profile=release --build=missing --build=<package>
       };
 
       # Generate environment variables for CMake
-      mkCMakeEnv = config:
+      # Note: Variant-specific flags (optimization, LTO, etc.) are handled by Conan profiles
+      mkCMakeEnv = cfg:
         {
-          # Essential build configuration
-          CMAKE_CXX_STANDARD = toString config.cppStandard;
+          # Essential build configuration (non-variant)
+          CMAKE_CXX_STANDARD = toString cfg.essential.cppStandard;
           CMAKE_EXPORT_COMPILE_COMMANDS = "ON";  # Always generate for LSP
 
-          # C++ feature flags
-          ENABLE_LTO = boolToCMake config.enableLTO;
-          USE_THIN_LTO = boolToCMake config.useThinLTO;
-          ENABLE_EXCEPTIONS = boolToCMake config.enableExceptions;
-          ENABLE_RTTI = boolToCMake config.enableRTTI;
+          # C++ feature flags (non-variant, apply to both debug and release)
+          ENABLE_EXCEPTIONS = boolToCMake cfg.essential.enableExceptions;
+          ENABLE_RTTI = boolToCMake cfg.essential.enableRTTI;
+          WARNING_LEVEL = cfg.essential.warningLevel;
 
-          # Testing configuration
-          ENABLE_TESTING = boolToCMake config.enableTesting;
-          TEST_FRAMEWORK = config.testFramework;
-          ENABLE_BENCHMARKS = boolToCMake config.enableBenchmarks;
-          ENABLE_COVERAGE = boolToCMake config.enableCoverage;
+          # Testing framework configuration (non-variant)
+          ENABLE_TESTING = boolToCMake cfg.testing.enable;
+          TEST_FRAMEWORK = cfg.testing.testFramework;
+          ENABLE_BENCHMARKS = boolToCMake cfg.performance.enableBenchmarks;
 
-          # Development tools
-          ENABLE_SANITIZERS = boolToCMake config.enableSanitizers;
-          ENABLE_CLANG_TIDY = boolToCMake config.enableClangTidy;
-          ENABLE_CPPCHECK = boolToCMake config.enableCppCheck;
-          ENABLE_IWYU = boolToCMake config.enableIncludeWhatYouUse;
-          ENABLE_DOCS = boolToCMake config.enableDocs;
-
-          # Performance/optimization flags
-          OPTIMIZATION_LEVEL = toString config.optimizationLevel;
-          MARCH_NATIVE = boolToCMake config.marchNative;
-          ENABLE_FAST_MATH = boolToCMake config.enableFastMath;
-          ALIGN_FOR_CACHE = boolToCMake config.alignForCache;
-
-          # Compiler configuration
-          WARNING_LEVEL = config.warningLevel;
+          # Development tools (non-variant)
+          ENABLE_CLANG_TIDY = boolToCMake cfg.devTools.enableClangTidy;
+          ENABLE_CPPCHECK = boolToCMake cfg.analysis.enableCppCheck;
+          ENABLE_IWYU = boolToCMake cfg.analysis.enableIncludeWhatYouUse;
+          ENABLE_DOCS = boolToCMake cfg.docs.enableDocs;
         }
-        // lib.optionalAttrs config.enableCcache {
+        // lib.optionalAttrs cfg.devTools.enableCcache {
           CCACHE_DIR = "$HOME/.ccache";
-          CCACHE_MAXSIZE = config.ccacheMaxSize;
+          CCACHE_MAXSIZE = cfg.devTools.ccacheMaxSize;
         };
 
       # Generate pre-commit hook installation
-      mkPreCommitHook = config:
-        lib.optionalString config.enablePreCommitHooks ''
+      mkPreCommitHook = cfg:
+        lib.optionalString cfg.devTools.enablePreCommitHooks ''
           # Install pre-commit hooks if config exists
           if [ -f .pre-commit-config.yaml ] && command -v pre-commit >/dev/null 2>&1; then
             if [ ! -f .git/hooks/pre-commit ]; then
@@ -611,8 +596,8 @@ conan install . --profile=release --build=missing --build=<package>
         '';
 
       # Generate documentation setup helper
-      mkDocsSetup = config:
-        lib.optionalString config.enableDocs ''
+      mkDocsSetup = cfg:
+        lib.optionalString cfg.docs.enableDocs ''
           # Create docs structure if it doesn't exist
           if [ ! -f docs/conf.py ] && [ -f CMakeLists.txt ]; then
             echo "Setting up documentation structure..."
@@ -627,7 +612,7 @@ conan install . --profile=release --build=missing --build=<package>
         pkgs,
       }: let
         profiles = mkConanProfiles {inherit config pkgs;};
-        defaultProfile = config.defaultProfile;
+        defaultProfile = config.essential.defaultProfile;
       in {
         # The generated profiles
         inherit profiles;
@@ -658,16 +643,22 @@ conan install . --profile=release --build=missing --build=<package>
     # Package Groups - Templates compose what they need
     # ============================================================================
 
-    # Essential C++ packages - minimum to compile C++
-    essential = [
-      llvmPkg.clang # Compiler
-      llvmPkg.lld # Linker
-      llvmPkg.libcxx # C++ standard library
-      llvmPkg.libcxx.dev # C++ headers
-      pkgs.cmake # Build system
-      pkgs.ninja # Build tool
-      pkgs.conan # Package manager (architectural choice)
-    ];
+    # Essential C++ packages - minimum to compile and debug C++
+    essential =
+      [
+        llvmPkg.clang # Compiler
+        llvmPkg.lld # Linker
+        llvmPkg.libcxx # C++ standard library
+        llvmPkg.libcxx.dev # C++ headers
+        pkgs.cmake # Build system
+        pkgs.ninja # Build tool
+        pkgs.conan # Package manager (architectural choice)
+        llvmPkg.lldb # LLDB debugger
+      ]
+      ++ lib.optionals pkgs.stdenv.isLinux [
+        pkgs.gdb
+        pkgs.valgrind
+      ];
 
     # Developer tools - LSPs, formatters, linters, productivity
     devTools = [
@@ -677,16 +668,6 @@ conan install . --profile=release --build=missing --build=<package>
       pkgs.ccache
       pkgs.pre-commit  # Git hooks for formatting
     ];
-
-    # Debugging tools
-    debugging =
-      [
-        llvmPkg.lldb # LLDB debugger
-      ]
-      ++ lib.optionals pkgs.stdenv.isLinux [
-        pkgs.gdb
-        pkgs.valgrind
-      ];
 
     # Static analysis tools
     analysis = with pkgs; [

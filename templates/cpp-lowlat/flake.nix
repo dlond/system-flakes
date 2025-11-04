@@ -34,15 +34,20 @@
       # ============================================================================
       config = {
         cpp.essential = {
+          # Non-variant options (apply to both debug and release)
           cppStandard = 23; # Latest features for performance
-          enableLTO = true; # Essential for performance
-          useThinLTO = true; # Thin LTO for faster builds
           enableExceptions = false; # Avoid exception overhead
           enableRTTI = false; # Avoid RTTI overhead
-          optimizationLevel = 3; # Maximum optimization
-          marchNative = true; # CPU-specific optimizations
-          alignForCache = true; # Cache-line alignment
           warningLevel = "extra"; # Maximum warnings
+
+          # Release-specific overrides (debug uses defaults: O0, no LTO, etc.)
+          release = {
+            optimizationLevel = 3; # Maximum optimization
+            enableLTO = true; # Essential for performance
+            useThinLTO = true; # Thin LTO for faster builds
+            marchNative = true; # CPU-specific optimizations
+            alignForCache = true; # Cache-line alignment
+          };
         };
         cpp.performance = {
           enable = true;  # Enable performance packages

@@ -50,6 +50,88 @@
         return 1
       }
 
+      # Confirmation prompt
+      # Args:
+      #   $1 = prompt message
+      #   $2 = default response (optional: y/n/empty)
+      # Returns: 0 if confirmed, 1 if not
+      __gwt_confirm() {
+        local prompt=$1
+        local default=''${2:-""}
+        local response
+
+        echo -n "$prompt "
+        read response
+
+        if [ -z "$response" ] && [ -n "$default" ]; then
+          response="$default"
+        fi
+
+        case "$response" in
+          y|Y|yes|YES)
+            return 0
+            ;;
+          *)
+            return 1
+            ;;
+        esac
+      }
+
+      # Prompt with custom input
+      # Args:
+      #   $1 = prompt message
+      #   $2 = default value (optional)
+      # Returns: user input on stdout
+      __gwt_prompt() {
+        local prompt=$1
+        local default=$2
+        local response
+
+        if [ -n "$default" ]; then
+          echo -n "$prompt [$default]: "
+        else
+          echo -n "$prompt: "
+        fi
+
+        read response
+
+        if [ -z "$response" ] && [ -n "$default" ]; then
+          response="$default"
+        fi
+
+        echo "$response"
+      }
+
+      # Three-way choice prompt (yes/no/edit)
+      # Args:
+      #   $1 = prompt message
+      #   $2 = value to edit
+      # Returns: 0=yes(use as-is), 1=no(reject), 2=edit
+      # Sets __gwt_prompt_result to the final value
+      __gwt_confirm_or_edit() {
+        local prompt=$1
+        local value=$2
+        local response
+
+        echo -n "$prompt (y/n/edit): "
+        read response
+
+        case "$response" in
+          y|Y|yes|YES|"")
+            __gwt_prompt_result="$value"
+            return 0
+            ;;
+          n|N|no|NO)
+            __gwt_prompt_result=""
+            return 1
+            ;;
+          *)
+            __gwt_prompt_result=$(__gwt_prompt "Edit value" "$value")
+            return 2
+            ;;
+        esac
+      }
+
       # Get the main branch name (main or master)
       __gwt_get_main_branch() {
         git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"
@@ -153,6 +235,7 @@
               ;;
             branch)
               exclude_branch="$reference"
+              ;;
           esac
         fi
 
@@ -480,38 +563,21 @@
 
           # Analyze issues and suggest branch name
           branch=$(__gwt_analyze_issues "''${issue_numbers[@]}")
+          local prompt_result
+          __gwt_confirm_or_edit "Use this name?" "$branch"
+          case $? in
+            0)
+              prompt_result="$__gwt_prompt_result"
+              ;;
+            1)
+              prompt_result=$(__gwt_prompt "Enter custom branch name")
+              ;;
+            2)
+              prompt_result="$__gwt_prompt_result"
+              ;;
+          esac
 
-          # Check if branch name was generated
-          if [ -z "$branch" ]; then
-            echo "❌ Failed to generate branch name suggestion" >&2
-            echo -n "Enter custom branch name: "
-            read branch
-          else
-            echo ""
-            echo "💡 Suggested branch name: $branch"
-            echo ""
-            echo -n "Use this name? (y/n/edit): "
-            read response
-
-            case "$response" in
-              y|Y|yes|YES|"")
-                # Use suggested name
-                ;;
-              n|N|no|NO)
-                echo -n "Enter custom branch name: "
-                read branch
-                ;;
-              *)
-                # Allow editing the suggested name
-                echo -n "Edit branch name [$branch]: "
-                read new_name
-                [ -n "$new_name" ] && branch="$new_name"
-                ;;
-            esac
-          fi
-        else
-          # Custom branch name provided
-          branch=$(__gwt_sanitize_for_branch "$1")
+          branch=$(__gwt_sanitize_for_branch "$prompt_result")
         fi
 
         local worktree_base=$(__gwt_get_worktree_base)
@@ -682,18 +748,7 @@
         echo ""
 
         # Check for uncommitted changes
-        if ! git -C "$wt_to_complete" diff --quiet || ! git -C "$wt_to_complete" diff --staged --quiet; then
-          __gwt_print_warning "You have uncommitted changes in $br_to_complete"
-          git -C "$wt_to_complete" status --short
-          echo ""
-          echo "Unable to complete worktree with uncommitted changes."
-          echo "Please commit or stash your changes first:"
-          echo "  cd $wt_to_complete"
-          echo "  git commit -am 'your_message'"
-          echo "  # or"
-          echo "  git stash"
-          return 1
-        fi
+        __gwt_require_clean_worktree "$wt_to_complete" "$br_to_complete" || return 1
 
         # Fetch latest changes from remote
         __gwt_print_working "Fetching latest changes from remote..."
@@ -774,101 +829,6 @@
       }
 
       # ----------------------------------------------------------------------------
-      # Command: gwt clean
-      # ----------------------------------------------------------------------------
-
-      __gwt_cmd_clean() {
-        local clean_all=false
-
-        # Parse options
-        if [[ "$1" == "--all" ]]; then
-          clean_all=true
-        fi
-
-        # Check if we're in a git repository
-        __gwt_check_git_repo || return 1
-
-        echo "🧹 Cleaning up worktrees..."
-        echo ""
-
-        local main_branch=$(__gwt_get_main_branch)
-
-        if [ "$clean_all" = true ]; then
-          # Remove ALL worktrees except main
-          echo "⚠️  Removing ALL worktrees except main branch!"
-          echo ""
-          echo -n "Are you sure? (yes/no): "
-          read confirm
-          if [[ "$confirm" != "yes" ]]; then
-            echo "Cancelled."
-            return 0
-          fi
-
-          git worktree list --porcelain | awk '
-            /^worktree / { path=$2 }
-            /^branch / {
-              branch=$2
-              gsub("refs/heads/", "", branch)
-              if (branch != "" && branch != "main" && branch != "master") {
-                print path
-              }
-            }
-          ' | while read -r wt_path; do
-            echo "  Removing: $wt_path"
-            git worktree remove "$wt_path" --force 2>/dev/null || echo "    ⚠️  Could not remove $wt_path"
-          done
-        else
-          # Remove worktrees for merged branches
-          echo "🔍 Checking for merged worktree branches..."
-          local removed_count=0
-
-          while IFS=$'\t' read -r wt_path wt_branch; do
-            # Skip the main worktree
-            if [ "$wt_path" = "$(git rev-parse --show-toplevel)" ]; then
-              continue
-            fi
-
-            # Check if branch is merged (any method)
-            if __gwt_is_branch_merged "$wt_branch" "$main_branch"; then
-              # Determine merge type for user feedback
-              if __gwt_is_branch_ancestor "$wt_branch" "$main_branch"; then
-                echo "  ✅ Merged branch found (regular merge): $wt_branch"
-              else
-                echo "  ✅ Merged branch found (squash/rebase merge): $wt_branch"
-              fi
-              echo "     Removing worktree: $wt_path"
-              if git worktree remove "$wt_path" 2>/dev/null; then
-                ((removed_count++))
-                # Also try to delete the branch (use -D for squash-merged branches)
-                git branch -D "$wt_branch" 2>/dev/null || true
-              else
-                echo "     ⚠️  Could not remove automatically (may have uncommitted changes)"
-                echo "     Run: git worktree remove \"$wt_path\" --force"
-              fi
-            fi
-          done < <(git worktree list --porcelain | awk '
-            /^worktree / { path=$2 }
-            /^branch / {
-              branch=$2
-              gsub("refs/heads/", "", branch)
-              if (branch != "") printf "%s\t%s\n", path, branch
-            }
-          ')
-
-          if [ "$removed_count" -eq 0 ]; then
-            echo "✨ No merged worktrees to clean up"
-          else
-            echo "✅ Cleaned up $removed_count worktree(s)"
-          fi
-        fi
-
-        # List remaining worktrees
-        echo ""
-        echo "📊 Remaining worktrees:"
-        git worktree list
-      }
-
-      # ----------------------------------------------------------------------------
       # Main gwt function
       # ----------------------------------------------------------------------------
 
@@ -886,9 +846,6 @@
           done)
             __gwt_cmd_done "$@"
             ;;
-          clean)
-            __gwt_cmd_clean "$@"
-            ;;
           help|--help|-h)
             cat <<'EOF'
       Git Worktree Management (gwt)
@@ -899,7 +856,6 @@
         new [--cwd] <issue|name>    Create new worktree from issue(s) or custom name
         switch, sw                  Interactive worktree switcher (fzf)
         done [--no-close]           Complete work on worktree (fzf selector if on main)
-        clean [--all]               Clean up merged/old worktrees
         help                        Show this help
 
       Examples:
@@ -908,12 +864,10 @@
         gwt new my-feature          Create worktree with custom name
         gwt switch                  Interactive switch between worktrees
         gwt done                    Finish current worktree (merge PR, close issues)
-        gwt clean                   Remove merged worktrees
 
       Tips:
         - Use 'gwt new --cwd' to stay in current directory after creation
         - Use 'gwt done --no-close' to keep issues open after completion
-        - Use 'gwt clean --all' to remove ALL non-main worktrees
       EOF
             ;;
           *)

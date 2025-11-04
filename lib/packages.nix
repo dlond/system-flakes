@@ -77,51 +77,87 @@ in rec {
     # ============================================================================
     helpers = rec {
       # Convert boolean to cmake ON/OFF string
-      boolToCMake = b: if b then "ON" else "OFF";
+      boolToCMake = b:
+        if b
+        then "ON"
+        else "OFF";
 
       # Generate CXXFLAGS from config
-      mkCxxFlags = config: lib.concatStringsSep " " (
-        ["-O${toString (config.optimizationLevel or 2)}"]
-        ++ lib.optionals (config.marchNative or false) ["-march=native" "-mtune=native"]
-        ++ lib.optionals (config.enableLTO or false) [
-          (if config.useThinLTO or false then "-flto=thin" else "-flto")
-        ]
-        ++ lib.optionals (!(config.enableExceptions or true)) ["-fno-exceptions"]
-        ++ lib.optionals (!(config.enableRTTI or true)) ["-fno-rtti"]
-        ++ lib.optionals (config.enableFastMath or false) ["-ffast-math"]
-        ++ lib.optionals (config.alignForCache or false) ["-falign-functions=64"]
-      );
+      mkCxxFlags = config:
+        lib.concatStringsSep " " (
+          ["-O${toString (config.optimizationLevel or 2)}"]
+          ++ lib.optionals (config.marchNative or false) ["-march=native" "-mtune=native"]
+          ++ lib.optionals (config.enableLTO or false) [
+            (
+              if config.useThinLTO or false
+              then "-flto=thin"
+              else "-flto"
+            )
+          ]
+          ++ lib.optionals (!(config.enableExceptions or true)) ["-fno-exceptions"]
+          ++ lib.optionals (!(config.enableRTTI or true)) ["-fno-rtti"]
+          ++ lib.optionals (config.enableFastMath or false) ["-ffast-math"]
+          ++ lib.optionals (config.alignForCache or false) ["-falign-functions=64"]
+        );
 
       # Generate LDFLAGS from config
-      mkLdFlags = config: lib.concatStringsSep " " (
-        ["-fuse-ld=lld"]
-        ++ lib.optionals (config.enableLTO or false) [
-          (if config.useThinLTO or false then "-flto=thin" else "-flto")
-        ]
-      );
+      mkLdFlags = config:
+        lib.concatStringsSep " " (
+          ["-fuse-ld=lld"]
+          ++ lib.optionals (config.enableLTO or false) [
+            (
+              if config.useThinLTO or false
+              then "-flto=thin"
+              else "-flto"
+            )
+          ]
+        );
 
       # Generate Conan profile from config
-      mkConanProfile = {config, pkgs}: pkgs.writeText "conan-profile" ''
-        [settings]
-        os=${if pkgs.stdenv.isDarwin then "Macos" else if pkgs.stdenv.isLinux then "Linux" else "Unknown"}
-        arch=${if pkgs.stdenv.isAarch64 then "armv8" else if pkgs.stdenv.isx86_64 then "x86_64" else "Unknown"}
-        compiler=${if config.compiler or "clang" == "clang" then "clang" else "gcc"}
-        compiler.version=${toString (config.llvmVersion or llvmVersion)}
-        compiler.libcxx=${if config.compiler or "clang" == "clang" then "libc++" else "libstdc++11"}
-        compiler.cppstd=${toString (config.cppStandard or 20)}
-        build_type=${config.buildType or "Release"}
+      mkConanProfile = {
+        config,
+        pkgs,
+      }:
+        pkgs.writeText "conan-profile" ''
+          [settings]
+          os=${
+            if pkgs.stdenv.isDarwin
+            then "Macos"
+            else if pkgs.stdenv.isLinux
+            then "Linux"
+            else "Unknown"
+          }
+          arch=${
+            if pkgs.stdenv.isAarch64
+            then "armv8"
+            else if pkgs.stdenv.isx86_64
+            then "x86_64"
+            else "Unknown"
+          }
+          compiler=${
+            if config.compiler or "clang" == "clang"
+            then "clang"
+            else "gcc"
+          }
+          compiler.version=${toString (config.llvmVersion or llvmVersion)}
+          compiler.libcxx=${
+            if config.compiler or "clang" == "clang"
+            then "libc++"
+            else "libstdc++11"
+          }
+          compiler.cppstd=${toString (config.cppStandard or 20)}
+          build_type=${config.buildType or "Release"}
 
-        [conf]
-        tools.cmake.cmaketoolchain:generator=Ninja
-        tools.build:jobs=${toString (config.buildJobs or 12)}
-        ${lib.optionalString (config.buildParallel or true) "tools.cmake.cmake:build_parallel=${toString (config.buildJobs or 12)}"}
+          [conf]
+          tools.cmake.cmaketoolchain:generator=Ninja
+          tools.build:jobs=${toString (config.buildJobs or 12)}
 
-        ${lib.optionalString ((config.buildType or "Release") == "Release" && (config.enableLTO or false)) ''
-        [buildenv]
-        CXXFLAGS=${mkCxxFlags config}
-        LDFLAGS=${mkLdFlags config}
-        ''}
-      '';
+          ${lib.optionalString ((config.buildType or "Release") == "Release" && (config.enableLTO or false)) ''
+            [buildenv]
+            CXXFLAGS=${mkCxxFlags config}
+            LDFLAGS=${mkLdFlags config}
+          ''}
+        '';
 
       # Generate environment variables for CMake
       mkCMakeEnv = config: {
@@ -154,7 +190,11 @@ in rec {
         echo "  C++ Standard: ${toString (config.cppStandard or 20)}"
         echo "  Build Type: ${config.buildType or "Release"}"
         echo "  Testing: ${boolToCMake (config.enableTesting or true)} (${config.testFramework or "gtest"})"
-        echo "  LTO: ${boolToCMake (config.enableLTO or false)}${lib.optionalString (config.enableLTO or false) " (${if config.useThinLTO or false then "thin" else "full"})"}"
+        echo "  LTO: ${boolToCMake (config.enableLTO or false)}${lib.optionalString (config.enableLTO or false) " (${
+          if config.useThinLTO or false
+          then "thin"
+          else "full"
+        })"}"
         echo "  Warnings: ${config.warningLevel or "all"}"
         ${lib.optionalString (config.enableBenchmarks or false) ''echo "  Benchmarks: ON"''}
         ${lib.optionalString (config.marchNative or false) ''echo "  March Native: ON"''}
@@ -168,6 +208,152 @@ in rec {
         echo "  CXXFLAGS: ${mkCxxFlags config}"
         echo "  LDFLAGS: ${mkLdFlags config}"
       '';
+    };
+
+    # ============================================================================
+    # Template-Specific Package Builders - Return components for flexibility
+    # ============================================================================
+    environments = {
+      # Standard C++ development environment components
+      mkStandardEnv = {
+        config,
+        pkgs,
+      }: {
+        # Core C++ packages
+        packages =
+          packages {
+            llvmVersion = config.llvmVersion or llvmVersion;
+            packageManager = "conan";
+            testFramework = config.testFramework or "gtest";
+            withAnalysis = config.enableClangTidy or false;
+            withDocs = config.enableDocs or false;
+          }
+          ++ core.essential ++ core.search;
+
+        # Generated artifacts
+        profile = helpers.mkConanProfile {inherit config pkgs;};
+        cmakeEnv = helpers.mkCMakeEnv config;
+
+        # Helper to generate standard summary (templates can use or ignore)
+        configSummary = helpers.mkConfigSummary config;
+      };
+
+      # Low-latency/high-performance C++ environment components
+      mkLowLatencyEnv = {
+        config,
+        pkgs,
+      }: let
+        baseEnv = environments.mkStandardEnv {inherit config pkgs;};
+
+        # Performance-specific packages
+        performanceLibs = with pkgs;
+          [
+            gbenchmark
+            boost
+            jemalloc
+            mimalloc
+            tbb
+          ]
+          ++ lib.optionals (config.additionalTestFrameworks or false) [
+            catch2_3
+          ];
+
+        # Linux-specific performance tools
+        linuxTools = lib.optionals pkgs.stdenv.isLinux (with pkgs;
+          [
+            perf-tools
+            valgrind
+            liburing
+          ]
+          ++ lib.optionals (config.enableDPDK or false) [
+            dpdk
+          ]);
+      in {
+        # Combine base packages with performance tools
+        packages = baseEnv.packages ++ performanceLibs ++ linuxTools;
+
+        # Inherit generated artifacts
+        profile = baseEnv.profile;
+        cmakeEnv = baseEnv.cmakeEnv;
+
+        # Additional helpers for low-latency
+        configSummary = baseEnv.configSummary;
+        perfFlagsSummary = helpers.mkPerfFlagsSummary config;
+
+        # Export the individual package groups (in case template wants them separately)
+        packageGroups = {
+          base = baseEnv.packages;
+          performance = performanceLibs;
+          linux = linuxTools;
+        };
+      };
+
+      # Python + C++ hybrid environment components
+      mkHybridEnv = {
+        config,
+        pkgs,
+      }: let
+        baseEnv = environments.mkStandardEnv {
+          config =
+            config
+            // {
+              # Force C++17 for Python bindings compatibility
+              cppStandard = config.cppStandard or "17";
+            };
+          inherit pkgs;
+        };
+
+        # Python environment
+        pythonVersion = config.pythonVersion or pythonVersion;
+        pythonWithPackages = (selectPython pythonVersion).withPackages (ps:
+          with ps; [
+            debugpy
+            pynvim
+            jupyter-client
+            ipykernel
+            pybind11
+            setuptools
+            wheel
+            build
+          ]);
+
+        pythonTools = with pkgs;
+          [
+            pythonWithPackages
+            uv
+            basedpyright
+            ruff
+          ]
+          ++ lib.optionals (config.withJupyter or true) [
+            imagemagick
+            poppler-utils
+          ];
+      in {
+        # Combine C++ and Python packages
+        packages = baseEnv.packages ++ pythonTools;
+
+        # Inherit C++ artifacts
+        profile = baseEnv.profile;
+        cmakeEnv =
+          baseEnv.cmakeEnv
+          // {
+            Python3_EXECUTABLE = "${pythonWithPackages}/bin/python";
+          };
+
+        # Export components separately for flexibility
+        packageGroups = {
+          cpp = baseEnv.packages;
+          python = pythonTools;
+        };
+
+        # Additional environment variables for Python
+        pythonEnv = {
+          UV_PROJECT_ENVIRONMENT = ".venv";
+          Python3_EXECUTABLE = "${pythonWithPackages}/bin/python";
+        };
+
+        configSummary = baseEnv.configSummary;
+      };
     };
 
     # Function to get C++ packages with specific versions

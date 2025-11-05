@@ -159,25 +159,10 @@
         echo "$HOME/dev/worktrees/$project_name"
       }
 
-      # Get the path to the main worktree
-      # Args: $1 main branch name (optional, defaults to auto-detect)
-      # Returns: worktree for the main branch
-      __gwt_get_main_worktree() {
-        local main_branch=''${1:-$(__gwt_get_main_branch)}
-
-        # Try to find worktree with main branch
-        local main_wt=$(git worktree list --porcelain | \
-          rg -B2 "branch refs/heads/$main_branch" | \
-          rg "^worktree" | \
-          cut -d" " -f2 | \
-          head -1)
-
-        if [ -n "$main_wt" ]; then
-          echo "$main_wt"
-          return 0
-        fi
-
-        dirname "$(git rev-parse --git-common-dir)"
+      # Get worktree for a branch
+      __gwt_get_worktree() {
+        local branch=$1
+        git worktree list --porcelain | rg -B2 "branch refs/heads/$branch$" | rg "^worktree" | cut -d" " -f2
       }
 
       # Fetch remote branch with standard error handling
@@ -188,10 +173,10 @@
         __gwt_print_working "Fetching latest changes from remote..."
 
         if git fetch origin "refs/heads/''${branch}:refs/remotes/origin/''${branch}" 2>/dev/null; then
+          __gwt_print_success "$branch fetched successfully"
           return 0
         else
           __gwt_print_warning "Failed to fetch latest changes from remote"
-          echo "   Continuing with local state..."
           return 1
         fi
       }
@@ -208,7 +193,6 @@
           return 0
         else
           __gwt_print_warning "Could not fast-forward $branch (may have local commits or conflicts)"
-          echo "   Run 'git pull origin $branch' manually to resolve"
           return 1
         fi
       }
@@ -380,30 +364,6 @@
         return 1
       }
 
-      # Get worktree for a branch
-      __gwt_get_worktree() {
-        local branch=$1
-        git worktree list --porcelain | rg -B2 "branch refs/heads/$branch$" | rg "^worktree" | cut -d" " -f2
-      }
-
-      # Get worktree from user input
-      __gwt_resolve_to_worktree() {
-        local input=$1
-        local branch=$(__gwt_resolve_to_branch "$input")
-
-        if [ -z "$branch" ]; then
-          return 1
-        fi
-
-        local worktree=$(__gwt_get_worktree "$branch")
-        if [ -n "$worktree" ]; then
-          echo "$worktree"
-          return 0
-        fi
-
-        return 1
-      }
-
       # Extract issue numbers from branch name
       __gwt_extract_issue_numbers() {
         local branch=$1
@@ -414,6 +374,24 @@
       __gwt_sanitize_for_branch() {
         echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g'
       }
+
+      __gwt_safe_to_complete() {
+        local branch=$1
+        local worktree="''${2:-$(__gwt_get_worktree "$branch")}"
+        local main="$(__gwt_get_main_branch)"
+
+        __gwt_is_worktree_clean "$worktree" || return 1
+
+        local ahead=$(git rev-list --count "origin/$main..$branch" 2>/dev/null)
+        [[ $ahead -eq 0 ]] && return 1
+
+        __gwt_fetch_remote "$main"
+
+        __gwt_is_pr_merged "$branch" && return 0
+
+        __gwt_is_branch_ancestor "$branch" "origin/$main"
+      }
+
 
       # Colored output helpers
       __gwt_print_error() { echo "❌ $*" >&2; }
@@ -426,26 +404,10 @@
       # GitHub Integration Functions
       # ----------------------------------------------------------------------------
 
-      # Check if PR exists for branch
-      __gwt_pr_exists() {
-        local branch=$1
-        gh pr view "$branch" --json number >/dev/null 2>&1
-      }
-
-      # Get PR state
-      __gwt_get_pr_state() {
-        local branch=$1
-        local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-        printf '%s\n' "$pr_status" | jq -r '.state'
-      }
-
       # Check if PR is merged
       __gwt_is_pr_merged() {
         local branch=$1
-        local pr_status=$(gh pr view "$branch" --json state,mergedAt 2>/dev/null || echo '{"state":"UNKNOWN"}')
-        local pr_state=$(printf '%s\n' "$pr_status" | jq -r '.state')
-        local pr_merged=$(printf '%s\n' "$pr_status" | jq -r '.mergedAt')
-        [[ "$pr_state" == "MERGED" ]] || [[ "$pr_merged" != "null" ]]
+        gh pr view "$branch" --json state,mergedAt -q '.state,.mergedAt' 2>/dev/null | rg -q "MERGED"
       }
 
       # Check if branch is merged (via regular merge)
@@ -453,24 +415,6 @@
         local branch=$1
         local target_branch=''${2:-$(__gwt_get_main_branch)}
         git merge-base --is-ancestor "$branch" "$target_branch" 2>/dev/null
-      }
-
-      # Check if branch is merged by any method
-      __gwt_is_branch_merged() {
-        local branch=$1
-        local target_branch=''${2:-$(__gwt_get_main_branch)}
-
-        # First check: regular merge (fast, local)
-        if __gwt_is_branch_ancestor "$branch" "$target_branch"; then
-          return 0
-        fi
-
-        # Second check: PR merged on GitHub (catches squash/rebase)
-        if __gwt_is_pr_merged "$branch"; then
-          return 0
-        fi
-
-        return 1
       }
 
       # Fetch issue info from GitHub
@@ -606,8 +550,10 @@
           # Analyze issues and suggest branch name
           branch=$(__gwt_analyze_issues "''${issue_numbers[@]}")
         else
-          branch=$(__gwt_sanitize_for_branch "$1")
+          branch="$1"
         fi
+
+        branch=$(__gwt_sanitize_for_branch "$branch")
 
         # local prompt_result
         __gwt_confirm_or_edit "Use this name?" "$branch"
@@ -641,7 +587,7 @@
           echo "🌿 Branch: $branch"
 
           # Link main .envrc if exists
-          local main_envrc="$(__gwt_get_main_worktree)/.envrc"
+          local main_envrc="$(__gwt_get_worktree )/.envrc"
           if [ -f "$main_envrc" ]; then
             ln -s "$main_envrc" "$worktree/.envrc"
           fi
@@ -790,37 +736,15 @@
         echo "   Path: $wt_to_complete"
         echo ""
 
-        # Check for uncommitted changes
-        __gwt_require_clean_worktree "$wt_to_complete" "$br_to_complete" || return 1
-
-        # Fetch latest changes from remote
-        __gwt_fetch_remote "$main_branch"
-
-        # Check if PR exists and is merged
-        if __gwt_pr_exists "$br_to_complete"; then
-          if __gwt_is_pr_merged "$br_to_complete"; then
-            __gwt_print_success "PR is merged!"
-          else
-            local pr_state=$(__gwt_get_pr_state "$br_to_complete")
-            __gwt_print_warning "PR is not merged (state: $pr_state)"
-            echo "   Please merge the PR first, then run gwt done again"
-            echo "   To force cleanup: git worktree remove \"$wt_to_complete\" --force"
-            return 1
-          fi
-        else
-          # Check if branch is merged
-          if ! __gwt_is_branch_merged "$br_to_complete" "origin/$main_branch"; then
-            __gwt_print_warning "No PR found and branch is not merged to origin/$main_branch"
-            echo "   Create a PR with: gh pr create"
-            echo "   Or merge locally first"
-            return 1
-          fi
-          __gwt_print_info "No PR, but branch is merged to origin/$main_branch"
+        if ! __gwt_safe_to_complete "$br_to_complete" "$wt_to_complete"; then
+          __gwt_print_error "Cannot complete worktree $wt_to_complete."
+          __gwt_print_info "Check the worktree is clean and PR has been merged."
+          return 1
         fi
 
         if [ "$wt_to_complete" = "$PWD" ]; then
           # Find the main worktree
-          local main_worktree=$(__gwt_get_main_worktree "$main_branch")
+          local main_worktree=$(__gwt_get_worktree "$main_branch")
 
           # Switch to main worktree before removing current one
           echo ""
@@ -832,29 +756,27 @@
         __gwt_print_working "Removing worktree..."
         git worktree remove "$wt_to_complete" || {
           __gwt_print_error "Failed to remove worktree '$wt_to_complete'"
+          return 1
         }
 
-
-        git branch -d "$br_to_complete" || {
+        git branch -D "$br_to_complete" || {
           __gwt_print_warning "Failed to delete branch '$br_to_complete' (may have unmerged changes)"
+          return 1
         }
-
 
         # Close related issues if requested
         local issue_numbers=$(__gwt_extract_issue_numbers "$br_to_complete")
-        if [ -n "$issue_numbers" ]; then
-          if [ "$close_issues" = true ]; then
-            __gwt_print_working "Closing related issues: $issue_numbers"
-            for issue in $issue_numbers; do
-              if gh issue close "$issue" 2>/dev/null; then
-                __gwt_print_success "Closed issue #$issue"
-              else
-                echo "   Issue #$issue is already closed or doesn't exist"
-              fi
-            done
-          else
-            __gwt_print_info "Skipping issue closing (--no-close specified) for: $issue_numbers"
-          fi
+        if [ -n "$issue_numbers" ] && [ "$close_issues" = true ]; then
+          __gwt_print_working "Closing related issues: $issue_numbers"
+          for issue in $issue_numbers; do
+            if gh issue close "$issue" 2>/dev/null; then
+              __gwt_print_success "Closed issue #$issue"
+            else
+              echo "   Issue #$issue is already closed or doesn't exist"
+            fi
+          done
+        else
+          __gwt_print_info "Skipping issue closing (--no-close specified) for: $issue_numbers"
         fi
 
         __gwt_print_success "Worktree and branch cleanup complete!"
@@ -864,6 +786,84 @@
 
         # We're now safely in the main worktree
         pwd
+      }
+
+      __gwt_cmd_clean() {
+        # Check if we're in a git repository
+        __gwt_check_git_repo || return 1
+
+        __gwt_parse_flags "$@"
+        set -- "''${__gwt_args[@]}"
+
+        local dry_run=false
+        __gwt_has_flag "--dry-run" && dry_run=true
+
+        __gwt_print_info "Cleaning up merged worktrees and branches..."
+
+        local main_branch=$(__gwt_get_main_branch)
+        local main_worktree=$(__gwt_get_worktree "$main_branch")
+        local original_dir="$PWD"
+
+        cd "$main_worktree" || return 1
+
+        # Fetch latest changes from remote
+        __gwt_fetch_remote "$main_branch"
+
+        # Get list of worktrees excluding main
+        local worktree_list=$(__gwt_build_worktree_list "branch" "$main_branch")
+        local to_clean=()
+
+        while read -r line; do
+          local worktree=$(echo "$line" | cut -f1)
+          local branch=$(echo "$line" | cut -f2)
+
+          if __gwt_safe_to_complete "$branch" "$worktree"; then
+            to_clean+=("$branch")
+            echo "🧹 $branch (merged)"
+          else
+            echo "🛑 $branch (not merged)"
+          fi
+        done <<< "$worktree_list"
+
+        if [ "''${#to_clean[@]]}" -eq 0 ]; then
+          __gwt_print_info "No merged worktrees found to clean."
+          return 0
+        fi
+
+        echo ""
+        echo "Found ''${#to_clean[@]} merged worktree(s) to clean"
+
+        if [ "dry_run" = true ]; then
+          __gwt_print_info "Dry run - no changes made"
+          return 0
+        fi
+
+        __gwt_confirm "Remove these worktrees? (y/n)" || {
+          echo "Cancelled."
+          return 0
+        }
+
+        local cleaned_count=0
+        for branch in "''${to_clean[@]}"; do
+          local worktree=$(__gwt_get_worktree "$branch")
+          __gwt_print_working "Cleaning: $branch"
+
+          if git worktree remove "$worktree" 2>/dev/null; then
+            git branch -D "$branch" 2>/dev/null
+            __gwt_print_success "Cleaned worktree and branch: $branch"
+            ((cleaned_count++))
+          else
+            __gwt_print_error "Couldn't clean up: $branch"
+          fi
+        done
+
+        if [ -d "$original_dir" ]; then
+          cd "$original_dir"
+        else
+          __gwt_print_info "Original directory was cleaned up, staying in main"
+        fi
+
+        __gwt_print_success "Cleanup complete! Removed $cleaned_count worktree(s)."
       }
 
       # ----------------------------------------------------------------------------
@@ -884,6 +884,9 @@
           done)
             __gwt_cmd_done "$@"
             ;;
+          clean)
+            __gwt_cmd_clean "$@"
+            ;;
           help|--help|-h)
             cat <<'EOF'
       Git Worktree Management (gwt)
@@ -894,6 +897,7 @@
         new [--cwd] <issue|name>    Create new worktree from issue(s) or custom name
         switch, sw                  Interactive worktree switcher (fzf)
         done [--no-close]           Complete work on worktree (fzf selector if on main)
+        clean [--dry-run]           Cleans up merged worktrees and branches
         help                        Show this help
 
       Examples:
@@ -902,6 +906,7 @@
         gwt new my-feature          Create worktree with custom name
         gwt switch                  Interactive switch between worktrees
         gwt done                    Finish current worktree (merge PR, close issues)
+        gwt clean                   Branches and worktrees disappearing into the void
 
       Tips:
         - Use 'gwt new --cwd' to stay in current directory after creation

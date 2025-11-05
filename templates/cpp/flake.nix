@@ -5,8 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     system-flakes = {
-      # url = "github:dlond/system-flakes";
-      url = "path:/Users/dlond/dev/worktrees/system-flakes/refactor-dev-flakes-235";
+      url = "github:dlond/system-flakes";
     };
   };
 
@@ -26,7 +25,7 @@
       # Import packages from system-flakes
       packages = import "${system-flakes}/lib/packages.nix" {
         inherit pkgs;
-        llvmVersion = "20";  # Latest LLVM/Clang
+        llvmVersion = "20"; # Latest LLVM/Clang
       };
 
       # ============================================================================
@@ -34,10 +33,10 @@
       # ============================================================================
       config = {
         cpp.essential = {
-          cppStandard = 23;  # Use latest standard
+          cppStandard = 23; # Use latest standard
         };
         cpp.devTools = {
-          enableClangTidy = true;  # Enable linting for standard development
+          enableClangTidy = true; # Enable linting for standard development
         };
       };
     in {

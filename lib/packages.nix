@@ -1021,7 +1021,6 @@ in rec {
     # Formatters for neovim
     formatters = with pkgs; [
       ruff # Fast formatter (ruff_format, ruff_fix)
-      luacheck
       statix
     ];
 

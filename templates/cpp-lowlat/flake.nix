@@ -5,8 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     system-flakes = {
-      # url = "github:dlond/system-flakes";
-      url = "path:/Users/dlond/dev/worktrees/system-flakes/refactor-dev-flakes-235";
+      url = "github:dlond/system-flakes";
     };
   };
 
@@ -50,11 +49,11 @@
           };
         };
         cpp.performance = {
-          enable = true;  # Enable performance packages
+          enable = true; # Enable performance packages
           enableBenchmarks = true; # Performance benchmarking
         };
         cpp.linuxPerf = {
-          enable = true;  # Enable Linux performance tools
+          enable = true; # Enable Linux performance tools
         };
       };
     in {

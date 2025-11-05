@@ -110,8 +110,8 @@
     "nvim-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1761794228,
-        "narHash": "sha256-TTNHaq8sQ+/dl6RH9wNqOtlFLikVJIBPNcOFHrtVEZY=",
+        "lastModified": 1762341115,
+        "narHash": "sha256-hgFJf0QHLL72f/Z2RXTkYh/TC1nZuq3SgS0r9/ajSOk=",
         "path": "/Users/dlond/dev/worktrees/nvim/nvim-maintenance-time-91",
         "type": "path"
       },

@@ -218,30 +218,6 @@
         git -C "$worktree" diff --quiet && git -C "$worktree" diff --staged --quiet
       }
 
-      # Validate worktree is clean, error and exit if not
-      # Args:
-      #   $1 = worktreee
-      #   $2 = branch name (for error messages)
-      # Returns: 0 if clean, 1 if dirty (with error message)
-      __gwt_require_clean_worktree() {
-        local worktree=$1
-        local branch=$2
-
-        if ! __gwt_is_worktree_clean "$worktree"; then
-          __gwt_print_error "Uncommitted changes detected in $branch"
-          git -C "$worktree" status --short
-          echo ""
-          echo "Please commit or stash your changes first:"
-          echo "  cd $worktree"
-          echo "  git commit -am 'your message'"
-          echo "  # or"
-          echo "  git stash"
-          return 1
-        fi
-
-        return 0
-      }
-
 
       # Build worktree list for fzf selection
       # Args:
@@ -556,16 +532,8 @@
         branch=$(__gwt_sanitize_for_branch "$branch")
 
         # local prompt_result
-        __gwt_confirm_or_edit "Use this name?" "$branch"
-        case $? in
-          0)
-            branch="$__gwt_prompt_result"
-            ;;
-          1)
-            # branch=$(__gwt_prompt "Enter custom branch name")
-            return 1
-            ;;
-        esac
+        __gwt_confirm_or_edit "Use this name?" "$branch" && branch="$__gwt_prompt_result" || return 1
+        branch=$(__gwt_sanitize_for_branch "$branch")
 
         local worktree_base=$(__gwt_get_worktree_base)
         local worktree="$worktree_base/$branch"
@@ -587,7 +555,7 @@
           echo "🌿 Branch: $branch"
 
           # Link main .envrc if exists
-          local main_envrc="$(__gwt_get_worktree )/.envrc"
+          local main_envrc="$(__gwt_get_worktree "$(__gwt_get_main_branch)")/.envrc"
           if [ -f "$main_envrc" ]; then
             ln -s "$main_envrc" "$worktree/.envrc"
           fi
@@ -600,7 +568,7 @@
           cd "$worktree"
         else
           echo ""
-          echo "📍 Staying in current directory (use 'cd $worktree' to switch)"
+          echo "📍 Staying in current directory (use 'gwt switch' to navigate worktrees)"
         fi
       }
 
@@ -742,27 +710,17 @@
           return 1
         fi
 
-        if [ "$wt_to_complete" = "$PWD" ]; then
-          # Find the main worktree
-          local main_worktree=$(__gwt_get_worktree "$main_branch")
-
-          # Switch to main worktree before removing current one
-          echo ""
-          __gwt_print_working "Switching to main worktree..."
-          cd "$main_worktree" || return 1
-        fi
+        local original_dir="$PWD"
+        cd "$(__gwt_get_worktree $main_branch)" || return 1
 
         # Remove the worktree
         __gwt_print_working "Removing worktree..."
-        git worktree remove "$wt_to_complete" || {
-          __gwt_print_error "Failed to remove worktree '$wt_to_complete'"
-          return 1
-        }
-
-        git branch -D "$br_to_complete" || {
-          __gwt_print_warning "Failed to delete branch '$br_to_complete' (may have unmerged changes)"
-          return 1
-        }
+        if git worktree remove "$wt_to_complete" 2>/dev/null; then
+          git branch -D "$br_to_complete" 2>/dev/null
+          __gwt_print_success "Cleaned worktree and branch: $br_to_complete"
+        else
+          __gwt_print_error "Couldn't clean up: $br_to_complete"
+        fi
 
         # Close related issues if requested
         local issue_numbers=$(__gwt_extract_issue_numbers "$br_to_complete")
@@ -779,13 +737,16 @@
           __gwt_print_info "Skipping issue closing (--no-close specified) for: $issue_numbers"
         fi
 
-        __gwt_print_success "Worktree and branch cleanup complete!"
-
         # Update main branch with latest changes from remote
         __gwt_pull_remote "$main_branch"
 
-        # We're now safely in the main worktree
-        pwd
+        if [ -d "$original_dir" ]; then
+          cd "$original_dir"
+        else
+          __gwt_print_info "Original directory was cleaned up, staying in main"
+        fi
+
+        __gwt_print_success "Worktree and branch cleanup complete!"
       }
 
       __gwt_cmd_clean() {
@@ -821,7 +782,7 @@
             to_clean+=("$branch")
             echo "🧹 $branch (merged)"
           else
-            echo "🛑 $branch (not merged)"
+            echo "🔒 $branch (not merged)"
           fi
         done <<< "$worktree_list"
 
@@ -911,6 +872,7 @@
       Tips:
         - Use 'gwt new --cwd' to stay in current directory after creation
         - Use 'gwt done --no-close' to keep issues open after completion
+        - Use 'gwt clean --dry-run' to see what branches/worktrees can be cleaned
       EOF
             ;;
           *)

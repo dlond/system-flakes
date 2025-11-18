@@ -1,7 +1,6 @@
 {
   pkgs,
   config,
-  packages,
   ...
 }: let
   tmuxConf = "${config.xdg.configHome}/tmux/tmux.conf";
@@ -177,8 +176,8 @@ in {
 
       # Copy-mode bindings (vi-style)
       bind -T copy-mode-vi 'v' send-keys -X begin-selection
-      bind -T copy-mode-vi 'y' send-keys -X copy-pipe-and-cancel "${packages.system.clipboardCommand}"
-      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${packages.system.clipboardCommand}"
+      bind -T copy-mode-vi 'y' send-keys -X copy-pipe-and-cancel clip
+      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel clip"
 
       # Splits
       bind v split-window -h -c "#{pane_current_path}"
@@ -213,5 +212,8 @@ in {
     tmux = "${pkgs.tmux}/bin/tmux -f ${tmuxConf}";
   };
 
-  home.packages = [tmuxHelpers];
+  home.packages = [
+    tmuxHelpers
+    pkgs.tmuxp
+  ];
 }

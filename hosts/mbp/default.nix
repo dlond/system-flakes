@@ -1,19 +1,23 @@
 {
   config,
+  packages,
   pkgs,
-  lib,
   username,
   ...
-}: let
-  packages = import ../../lib/packages.nix {inherit pkgs;};
-in {
-  environment.systemPackages = with packages.system;
-    essential
-    ++ security
-    ++ apps
-    ++ development.cpp
-    ++ development.python
-    ++ development.misc;
+}: {
+  environment.systemPackages =
+    (with packages.system;
+      utils
+      ++ security
+      ++ apps
+      ++ development.cpp
+      ++ development.python
+      ++ development.ocaml
+      ++ development.misc
+      ++ development.neovim)
+    ++ [
+      pkgs.pam-reattach # macOS PAM module for Touch ID with tmux/sudo
+    ];
 
   nix.settings.experimental-features = "nix-command flakes";
 
@@ -50,7 +54,7 @@ in {
   };
 
   nix.settings = {
-    access-tokens = ["github.com=${config.sops.secrets.github_token.path}"];
+    access-tokens = ["api.github.com=${config.sops.secrets.github_token.path}"];
   };
 
   # Configure PAM for Touch ID with tmux support

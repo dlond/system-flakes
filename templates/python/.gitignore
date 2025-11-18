@@ -16,9 +16,6 @@ build/
 *.egg-info/
 .eggs/
 
-# uv
-uv.lock
-
 # IDE
 .vscode/
 .idea/
@@ -27,6 +24,9 @@ uv.lock
 
 # Direnv
 .direnv/
+
+# Nix
+result
 
 # OS
 .DS_Store

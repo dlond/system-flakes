@@ -1,0 +1,4 @@
+(executable
+ (name main)
+ (public_name myapp)
+ (libraries myproject.lib cmdliner))

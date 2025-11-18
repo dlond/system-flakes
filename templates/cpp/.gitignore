@@ -10,7 +10,7 @@ graph_info.json
 .conan2/
 
 # Nix
-flake.lock
+result
 
 # Compile commands
 compile_commands.json

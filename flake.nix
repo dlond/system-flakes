@@ -55,14 +55,20 @@
       import nixpkgs {
         inherit system config overlays;
       };
+
+    mkSystemConfig = system: let
+      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
+      packages = import ./lib/packages.nix {inherit pkgs;};
+    in {
+      inherit pkgs packages;
+    };
   in {
     #### macOS full-system (nix-darwin + HM)
     darwinConfigurations.mbp = let
-      system = systems.darwin;
-      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
+      sysConfig = mkSystemConfig systems.darwin;
     in
       inputs.nix-darwin.lib.darwinSystem {
-        inherit system pkgs;
+        inherit (sysConfig) pkgs;
 
         modules = [
           inputs.sops-nix.darwinModules.sops
@@ -73,22 +79,20 @@
           }
         ];
         specialArgs = {
-          inherit pkgs username;
-          inherit inputs;
+          inherit (sysConfig) pkgs packages;
+          inherit username inputs;
         };
       };
 
     homeConfigurations."${username}@mbp" = let
-      system = systems.darwin;
-      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
+      sysConfig = mkSystemConfig systems.darwin;
     in
       inputs.home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
+        inherit (sysConfig) pkgs;
         modules = [./home/users/${username}];
         extraSpecialArgs = {
-          inherit pkgs;
-          inherit (inputs) sops-nix nvim-config catppuccin-bat;
-          packages = import ./lib/packages.nix {inherit pkgs;};
+          inherit (inputs) nix nvim-config catppuccin-bat;
+          inherit (sysConfig) pkgs packages;
         };
       };
 

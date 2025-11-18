@@ -35,6 +35,10 @@
         ENV_ICON = "❄️";
 
         shellHook = ''
+          if [ ! -d ".git" ]; then
+            git init
+          fi
+
           echo "🐫 OCaml Development Environment"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "OCaml version: $(ocaml -vnum)"
@@ -42,11 +46,25 @@
           echo "Opam version: $(opam --version)"
           echo ""
 
-          # Create local switch
+          # Create local switch (without dependencies - fast!)
           if [ ! -d "_opam" ]; then
             echo "Creating local switch for OCaml $(ocaml -vnum)..."
-            echo "> opam switch create . $(ocaml -vnum) --deps-only --with-dev-setup --with-test"
-            opam switch create . $(ocaml -vnum) --deps-only --with-dev-setup --with-test
+            opam switch create . $(ocaml -vnum)
+            echo ""
+
+            # Generate .opam file from dune-project (doesn't need dependencies)
+            eval $(opam env)
+            dune build myproject.opam
+            echo ""
+
+            echo "Install dependencies:"
+            echo "  • opam install . --deps-only                              (minimal - exe only)"
+            echo "  • opam install . --deps-only --with-test                  (+ testing)"
+            echo "  • opam install . --deps-only --with-dev-setup --with-test (+ LSP/tools)"
+            echo ""
+            echo "Then build with:"
+            echo "  • dune build @install  (builds lib + exe, skips tests)"
+            echo "  • dune build           (builds everything including tests)"
             echo ""
           fi
 

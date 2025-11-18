@@ -59,6 +59,11 @@
     nix-direnv.enable = true;
     enableZshIntegration = true;
     silent = true;
+    config = {
+      global = {
+        warn_timeout = "0";
+      };
+    };
   };
 
   programs.neovim-cfg = {

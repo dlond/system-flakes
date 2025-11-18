@@ -1,81 +1,61 @@
 {
-  description = "OCaml development environment with Jane Street essentials for learning";
+  description = "OCaml development environment from dlond/system-flakes#ocaml";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    system-flakes = {
-      url = "github:dlond/system-flakes";
-      # For local development: url = "path:/Users/dlond/dev/projects/system-flakes";
-    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, system-flakes, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
-        };
+  outputs = {
+    nixpkgs,
+    flake-utils,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
 
-        # Import packages from system-flakes
-        packages = import "${system-flakes}/lib/packages.nix" {
-          inherit pkgs;
-        };
+      config = {
+        name = "OCaml Development";
 
-      in {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # OCaml compiler and build tools
-            ocaml
-            dune_3
-            opam  # For additional packages as needed
+        withTest = true;
+      };
 
-            # Jane Street essentials (complex to set up via opam)
-            ocamlPackages.core
-            ocamlPackages.core_unix
-            ocamlPackages.async
-            ocamlPackages.ppx_jane
+      packages = with pkgs; [
+        dune_3
+        ocaml
+        opam # Package manager - handles all project packages and dev tools
+      ];
+    in {
+      devShells.default = pkgs.mkShell {
+        name = config.name;
+        nativeBuildInputs = packages;
+        ENV_ICON = "❄️";
 
-            # Development tools
-            ocamlPackages.utop       # REPL with completion
-            ocamlPackages.ocaml-lsp  # LSP for neovim
-            ocamlformat              # Code formatter
-            ocamlPackages.odoc       # Documentation generation
-          ] ++ packages.core.essential
-            ++ packages.core.search
-            ++ packages.core.utils;
+        shellHook = ''
+          echo "🐫 OCaml Development Environment"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "OCaml version: $(ocaml -vnum)"
+          echo "Dune version: $(dune --version)"
+          echo "Opam version: $(opam --version)"
+          echo ""
 
-          shellHook = ''
-            echo "🐫 OCaml Development Environment (Jane Street Focused)"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "OCaml version: $(ocaml --version | head -n 1)"
-            echo "Dune version: $(dune --version)"
-            echo "Opam version: $(opam --version | head -n 1)"
+          # Create local switch
+          if [ ! -d "_opam" ]; then
+            echo "Creating local switch for OCaml $(ocaml -vnum)..."
+            echo "> opam switch create . $(ocaml -vnum) --deps-only --with-dev-setup --with-test"
+            opam switch create . $(ocaml -vnum) --deps-only --with-dev-setup --with-test
             echo ""
-            echo "Jane Street libraries included:"
-            echo "  ✓ Core - Enhanced standard library"
-            echo "  ✓ Async - Concurrent programming"
-            echo "  ✓ PPX - Syntax extensions"
-            echo ""
-            echo "Quick start:"
-            echo "  • utop                - Interactive REPL"
-            echo "  • dune init project   - Create new project"
-            echo "  • dune build         - Build project"
-            echo "  • dune test          - Run tests"
-            echo ""
-            echo "Additional packages:"
-            echo "  • opam install <package> - Install via opam"
-            echo "  • opam search <keyword>  - Search packages"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          fi
 
-            # Create project structure if starting fresh
-            if [ ! -f "dune-project" ]; then
-              echo ""
-              echo "💡 No dune-project found. Create a new project with:"
-              echo "   dune init project my_project"
-            fi
-          '';
-        };
-      });
+          echo "Development workflow:"
+          echo "  • dune build         - Build project"
+          echo "  • dune test          - Run tests"
+          echo "  • utop               - Interactive REPL"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        '';
+      };
+    });
 }

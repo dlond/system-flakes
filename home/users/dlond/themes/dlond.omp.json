@@ -21,7 +21,7 @@
       "alignment": "left",
       "segments": [
         {
-          "template": "{{if .Env.VIRTUAL_ENV}}🐍{{else if .Env.CONAN_VIRTUAL_ENV}}⚔️{{else if .Env.IN_NIX_SHELL}}❄{{else}}{{.Icon}}{{end}} ",
+          "template": "{{if .Env.ENV_ICON}}{{.Env.ENV_ICON}}{{else}}{{.Icon}}{{end}} ",
           "foreground": "p:os",
           "type": "os",
           "style": "plain"

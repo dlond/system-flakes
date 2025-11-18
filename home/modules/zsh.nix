@@ -185,7 +185,8 @@
           eval "$(fzf --zsh)"
         fi
 
-        # Make <Ctrl-D> deactivate venv if present, otherwise proceed as normal
+        # Make <Ctrl-D> deactivate certain venvs if present
+        # Here's how it works for conan run environments
         activate_conan() {
           source "$1"
           export CONAN_VIRTUAL_ENV="$(cd "$(dirname "$1")" && pwd)"
@@ -199,7 +200,7 @@
 
         smart_ctrl_d() {
           if [[ -z "$BUFFER" ]]; then
-            if [[ -n "$VIRTUAL_ENV" ]] || [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
+            if [[ -n "$CONAN_VIRTUAL_ENV" ]]; then
               if type deactivate &>/dev/null; then
                 deactivate
                 local precmd

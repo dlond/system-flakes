@@ -5,15 +5,15 @@
   username,
   ...
 }: let
-  packages = import ../../lib/packages.nix { inherit pkgs; };
-  nix_netrc = "/etc/nix/netrc";
+  packages = import ../../lib/packages.nix {inherit pkgs;};
 in {
-  environment.systemPackages =
-    packages.system.cli
-    ++ [
-      pkgs.raycast
-      pkgs.pam-reattach # For Touch ID support in tmux
-    ];
+  environment.systemPackages = with packages.system;
+    essential
+    ++ security
+    ++ apps
+    ++ development.cpp
+    ++ development.python
+    ++ development.misc;
 
   nix.settings.experimental-features = "nix-command flakes";
 
@@ -35,22 +35,22 @@ in {
     };
   };
 
-  sops.age = {
-    generateKey = true;
-    keyFile = "/var/lib/sops/age/key.txt";
-  };
-
-  sops.secrets.github_netrc = {
-    sopsFile = ../../secrets/github-netrc.yaml;
-    path = "${nix_netrc}";
-    mode = "0644";
-    owner = "root";
-    group = "wheel";
+  sops = {
+    defaultSopsFile = ../../secrets/secrets.yaml;
+    age = {
+      keyFile = "/Users/${username}/Library/Application Support/sops/age/keys.txt";
+      sshKeyPaths = [];
+    };
+    gnupg.sshKeyPaths = [];
+    secrets = {
+      github_token = {
+        neededForUsers = false;
+      };
+    };
   };
 
   nix.settings = {
-    netrc-file = "${nix_netrc}";
-    trusted-users = ["root" "dlond"];
+    access-tokens = ["github.com=${config.sops.secrets.github_token.path}"];
   };
 
   # Configure PAM for Touch ID with tmux support
@@ -61,39 +61,20 @@ in {
     auth       sufficient     pam_tid.so
   '';
 
-  # This is the standard Touch ID config (kept for reference but overridden above)
-  # security.pam.services.sudo_local.touchIdAuth = true;
-  fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
+  fonts.packages = packages.system.fonts;
 
   nix-homebrew = {
     enable = true;
     user = username;
   };
 
-  homebrew = {
+  homebrew = with packages.system.homebrew; {
     enable = true;
     onActivation = {
       autoUpdate = true;
       upgrade = true;
       cleanup = "zap";
     };
-    taps = [];
-    brews = [
-      "mas"
-      "ollama"
-    ];
-    casks = [
-      "1password"
-      "1password-cli"
-      "anythingllm"
-      "claude"
-      "ghostty"
-      "messenger"
-      "mullvad-vpn"
-      "steam"
-      "tor-browser"
-      "vlc"
-      "whatsapp"
-    ];
+    inherit taps brews casks;
   };
 }

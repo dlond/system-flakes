@@ -1,0 +1,33 @@
+(lang dune 3.20)
+
+(name PROJECT_NAME)
+
+(generate_opam_files true)
+
+(source
+ (github USERNAME/PROJECT_NAME))
+
+(authors "Your Name <your.email@example.com>")
+
+(maintainers "Your Name <your.email@example.com>")
+
+(license MIT)
+
+(package
+ (name PROJECT_NAME)
+ (synopsis "Short description of your project")
+ (description "Longer description of your project")
+ (depends
+   ocaml
+   dune
+   ;; Add your project dependencies here
+   ;; Example: yojson cmdliner
+
+   ;; Development tools (installed with --with-dev-setup)
+   (ocaml-lsp-server :with-dev-setup)
+   (merlin :with-dev-setup)
+   (ocamlformat :with-dev-setup)
+   (utop :with-dev-setup)
+
+   ;; Testing (installed with --with-test)
+   (alcotest :with-test)))

@@ -38,7 +38,7 @@ in {
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     age = {
-      keyFile = "/Users/${username}/Library/Application Support/sops/age/keys.txt";
+      keyFile = "/var/lib/sops/age/key.txt";
       sshKeyPaths = [];
     };
     gnupg.sshKeyPaths = [];

@@ -1,10 +1,40 @@
 {
-  config,
   lib,
   pkgs,
-  packages,
+  config,
+  catppuccin-bat,
   ...
 }: {
+  # Shell enhancement packages
+  home.packages = with pkgs; [
+    zoxide # Smart cd replacement, manually initialized at end of zshrc for order control
+    fd # Better find
+    ripgrep # Better grep
+    eza # Better ls (includes --tree)
+    zsh-fzf-tab # Fuzzy tab completion plugin
+  ];
+
+  # Bat - better cat for shell
+  programs.bat = {
+    enable = true;
+    themes = {
+      catppuccin = {
+        src = "${catppuccin-bat}/themes";
+        file = "Catppuccin Mocha.tmTheme";
+      };
+    };
+    config = {
+      theme = "catppuccin";
+    };
+  };
+
+  # Oh-my-posh - shell prompt
+  programs.oh-my-posh = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = builtins.fromJSON (builtins.readFile ../users/dlond/themes/dlond.omp.json);
+  };
+
   programs.zsh = {
     enable = true;
     defaultKeymap = "emacs";
@@ -41,8 +71,7 @@
       wt = "cd ~/dev/worktrees";
 
       # Other
-      firefox = "open -a \"Firefox\" --args";
-      clip = packages.system.clipboardCommand;
+      clip = "pbcopy";
     };
 
     history = {
@@ -59,6 +88,8 @@
 
     sessionVariables = {
       EDITOR = "nvim";
+      # Python base environment location
+      PYTHON_SHARED_VENVS = "${config.home.homeDirectory}/.local/share/python/venvs";
       # FZF widget commands
       FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
       FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
@@ -74,10 +105,10 @@
 
     autosuggestion.enable = true;
 
-    plugins = [
+    plugins = with pkgs.zsh-fzf-tab; [
       {
         name = "fzf-tab";
-        src = pkgs.zsh-fzf-tab.src;
+        inherit src;
       }
     ];
 
@@ -85,6 +116,11 @@
       (lib.mkBefore ''
         # Add ~/.local/bin to PATH for user scripts
         export PATH="$HOME/.local/bin:$PATH"
+
+        # Auto-activate Python base environment if not in a project venv
+        if [[ -z "$VIRTUAL_ENV" && -d "$PYTHON_SHARED_VENVS/base" ]]; then
+          source "$PYTHON_SHARED_VENVS/base/bin/activate"
+        fi
 
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
@@ -247,6 +283,7 @@
         }
 
         # Fuzzy search aliases
+
         sa() {
           local selection
           selection=$(alias | \

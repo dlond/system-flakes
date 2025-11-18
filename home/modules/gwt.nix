@@ -2,7 +2,6 @@
 # Unified git worktree workflow automation
 {
   config,
-  pkgs,
   lib,
   ...
 }: let

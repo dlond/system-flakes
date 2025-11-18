@@ -8,9 +8,15 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
+    # LSP and tooling
+    "basedpyright>=1.10",
+    "ruff>=0.4",
+    "debugpy>=1.8",
+
+    # Testing
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "pytest-xdist>=3.5",  # parallel test execution
+    "pytest-xdist>=3.5", # parallel test execution
 ]
 
 [build-system]
@@ -32,10 +38,11 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
-ignore = ["E501"]  # line too long (handled by formatter)
+ignore = ["E501"]                               # line too long (handled by formatter)
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
+

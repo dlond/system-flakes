@@ -1,9 +1,4 @@
 {
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
   home.file.".local/bin/nvdev" = {
     text = ''
       #!/usr/bin/env bash

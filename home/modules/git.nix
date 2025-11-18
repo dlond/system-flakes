@@ -1,53 +1,81 @@
 {
   config,
-  pkgs,
   lib,
+  pkgs,
   ...
 }: {
   # Commit message template
-  home.file.".config/git/commit-template".text = ''
-    # Commit Message Template
-    #
-    # Format: <type>: <subject>
-    #
-    # Types:
-    #   feat:     New feature
-    #   fix:      Bug fix
-    #   docs:     Documentation only changes
-    #   style:    Code style changes (formatting, semicolons, etc)
-    #   refactor: Code change that neither fixes a bug nor adds a feature
-    #   perf:     Performance improvements
-    #   test:     Adding or updating tests
-    #   chore:    Maintenance tasks, dependency updates
-    #   build:    Build system or external dependency changes
-    #   ci:       CI configuration changes
-    #
-    # Subject: Brief description (imperative mood, lowercase, no period)
-    #
-    # Body: Detailed explanation of changes (optional)
-    # - Why was this change necessary?
-    # - What problem does it solve?
-    # - Any side effects or breaking changes?
-    #
-    # Footer:
-    # - Reference issues: Fixes #123, Closes #456
-    # - AI acknowledgment (always include):
-    #
-    # 🤖 Generated with Claude Code
-    # Co-Authored-By: Claude <noreply@anthropic.com>
-    #
-    # Example:
-    # --------
-    # fix: correct gwt-nav command name in documentation
-    #
-    # Updated all references from 'wt' to 'gwt-nav' to match the actual
-    # command implementation in system-flakes.
-    #
-    # Fixes #5
-    #
-    # 🤖 Generated with Claude Code
-    # Co-Authored-By: Claude <noreply@anthropic.com>
-  '';
+  home = {
+    packages = with pkgs; [
+      delta
+      git-filter-repo
+      gh # GitHub CLI for aliases
+    ];
+    file = {
+      ".local/bin/get-repo-templates" = {
+        text = ''
+          #!/usr/bin/env bash
+
+          set -euo pipefail
+
+          repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+          if [[ -z "$repo_root" ]]; then
+            echo "Not in a git repo." >&2; exit 1
+          fi
+
+          src="$HOME/.config/git/templates/.github"
+          dst="$repo_root"
+          mkdir -p "$dst"
+          rsync -a "$src" "$dst"
+          echo "✅ Templates copied to $dst"
+        '';
+        executable = true;
+      };
+      ".config/git/commit-template".text = ''
+        # Commit Message Template
+        #
+        # Format: <type>: <subject>
+        #
+        # Types:
+        #   feat:     New feature
+        #   fix:      Bug fix
+        #   docs:     Documentation only changes
+        #   style:    Code style changes (formatting, semicolons, etc)
+        #   refactor: Code change that neither fixes a bug nor adds a feature
+        #   perf:     Performance improvements
+        #   test:     Adding or updating tests
+        #   chore:    Maintenance tasks, dependency updates
+        #   build:    Build system or external dependency changes
+        #   ci:       CI configuration changes
+        #
+        # Subject: Brief description (imperative mood, lowercase, no period)
+        #
+        # Body: Detailed explanation of changes (optional)
+        # - Why was this change necessary?
+        # - What problem does it solve?
+        # - Any side effects or breaking changes?
+        #
+        # Footer:
+        # - Reference issues: Fixes #123, Closes #456
+        # - AI acknowledgment (always include):
+        #
+        # 🤖 Generated with Claude Code
+        # Co-Authored-By: Claude <noreply@anthropic.com>
+        #
+        # Example:
+        # --------
+        # fix: correct gwt-nav command name in documentation
+        #
+        # Updated all references from 'wt' to 'gwt-nav' to match the actual
+        # command implementation in system-flakes.
+        #
+        # Fixes #5
+        #
+        # 🤖 Generated with Claude Code
+        # Co-Authored-By: Claude <noreply@anthropic.com>
+      '';
+    };
+  };
 
   programs.zsh.shellAliases = {
     # GitHub CLI workflow aliases
@@ -79,11 +107,6 @@
     gclean-remote = "git remote prune origin";
     gclean-all = "git fetch --prune && git branch --merged main | grep -v main | xargs -n 1 git branch -d";
   };
-
-  home.packages = with pkgs; [
-    delta
-    git-filter-repo
-  ];
 
   programs.git = {
     enable = true;
@@ -166,135 +189,119 @@
       pull.prune = true;
       pull.rebase = true;
       push.default = "current";
-      rebase.autoSquash = true;
-      rebase.autoStash = true;
-      rebase.updateRefs = true;
+      rebase = {
+        autoSquash = true;
+        autoStash = true;
+        updateRefs = true;
+      };
       rerere.autoupdate = true;
       rerere.enable = true;
     };
   };
 
-  xdg.configFile."git/templates/hooks/commit-msg" = {
-    text = ''
-      #!/usr/bin/env bash
+  xdg.configFile = {
+    "git/templates/hooks/commit-msg" = {
+      text = ''
+        #!/usr/bin/env bash
 
-      msg_file="$1"
-      msg="$(head -n1 "$msg_file")"
+        msg_file="$1"
+        msg="$(head -n1 "$msg_file")"
 
-      if ! rg -q '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\([^)]+\))?: .+' <<< "$msg"; then
-        echo "🚫 Commit message must start with a valid Conventional Commit prefix:"
-        echo "   feat:, fix:, docs:, style:, refactor:, perf:, test:, chore:, build:, ci:"
-        exit 1
-      fi
-    '';
-    executable = true;
-  };
-
-  xdg.configFile."git/templates/hooks/pre-push" = {
-    text = ''
-      #!/usr/bin/env bash
-
-      while read local_ref local_sha remote_ref remote_sha; do
-        branch="''${remote_ref#refs/heads/}"
-        if [[ "$branch" == "main" || "$branch" == "master" ]]; then
-          echo "🚫 Direct pushes to '$branch' are blocked. Create a PR instead!"
-          echo "Use: gh pr create --fill"
+        if ! rg -q '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\([^)]+\))?: .+' <<< "$msg"; then
+          echo "🚫 Commit message must start with a valid Conventional Commit prefix:"
+          echo "   feat:, fix:, docs:, style:, refactor:, perf:, test:, chore:, build:, ci:"
           exit 1
         fi
-      done
+      '';
+      executable = true;
+    };
+
+    "git/templates/hooks/pre-push" = {
+      text = ''
+        #!/usr/bin/env bash
+
+        while read local_ref local_sha remote_ref remote_sha; do
+          branch="''${remote_ref#refs/heads/}"
+          if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+            echo "🚫 Direct pushes to '$branch' are blocked. Create a PR instead!"
+            echo "Use: gh pr create --fill"
+            exit 1
+          fi
+        done
+      '';
+      executable = true;
+    };
+
+    "git/templates/.github/ISSUE_TEMPLATE/bug_report.md".text = ''
+      ---
+      name: Bug report
+      about: Report a bug so we can fix it
+      title: "[BUG] "
+      labels: bug
+      assignees: ""
+      ---
+      **Describe the bug**
+      A clear and concise description.
+
+      **Steps to reproduce**
+      1. Go to '...'
+      2. Click on '...'
+      3. See error
+
+      **Expected behaviour**
+      What you expected to happen.
+
+      **Screenshots/logs**
+      If applicable, add screenshots or logs.
+
+      **Environment**
+      - OS:
+      - Branch/commit:
+      - Other relevant info:
     '';
-    executable = true;
-  };
 
-  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/bug_report.md".text = ''
-    ---
-    name: Bug report
-    about: Report a bug so we can fix it
-    title: "[BUG] "
-    labels: bug
-    assignees: ""
-    ---
-    **Describe the bug**
-    A clear and concise description.
+    "git/templates/.github/ISSUE_TEMPLATE/feature_request.md".text = ''
+      ---
+      name: Feature request
+      about: Suggest an idea for this project
+      title: "[FEATURE] "
+      labels: enhancement
+      assignees: ""
+      ---
 
-    **Steps to reproduce**
-    1. Go to '...'
-    2. Click on '...'
-    3. See error
+      **Describe the feature**
+      A clear and concise description of what you want.
 
-    **Expected behaviour**
-    What you expected to happen.
+      **Why is it needed?**
+      Explain the use case.
 
-    **Screenshots/logs**
-    If applicable, add screenshots or logs.
-
-    **Environment**
-    - OS:
-    - Branch/commit:
-    - Other relevant info:
-  '';
-
-  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/feature_request.md".text = ''
-    ---
-    name: Feature request
-    about: Suggest an idea for this project
-    title: "[FEATURE] "
-    labels: enhancement
-    assignees: ""
-    ---
-
-    **Describe the feature**
-    A clear and concise description of what you want.
-
-    **Why is it needed?**
-    Explain the use case.
-
-    **Additional context**
-    Add any other context or mockups.
-  '';
-
-  xdg.configFile."git/templates/.github/ISSUE_TEMPLATE/config.yml".text = ''
-    blank_issues_enabled: false
-    contact_links:
-      - name: Ask a question
-        url: https://github.com/[YOUR_USERNAME]/[YOUR_REPO]/discussions
-        about: Please ask and answer questions here.
-  '';
-
-  xdg.configFile."git/templates/.github/pull_request_template.md".text = ''
-    ## Summary
-    Briefly describe the changes.
-
-    ## Related Issues
-    Closes #<issue-number> <!-- or "Related to" -->
-
-    ## Changes
-    - [ ] Summary of major changes
-    - [ ] Another change
-
-    ## Checklist
-    - [ ] I have rebased onto `main`
-    - [ ] I have run all relevant tests/linters
-    - [ ] I have updated documentation (if applicable)
-  '';
-
-  home.file.".local/bin/get-repo-templates" = {
-    text = ''
-      #!/usr/bin/env bash
-
-      set -euo pipefail
-
-      repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-      if [[ -z "$repo_root" ]]; then
-        echo "Not in a git repo." >&2; exit 1
-      fi
-
-      src="$HOME/.config/git/templates/.github"
-      dst="$repo_root"
-      mkdir -p "$dst"
-      rsync -a "$src" "$dst"
-      echo "✅ Templates copied to $dst"
+      **Additional context**
+      Add any other context or mockups.
     '';
-    executable = true;
+
+    "git/templates/.github/ISSUE_TEMPLATE/config.yml".text = ''
+      blank_issues_enabled: false
+      contact_links:
+        - name: Ask a question
+          url: https://github.com/[YOUR_USERNAME]/[YOUR_REPO]/discussions
+          about: Please ask and answer questions here.
+    '';
+
+    "git/templates/.github/pull_request_template.md".text = ''
+      ## Summary
+      Briefly describe the changes.
+
+      ## Related Issues
+      Closes #<issue-number> <!-- or "Related to" -->
+
+      ## Changes
+      - [ ] Summary of major changes
+      - [ ] Another change
+
+      ## Checklist
+      - [ ] I have rebased onto `main`
+      - [ ] I have run all relevant tests/linters
+      - [ ] I have updated documentation (if applicable)
+    '';
   };
 }

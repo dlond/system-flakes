@@ -2,32 +2,20 @@
 # System uses defaults, dev-shells can override versions
 {pkgs, ...}: {
   system = {
-    # Essential tools
-    essential = with pkgs; [
+    # General utilities (modules install their own packages)
+    utils = with pkgs; [
       bash
-      bat
       curl
-      eza
-      fd
       fswatch
-      fzf
       gnused
+      home-manager
       htop
       jq
       mosh
-      ripgrep
-      tree
       unzip
       wget
       yq-go
       zip
-      zoxide
-      zsh-fzf-tab
-      pam-reattach
-      tmux
-      tmuxp
-      gh
-      git
     ];
 
     fonts = with pkgs; [
@@ -52,8 +40,8 @@
       cpp = with pkgs; [
         # clang-tools must come before clang to be wrapped properly
         # https://blog.kotatsu.dev/posts/2024-04-10-nixpkgs-clangd-missing-headers/
-        # llvmPackages.clang-tools
 
+        llvmPackages.clang-tools
         llvmPackages.clang
         cmake
         ninja
@@ -68,10 +56,44 @@
         uv
       ];
 
+      ocaml = with pkgs; [
+        ocaml
+        dune_3
+        opam
+      ];
+
       misc = with pkgs; [
         glow
         lua5_1
         luarocks
+      ];
+
+      # Neovim LSP/formatters for non-project languages
+      # (Project-specific tools come from templates: uv for Python, opam for OCaml, etc.)
+      neovim = with pkgs; [
+        # LSP servers for scripting/config languages
+        lua-language-server
+        bash-language-server
+        nixd
+        yaml-language-server
+        taplo # TOML
+        vscode-langservers-extracted # JSON, HTML, CSS
+        markdown-oxide
+        sqls
+
+        # Formatters (language-agnostic or scripting)
+        stylua # Lua
+        alejandra # Nix
+        shfmt # Bash/shell
+        nodePackages.prettier # JSON, YAML, Markdown
+        cmake-format # CMake (for C++ templates)
+
+        # Linters
+        statix # Nix
+        shellcheck # Bash
+
+        # Build tools needed by plugins
+        gnumake # For telescope-fzf-native
       ];
     };
 

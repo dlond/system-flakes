@@ -23,51 +23,56 @@
       # Configuration - Modify these to customize your project
       # ============================================================================
       config = {
-        name = "C++ Development";
-
-        # Compiler and language settings
-        llvmVersion = "20";
-        cppStandard = 23;
-        compiler = "clang";
-        warningLevel = "all";
-        enableExceptions = true;
-        enableRTTI = true;
-
-        # Build configuration
-        buildJobs = 12;
-        defaultProfile = "release";
-
-        # Debug build settings
-        debug = {
-          optimizationLevel = 0;
-          enableLTO = false;
-          marchNative = false;
-          enableSanitizers = true;
-          enableCoverage = true;
+        # Basic settings - always customize these
+        basic = {
+          name = "C++ Development";
+          llvmVersion = "20";
+          cppStandard = 23;
+          compiler = "clang";
         };
 
-        # Release build settings
-        release = {
-          optimizationLevel = 2;
-          enableLTO = false;
-          useThinLTO = false;
-          marchNative = false;
-          alignForCache = false;
-          enableFastMath = false;
+        # Development tools - toggle features
+        tools = {
+          enableClangTidy = true;
+          enableCcache = true;
+          ccacheMaxSize = "5G";
+          enableTesting = true;
+          testFramework = "gtest";
         };
 
-        # Tools and features
-        enableClangTidy = true;
-        enableCcache = true;
-        ccacheMaxSize = "5G";
-        enableTesting = true;
-        testFramework = "gtest";
+        # Advanced settings - optimization & performance
+        advanced = {
+          buildJobs = 12;
+          defaultProfile = "release";
+          warningLevel = "all";
+          enableExceptions = true;
+          enableRTTI = true;
+
+          # Debug build settings
+          debug = {
+            optimizationLevel = 0;
+            enableLTO = false;
+            marchNative = false;
+            enableSanitizers = true;
+            enableCoverage = true;
+          };
+
+          # Release build settings
+          release = {
+            optimizationLevel = 2;
+            enableLTO = false;
+            useThinLTO = false;
+            marchNative = false;
+            alignForCache = false;
+            enableFastMath = false;
+          };
+        };
       };
 
       # ============================================================================
       # Package selection
       # ============================================================================
-      llvmPkg = pkgs."llvmPackages_${config.llvmVersion}";
+      llvmPkg = pkgs."llvmPackages_${config.basic.llvmVersion}";
 
       packages = with pkgs;
         [
@@ -96,7 +101,7 @@
           gdb
           valgrind
         ]
-        ++ lib.optionals config.enableTesting [
+        ++ lib.optionals config.tools.enableTesting [
           gtest
         ];
 
@@ -107,28 +112,28 @@
       # Build compiler flags
       mkCxxFlags = variant:
         lib.concatStringsSep " " (
-          ["-O${toString config.${variant}.optimizationLevel}"]
-          ++ lib.optionals config.${variant}.marchNative ["-march=native" "-mtune=native"]
-          ++ lib.optionals config.${variant}.enableLTO [
+          ["-O${toString config.advanced.${variant}.optimizationLevel}"]
+          ++ lib.optionals config.advanced.${variant}.marchNative ["-march=native" "-mtune=native"]
+          ++ lib.optionals config.advanced.${variant}.enableLTO [
             (
-              if config.${variant}.useThinLTO or false
+              if config.advanced.${variant}.useThinLTO or false
               then "-flto=thin"
               else "-flto"
             )
           ]
-          ++ lib.optionals (!config.enableExceptions) ["-fno-exceptions"]
-          ++ lib.optionals (!config.enableRTTI) ["-fno-rtti"]
-          ++ lib.optionals (config.${variant}.enableFastMath or false) ["-ffast-math"]
-          ++ lib.optionals (config.${variant}.alignForCache or false) ["-falign-functions=64"]
+          ++ lib.optionals (!config.advanced.enableExceptions) ["-fno-exceptions"]
+          ++ lib.optionals (!config.advanced.enableRTTI) ["-fno-rtti"]
+          ++ lib.optionals (config.advanced.${variant}.enableFastMath or false) ["-ffast-math"]
+          ++ lib.optionals (config.advanced.${variant}.alignForCache or false) ["-falign-functions=64"]
         );
 
       # Build linker flags
       mkLdFlags = variant:
         lib.concatStringsSep " " (
           ["-fuse-ld=lld"]
-          ++ lib.optionals config.${variant}.enableLTO [
+          ++ lib.optionals config.advanced.${variant}.enableLTO [
             (
-              if config.${variant}.useThinLTO or false
+              if config.advanced.${variant}.useThinLTO or false
               then "-flto=thin"
               else "-flto"
             )
@@ -158,20 +163,20 @@
             then "x86_64"
             else "Unknown"
           }
-          compiler=${config.compiler}
-          compiler.version=${config.llvmVersion}
+          compiler=${config.basic.compiler}
+          compiler.version=${config.basic.llvmVersion}
           compiler.libcxx=${
-            if config.compiler == "clang"
+            if config.basic.compiler == "clang"
             then "libc++"
             else "libstdc++11"
           }
-          compiler.cppstd=${toString config.cppStandard}
+          compiler.cppstd=${toString config.basic.cppStandard}
           build_type=${buildType}
 
           [conf]
           tools.cmake.cmaketoolchain:generator=Ninja
-          tools.build:jobs=${toString config.buildJobs}
-          ${lib.optionalString config.enableCcache ''
+          tools.build:jobs=${toString config.advanced.buildJobs}
+          ${lib.optionalString config.tools.enableCcache ''
             tools.cmake.cmaketoolchain:extra_variables={"CMAKE_C_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache", "CMAKE_CXX_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache"}
           ''}
 
@@ -184,25 +189,30 @@
       releaseProfile = mkConanProfile "release";
     in {
       devShells.default = pkgs.mkShell {
-        name = config.name;
+        name = config.basic.name;
         nativeBuildInputs = packages;
+        ENV_ICON = "❄️";
 
         # CMake environment variables
-        CMAKE_CXX_STANDARD = toString config.cppStandard;
+        CMAKE_CXX_STANDARD = toString config.basic.cppStandard;
         CMAKE_EXPORT_COMPILE_COMMANDS = "ON";
         ENABLE_TESTING =
-          if config.enableTesting
+          if config.tools.enableTesting
           then "ON"
           else "OFF";
         ENABLE_CLANG_TIDY =
-          if config.enableClangTidy
+          if config.tools.enableClangTidy
           then "ON"
           else "OFF";
 
         CCACHE_DIR = "$HOME/.ccache";
-        CCACHE_MAXSIZE = config.ccacheMaxSize;
+        CCACHE_MAXSIZE = config.tools.ccacheMaxSize;
 
         shellHook = ''
+          if [ ! -d ".git" ]; then
+            git init
+          fi
+
           # Set Conan to use local profile directory
           export CONAN_HOME=$(pwd)/.conan2
           mkdir -p $CONAN_HOME/profiles
@@ -220,7 +230,7 @@
           ln -sf ${debugProfile} $CONAN_HOME/profiles/debug
 
           echo ""
-          echo "🚀 ${config.name}"
+          echo "🚀 ${config.basic.name}"
           echo "─────────────────────────────────"
           echo "Environment ready!"
           echo ""

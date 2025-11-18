@@ -1,19 +1,18 @@
 {
   config,
-  pkgs,
   lib,
   nvim-config,
+  packages,
   ...
 }: let
   cfg = config.programs.neovim-cfg;
-  packages = import ../../lib/packages.nix {inherit pkgs;};
 in {
   options.programs.neovim-cfg = {
     enable = lib.mkEnableOption "Neovim";
     withCopilot = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable copilot to have your code stolen.";
+      description = "Enable copilot suggestions.";
     };
     withTrainingMode = lib.mkOption {
       type = lib.types.bool;
@@ -34,63 +33,59 @@ in {
       vimAlias = true;
       vimdiffAlias = true;
       extraPackages =
-        packages.neovim.packages
-        ++ packages.debuggers.all
-        ++ cfg.extraLSPs;
+        cfg.extraLSPs;
       extraLuaPackages = ps:
         with ps; [
           magick
         ];
-      extraPython3Packages = packages.neovim.pythonPackages;
     };
 
-    home.file = {
-      ".config/nvim/init.lua" = {
-        source = nvim-config + "/init.lua";
-      };
-      ".config/nvim/lua" = {
-        source = nvim-config + "/lua";
-        recursive = true;
-      };
-      ".config/nvim/.stylua.toml" = {
-        source = nvim-config + "/.stylua.toml";
-      };
-      ".config/nvim/doc" = {
-        source = nvim-config + "/doc";
-        recursive = true;
-      };
-      ".config/nvim/README.md" = {
-        source = nvim-config + "/README.md";
-      };
-      ".config/nvim/lua/nix-settings.lua" = {
-        text = ''
-          -- Settings controlled by Nix configuration
-          -- Set Python host program to use system Python with debugging/Jupyter packages
-          vim.g.python3_host_prog = '${packages.pythonWithEssentials}/bin/python3'
+    home = {
+      file = {
+        ".config/nvim/init.lua" = {
+          source = nvim-config + "/init.lua";
+        };
+        ".config/nvim/lua" = {
+          source = nvim-config + "/lua";
+          recursive = true;
+        };
+        ".config/nvim/.stylua.toml" = {
+          source = nvim-config + "/.stylua.toml";
+        };
+        ".config/nvim/doc" = {
+          source = nvim-config + "/doc";
+          recursive = true;
+        };
+        ".config/nvim/README.md" = {
+          source = nvim-config + "/README.md";
+        };
+        ".config/nvim/lua/nix-settings.lua" = {
+          text = ''
+            -- Settings controlled by Nix configuration
+            -- Set Python host program to use system Python with debugging/Jupyter packages
 
-          vim.g.copilot_enabled = ${
-            if cfg.withCopilot
-            then "true"
-            else "false"
-          }
+            vim.g.copilot_enabled = ${
+              if cfg.withCopilot
+              then "true"
+              else "false"
+            }
 
-          vim.g.training_mode_enabled = ${
-            if cfg.withTrainingMode
-            then "true"
-            else "false"
-          }
-        '';
+            vim.g.training_mode_enabled = ${
+              if cfg.withTrainingMode
+              then "true"
+              else "false"
+            }
+          '';
+        };
       };
-    };
-
-    home.sessionVariables = {
-      EDITOR = "nvim";
-      VISUAL = "nvim";
-    };
-
-    home.shellAliases = {
-      vim = "nvim";
-      ndiff = "nvim -d";
+      sessionVariables = {
+        EDITOR = "nvim";
+        VISUAL = "nvim";
+      };
+      shellAliases = {
+        vim = "nvim";
+        ndiff = "nvim -d";
+      };
     };
   };
 }

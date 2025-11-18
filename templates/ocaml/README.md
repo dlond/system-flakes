@@ -12,39 +12,47 @@ This template follows a clean separation of concerns:
 
 This is similar to how you'd use Nix for Python/C++ tools while using `uv`/`conan` for packages.
 
-## Quick Start
+## Getting Started
 
-1. **Initialize the project** from this template:
-   ```bash
-   nix flake init -t github:dlond/system-flakes#ocaml
-   ```
+```bash
+# 1. Enter the directory (direnv loads Nix environment automatically)
+cd your-project
 
-2. **Enter the development environment**:
-   ```bash
-   # Direnv will automatically load the nix shell
-   cd your-project
-   ```
+# 2. Create local opam switch
+opam switch create . $(ocaml -vnum)
 
-3. **Update dune-project** with your project details:
-   - Replace `PROJECT_NAME` with your project name
-   - Update author, maintainers, source
-   - Add your dependencies
+# 3. Generate .opam file
+dune build myproject.opam
 
-4. **Create a local opam switch** (first time only):
-   ```bash
-   opam switch create . 5.3.0 --deps-only --with-dev-setup
-   ```
+# 4. Install dependencies (choose one):
+opam install . --deps-only                              # Minimal - exe only
+opam install . --deps-only --with-test                  # + testing
+opam install . --deps-only --with-dev-setup --with-test # + LSP/tools
 
-   This installs:
-   - All dependencies from `dune-project`
-   - Development tools (LSP, merlin, formatter, utop)
+# 5. Build the project
+dune build @install  # Builds lib + exe (skips tests - use with --deps-only)
+dune build           # Builds everything (requires --with-test)
 
-5. **Build your project**:
-   ```bash
-   dune build
-   ```
+# 6. Run the application
+dune exec bin/main.exe
+# Or with an argument:
+dune exec bin/main.exe -- Alice
 
-6. **Open in your editor** - LSP should work immediately!
+# 7. Run the tests (requires --with-test)
+dune test
+
+# 8. Try the REPL with your library loaded
+utop -require mylib
+```
+
+### Customizing the Template
+
+Before starting development, you can rename the project by updating:
+- `dune-project`: Change `(name myproject)` and package name
+- `lib/dune`, `bin/dune`, `test/dune`: Update `myproject.lib` references
+- `dune-project`: Update source field `username/myproject`
+- Update author and maintainer information
+- Add any additional dependencies you need
 
 ## Project Structure
 
@@ -55,9 +63,15 @@ This is similar to how you'd use Nix for Python/C++ tools while using `uv`/`cona
 ├── dune-project       # Project metadata and dependencies
 ├── .ocamlformat       # Formatter configuration
 ├── .gitignore         # Git ignore rules
-├── bin/               # Executable sources (create with `dune init exe`)
-├── lib/               # Library sources (create with `dune init lib`)
-└── test/              # Tests (create with `dune init test`)
+├── bin/               # Executable sources
+│   ├── dune          # Build config for executable
+│   └── main.ml       # CLI application using cmdliner
+├── lib/               # Library sources
+│   ├── dune          # Build config for library
+│   └── greet.ml      # Example library module
+└── test/              # Tests
+    ├── dune          # Build config for tests
+    └── test_greet.ml # Alcotest tests for greet module
 ```
 
 ## Adding Dependencies
@@ -70,25 +84,28 @@ Edit `dune-project` and add your dependencies:
  (depends
    ocaml
    dune
-   ;; Add project dependencies here
+   ;; Project dependencies (always installed with --deps-only)
    yojson
    cmdliner
    lwt
 
-   ;; Dev tools (installed with --with-dev-setup)
+   ;; Testing dependencies (installed with --with-test)
+   (alcotest :with-test)
+
+   ;; Development tools (installed with --with-dev-setup)
    (ocaml-lsp-server :with-dev-setup)
    (merlin :with-dev-setup)
    (ocamlformat :with-dev-setup)
-   (utop :with-dev-setup)
-
-   ;; Testing (installed with --with-test)
-   (alcotest :with-test)))
+   (utop :with-dev-setup)))
 ```
 
-Then install them:
+Then regenerate the .opam file and install:
 
 ```bash
-opam install . --deps-only --with-dev-setup
+dune build myproject.opam
+opam install . --deps-only                              # Just project deps
+opam install . --deps-only --with-test                  # + testing
+opam install . --deps-only --with-dev-setup --with-test # + LSP/tools
 ```
 
 Dune will auto-generate the `.opam` file from this.
@@ -97,12 +114,13 @@ Dune will auto-generate the `.opam` file from this.
 
 ```bash
 # Build
-dune build
+dune build @install  # Builds lib + exe only (skips tests)
+dune build           # Builds everything including tests
 
 # Run executable
 dune exec bin/main.exe
 
-# Run tests
+# Run tests (requires --with-test)
 dune test
 
 # Clean build artifacts
@@ -116,19 +134,6 @@ dune build @fmt --auto-promote
 
 # Watch mode (rebuild on file changes)
 dune build --watch
-```
-
-## Creating Project Structure
-
-```bash
-# Create an executable
-dune init exe my_app bin
-
-# Create a library
-dune init lib my_lib lib
-
-# Create tests
-dune init test my_tests test
 ```
 
 ## Multiple Executables
@@ -192,40 +197,24 @@ Should show the local project path like `/path/to/your-project`, not "default".
 
 All tools use the same OCaml compiler = no version conflicts!
 
-## Example: Simple CLI Tool
+## Starter Code
 
-```ocaml
-(* bin/main.ml *)
-open Cmdliner
+The template includes a simple CLI application to get you started:
 
-let greet name =
-  Printf.printf "Hello, %s!\n" name
+**Library** (`lib/greet.ml`):
+- `hello` - Returns a greeting string
+- `goodbye` - Returns a farewell string
+- `greet_many` - Greets multiple names
 
-let name =
-  let doc = "Name to greet" in
-  Arg.(value & pos 0 string "World" & info [] ~docv:"NAME" ~doc)
+**Executable** (`bin/main.ml`):
+- CLI tool using cmdliner that greets a name
+- Run with: `dune exec bin/main.exe -- Alice`
 
-let greet_cmd =
-  let doc = "Greet someone" in
-  let info = Cmd.info "greet" ~doc in
-  Cmd.v info Term.(const greet $ name)
+**Tests** (`test/test_greet.ml`):
+- Alcotest tests for all greet functions
+- Run with: `dune test`
 
-let () = exit (Cmd.eval greet_cmd)
-```
-
-```ocaml
-(* bin/dune *)
-(executable
- (name main)
- (libraries cmdliner))
-```
-
-Build and run:
-```bash
-dune build
-dune exec bin/main.exe Alice
-# Output: Hello, Alice!
-```
+You can modify or replace this starter code with your own implementation!
 
 ## Resources
 

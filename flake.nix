@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    flake-utils.url = "github:numtide/flake-utils";
+
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,61 +40,62 @@
 
   outputs = inputs @ {self, ...}: let
     username = "dlond";
+
     systems = {
       darwin = "aarch64-darwin";
       linux = "aarch64-linux";
       linux_x86 = "x86_64-linux";
     };
-    mkPkgs = import ./lib/mkPkgs.nix {
-      inherit (inputs) nixpkgs;
-    };
+
+    mkPkg = {
+      nixpkgs,
+      overlays ? [],
+      config ? {allowUnfree = true;},
+    }: system:
+      import nixpkgs {
+        inherit system config overlays;
+      };
   in {
     #### macOS full-system (nix-darwin + HM)
     darwinConfigurations.mbp = let
       system = systems.darwin;
-      pkgs = mkPkgs system;
+      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
     in
       inputs.nix-darwin.lib.darwinSystem {
         inherit system pkgs;
 
-        ## Main modules
         modules = [
           inputs.sops-nix.darwinModules.sops
           inputs.nix-homebrew.darwinModules.nix-homebrew
           ./hosts/mbp/default.nix
-          inputs.home-manager.darwinModules.home-manager
-
-          ## Per-host inline module
           {
             users.users.${username}.home = "/Users/${username}";
-
-            ## Home-Manager wiring
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-
-              ## Extra args for Home-Manager
-              extraSpecialArgs = {
-                inherit pkgs;
-                inherit (inputs) sops-nix nvim-config catppuccin-bat;
-                packages = import ./lib/packages.nix {inherit pkgs;};
-              };
-              users.${username} = import ./home/users/${username};
-            };
           }
         ];
-
-        ## Extra args for nix-darwin modules
         specialArgs = {
           inherit pkgs username;
-          inherit (self) inputs;
+          inherit inputs;
+        };
+      };
+
+    homeConfigurations."${username}@mbp" = let
+      system = systems.darwin;
+      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
+    in
+      inputs.home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [./home/users/${username}];
+        extraSpecialArgs = {
+          inherit pkgs;
+          inherit (inputs) sops-nix nvim-config catppuccin-bat;
+          packages = import ./lib/packages.nix {inherit pkgs;};
         };
       };
 
     #### Linux standalone Home-Manager
     homeConfigurations."${username}@linux" = let
       system = systems.linux;
-      pkgs = mkPkgs system;
+      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
     in
       inputs.home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
@@ -100,6 +103,7 @@
           ./home/users/${username}
         ];
         extraSpecialArgs = {
+          inherit pkgs;
           inherit (inputs) sops-nix nvim-config catppuccin-bat;
           packages = import ./lib/packages.nix {inherit pkgs;};
         };

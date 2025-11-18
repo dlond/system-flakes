@@ -21,8 +21,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Export compile commands (always ON for LSP support)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Note: Build type is set by Conan presets
-# Note: Shared/static libraries are configured via Conan
+# Note: Build type is set by Conan presets Note: Shared/static libraries are
+# configured via Conan
 
 # ============================================================================
 # Compiler flags based on environment configuration
@@ -222,9 +222,9 @@ endif()
 # Bring latest compile commands to project root
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(
-    copy_compile_commands ALL
+    link_latest_compile_commands ALL
     COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_COMMAND} -E create_symlink
       ${CMAKE_BINARY_DIR}/compile_commands.json
       ${CMAKE_SOURCE_DIR}/compile_commands.json
     DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json)

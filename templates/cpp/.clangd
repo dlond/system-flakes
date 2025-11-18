@@ -1,0 +1,58 @@
+# clangd configuration for C++ projects
+# See: https://clangd.llvm.org/config
+
+CompileFlags:
+  # Use compile_commands.json from project root
+  CompilationDatabase: .
+
+  # Additional flags not in compile_commands.json
+  Add:
+    # Treat code as C++23 by default (matches flake.nix config)
+    - "-std=c++23"
+
+Diagnostics:
+  # Strict include checking
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+
+  # Suppress noisy or irrelevant warnings
+  Suppress:
+    - "-Wc++98-compat*" # Don't care about C++98 compatibility
+    - "-Wc++11-compat*" # Don't care about C++11 compatibility
+    - "macro_redefined" # Common in cross-platform code
+    - "pp_including_mainfile_in_preamble" # Harmless preamble warning
+
+  # Enable clang-tidy checks (if --clang-tidy flag is used)
+  ClangTidy:
+    Add:
+      - modernize-*
+      - performance-*
+      - readability-*
+      - bugprone-*
+      - cppcoreguidelines-*
+    Remove:
+      - modernize-use-trailing-return-type # Stylistic preference
+      - readability-identifier-length # Too strict
+      - cppcoreguidelines-avoid-magic-numbers
+      - readability-magic-numbers
+
+Completion:
+  # Show completions from all accessible scopes (not just current namespace)
+  AllScopes: Yes
+
+Hover:
+  # Show desugared types (e.g., "std::string" instead of "basic_string<...>")
+  ShowAKA: Yes
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  Designators: Yes
+
+Index:
+  # Background indexing for better performance
+  Background: Build
+
+  # Index standard library (useful but can be slow on first run)
+  StandardLibrary: Yes

@@ -35,6 +35,9 @@
   #   options = ["--cmd cd"];
   # };
 
+  # This is to force me to not use the default switch
+  home.file.".opam/default/.read-only-placeholder".text = "Use local switches only";
+
   programs.oh-my-posh = {
     enable = true;
     enableZshIntegration = true;
@@ -69,6 +72,7 @@
   programs.neovim-cfg = {
     enable = true;
     withTrainingMode = false;
+    withCopilot = false;
   };
 
   xdg.configFile."ghostty/config" = {
@@ -79,6 +83,7 @@
 
       working-directory = "${config.home.homeDirectory}/dev"
       window-inherit-working-directory = false
+      clipboard-paste-protection = false
 
       macos-option-as-alt = true
 

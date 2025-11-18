@@ -10,6 +10,11 @@
 in {
   options.programs.neovim-cfg = {
     enable = lib.mkEnableOption "Neovim";
+    withCopilot = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable copilot to have your code stolen.";
+    };
     withTrainingMode = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -62,6 +67,12 @@ in {
           -- Settings controlled by Nix configuration
           -- Set Python host program to use system Python with debugging/Jupyter packages
           vim.g.python3_host_prog = '${packages.pythonWithEssentials}/bin/python3'
+
+          vim.g.copilot_enabled = ${
+            if cfg.withCopilot
+            then "true"
+            else "false"
+          }
 
           vim.g.training_mode_enabled = ${
             if cfg.withTrainingMode

@@ -13,6 +13,7 @@
       ++ development.cpp
       ++ development.python
       ++ development.ocaml
+      ++ development.rust
       ++ development.misc
       ++ development.neovim)
     ++ [

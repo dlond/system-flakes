@@ -62,6 +62,13 @@
         opam
       ];
 
+      rust = with pkgs; [
+        rustc
+        cargo
+        rustfmt
+        clippy
+      ];
+
       misc = with pkgs; [
         glow
         lua5_1
@@ -80,6 +87,7 @@
         vscode-langservers-extracted # JSON, HTML, CSS
         markdown-oxide
         sqls
+        rust-analyzer
 
         # Formatters (language-agnostic or scripting)
         stylua # Lua

@@ -470,8 +470,8 @@ in {
           # Return suggested branch name based on analysis
           if [ ''${#issues[@]} -eq 1 ]; then
             # Single issue - use sanitized title
-            local title_text="''${titles[0]}"
-            local issue_num="''${issues[0]}"
+            local title_text="''${titles[1]}"
+            local issue_num="''${issues[1]}"
             local sanitized_title
             sanitized_title=$(__gwt_sanitize_for_branch "$title_text")
             echo "''${sanitized_title}-''${issue_num}"

@@ -29,10 +29,12 @@
     ];
 
     apps = with pkgs; [
-      raycast
       brave
       chatgpt
       claude-code
+      discord-ptb
+      obsidian
+      raycast
     ];
 
     # Minimal dev tools for hacking

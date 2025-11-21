@@ -17,227 +17,173 @@
         config.allowUnfree = true;
       };
 
-      lib = pkgs.lib;
+      llvm = pkgs.llvmPackages;
+      llvmMajor = pkgs.lib.versions.major llvm.release_version;
+      appleSdk = pkgs.apple-sdk_26;
+      sdkPath = "${appleSdk}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
 
-      # ============================================================================
-      # Configuration - Modify these to customize your project
-      # ============================================================================
-      config = {
-        # Basic settings - always customize these
-        basic = {
-          name = "C++ Development";
-          llvmVersion = "20";
-          cppStandard = 23;
-          compiler = "clang";
-        };
+      warnFlags = [
+        "-Wall"
+        "-Wextra"
+        "-Wpedantic"
 
-        # Development tools - toggle features
-        tools = {
-          enableClangTidy = true;
-          enableCcache = true;
-          ccacheMaxSize = "5G";
-          enableTesting = true;
-          testFramework = "gtest";
-        };
+        "-Wconversion"
+        "-Wsign-conversion"
+        "-Wshadow"
 
-        # Advanced settings - optimization & performance
-        advanced = {
-          buildJobs = 12;
-          defaultProfile = "release";
-          warningLevel = "all";
-          enableExceptions = true;
-          enableRTTI = true;
+        "-Wnon-virtual-dtor"
+        "-Woverloaded-virtual"
+        "-Wold-style-cast"
 
-          # Debug build settings
-          debug = {
-            optimizationLevel = 0;
-            enableLTO = false;
-            marchNative = false;
-            enableSanitizers = true;
-            enableCoverage = true;
-          };
+        "-Wnull-dereference"
+        "-Wdouble-promotion"
 
-          # Release build settings
-          release = {
-            optimizationLevel = 2;
-            enableLTO = false;
-            useThinLTO = false;
-            marchNative = false;
-            alignForCache = false;
-            enableFastMath = false;
-          };
-        };
+        "-Wformat=2"
+        "-Wimplicit-fallthrough"
+      ];
+      cFlags = {
+        Base = [
+          "-isysroot=${sdkPath}"
+        ];
+        Debug = [
+          "-fsanitize=address,undefined"
+        ];
+        Release = [];
       };
 
-      # ============================================================================
-      # Package selection
-      # ============================================================================
-      llvmPkg = pkgs."llvmPackages_${config.basic.llvmVersion}";
-
-      packages = with pkgs;
-        [
-          # must come before clang to be wrapped:
-          # https://blog.kotatsu.dev/posts/2024-04-10-nixpkgs-clangd-missing-headers/
-          llvmPkg.clang-tools
-
-          # Compiler and build tools
-          llvmPkg.clang
-          llvmPkg.lld
-          llvmPkg.libcxx
-          llvmPkg.libcxx.dev
-          cmake
-          ninja
-          conan
-
-          # Development tools
-          cmake-format
-          cmake-language-server
-          ccache
-
-          # Debugging
-          llvmPkg.lldb
-        ]
-        ++ lib.optionals stdenv.isLinux [
-          gdb
-          valgrind
-        ]
-        ++ lib.optionals config.tools.enableTesting [
-          gtest
+      cxxFlags = {
+        Base =
+          cFlags.Base
+          ++ warnFlags
+          ++ [
+            "-I${llvm.libcxx.dev}/include/c++/v1"
+            "-stdlib=libc++"
+          ];
+        Debug = [
+          "-O0"
+          "-g"
+          "-fno-omit-frame-pointer"
+          "-fsanitize=address,undefined"
+          "-fno-sanitize-recover=all"
         ];
+        Release = [
+          "-O3"
+          "-DNDEBUG"
+          "-fstrict-aliasing"
+          "-ffp-contract=fast" # fuse FMA where sensible
+          "-fno-math-errno"
+          "-mcpu=apple-m1" # M1/M1 Max; tweak if you want generic
+          "-fvisibility=hidden"
+          "-fvisibility-inlines-hidden"
+          "-flto=thin"
+        ];
+        ReleaseFast =
+          cxxFlags.Release
+          ++ [
+            "-fomit-frame-pointer"
+            "-funroll-loops"
+            "-fno-trapping-math"
+            "-fno-signaling-nans"
+            "-ffast-math"
+          ];
+      };
 
-      # ============================================================================
-      # Helper functions
-      # ============================================================================
+      ldFlags = {
+        Base = [
+          "-fuse-ld=lld"
+        ];
+        Debug = [
+          "-fsanitize=address,undefined"
+        ];
+        Release = [
+          "-flto=thin"
+        ];
+      };
 
-      # Build compiler flags
-      mkCxxFlags = variant:
-        lib.concatStringsSep " " (
-          ["-O${toString config.advanced.${variant}.optimizationLevel}"]
-          ++ lib.optionals config.advanced.${variant}.marchNative ["-march=native" "-mtune=native"]
-          ++ lib.optionals config.advanced.${variant}.enableLTO [
-            (
-              if config.advanced.${variant}.useThinLTO or false
-              then "-flto=thin"
-              else "-flto"
-            )
-          ]
-          ++ lib.optionals (!config.advanced.enableExceptions) ["-fno-exceptions"]
-          ++ lib.optionals (!config.advanced.enableRTTI) ["-fno-rtti"]
-          ++ lib.optionals (config.advanced.${variant}.enableFastMath or false) ["-ffast-math"]
-          ++ lib.optionals (config.advanced.${variant}.alignForCache or false) ["-falign-functions=64"]
-        );
+      mkFlagsList = flags: "[${pkgs.lib.concatStringsSep ", " (map (f: ''"${f}"'') flags)}]";
 
-      # Build linker flags
-      mkLdFlags = variant:
-        lib.concatStringsSep " " (
-          ["-fuse-ld=lld"]
-          ++ lib.optionals config.advanced.${variant}.enableLTO [
-            (
-              if config.advanced.${variant}.useThinLTO or false
-              then "-flto=thin"
-              else "-flto"
-            )
-          ]
-        );
-
-      # Generate Conan profile
-      mkConanProfile = variant: let
-        buildType =
-          if variant == "debug"
-          then "Debug"
-          else "Release";
-      in
-        pkgs.writeText "conan-profile-${variant}" ''
+      mkConanProfile = buildType:
+        pkgs.writeText "conan-profile-${buildType}" ''
           [settings]
-          os=${
-            if pkgs.stdenv.isDarwin
-            then "Macos"
-            else if pkgs.stdenv.isLinux
-            then "Linux"
-            else "Unknown"
-          }
-          arch=${
-            if pkgs.stdenv.isAarch64
-            then "armv8"
-            else if pkgs.stdenv.isx86_64
-            then "x86_64"
-            else "Unknown"
-          }
-          compiler=${config.basic.compiler}
-          compiler.version=${config.basic.llvmVersion}
-          compiler.libcxx=${
-            if config.basic.compiler == "clang"
-            then "libc++"
-            else "libstdc++11"
-          }
-          compiler.cppstd=${toString config.basic.cppStandard}
+          os=Macos
+          arch=armv8
+          compiler=clang
+          compiler.version=${llvmMajor}
+          compiler.libcxx=libc++
+          compiler.cppstd=23
           build_type=${buildType}
 
           [conf]
-          tools.cmake.cmaketoolchain:generator=Ninja
-          tools.build:jobs=${toString config.advanced.buildJobs}
-          ${lib.optionalString config.tools.enableCcache ''
-            tools.cmake.cmaketoolchain:extra_variables={"CMAKE_C_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache", "CMAKE_CXX_COMPILER_LAUNCHER": "${pkgs.ccache}/bin/ccache"}
-          ''}
+          tools.build:compiler_executables={"c": "${llvm.clang-unwrapped}/bin/clang", "cpp": "${llvm.clang-unwrapped}/bin/clang++"}
 
-          [buildenv]
-          CXXFLAGS=${mkCxxFlags variant}
-          LDFLAGS=${mkLdFlags variant}
+          # sysroot + c++ stdlib headers
+          tools.build:cflags=${mkFlagsList cFlags.Base}
+          tools.build:cxxflags=${mkFlagsList cxxFlags.Base}
+
+          # ${buildType} compile options
+          tools.build:cflags+=${mkFlagsList cFlags."${buildType}"}
+          tools.build:cxxflags+=${mkFlagsList cxxFlags."${buildType}"}
+
+          # base linker flags
+          tools.build:sharedlinkflags=${mkFlagsList ldFlags.Base}
+          tools.build:exelinkflags=${mkFlagsList ldFlags.Base}
+
+          # ${buildType} linker flags
+          tools.build:sharedlinkflags+=${mkFlagsList ldFlags."${buildType}"}
+          tools.build:exelinkflags+=${mkFlagsList ldFlags."${buildType}"}
+
+          tools.cmake.cmaketoolchain:generator=Ninja
+          tools.build:jobs=12
         '';
 
-      debugProfile = mkConanProfile "debug";
-      releaseProfile = mkConanProfile "release";
+      debugProfile = mkConanProfile "Debug";
+      releaseProfile = mkConanProfile "Release";
+
+      llvmPackages = with llvm; [
+        clang-unwrapped
+        clang-tools
+        lld
+        libcxx
+        libcxx.dev
+        libunwind
+        compiler-rt-libc
+        lldb
+      ];
+      tools = with pkgs; [
+        appleSdk
+        cmake
+        ninja
+        cmake-format
+        cmake-language-server
+        ccache
+        gtest
+      ];
     in {
       devShells.default = pkgs.mkShell {
-        name = config.basic.name;
-        nativeBuildInputs = packages;
-        ENV_ICON = "❄️";
-
-        # CMake environment variables
-        CMAKE_CXX_STANDARD = toString config.basic.cppStandard;
-        CMAKE_EXPORT_COMPILE_COMMANDS = "ON";
-        ENABLE_TESTING =
-          if config.tools.enableTesting
-          then "ON"
-          else "OFF";
-        ENABLE_CLANG_TIDY =
-          if config.tools.enableClangTidy
-          then "ON"
-          else "OFF";
-
-        CCACHE_DIR = "$HOME/.ccache";
-        CCACHE_MAXSIZE = config.tools.ccacheMaxSize;
-
+        name = "C++_LLVM_SDK26";
+        nativeBuildInputs = llvmPackages ++ tools;
+        TESTING_FRAMEWORK = "gtest";
         shellHook = ''
-          if [ ! -d ".git" ]; then
-            git init
+          echo "== Setting up LLVM toolchain with SDK 26 =="
+
+          if [ -z "''${CONAN_HOME:-}" ]; then
+            echo "WARNING: CONAN_HOME is not set. Set in .envrc as:"
+            echo "  export CONAN_HOME=\$PWD/.conan2"
+            return
           fi
 
-          # Set Conan to use local profile directory
-          export CONAN_HOME=$(pwd)/.conan2
-          mkdir -p $CONAN_HOME/profiles
-
-          # Link global Conan cache (if it exists)
+          echo "Linking $HOME/.conan2 cache to local CONAN_HOME"
+          mkdir -p "$CONAN_HOME/profiles"
           if [ -d "$HOME/.conan2" ]; then
-            for conanDir in $(fd -td -d1 -Eprofiles . $HOME/.conan2 2>/dev/null || true); do
-              ln -sfn $conanDir $CONAN_HOME/
+            for dir in $(fd -td -d1 -Eprofiles . "$HOME/.conan2" 2>/dev/null || true); do
+              ln -sfn "$dir" "$CONAN_HOME/"
             done
           fi
 
-          # Link Nix-generated profiles
+          echo "Creating local conan profiles"
           ln -sf ${releaseProfile} $CONAN_HOME/profiles/default
           ln -sf ${releaseProfile} $CONAN_HOME/profiles/release
           ln -sf ${debugProfile} $CONAN_HOME/profiles/debug
-
-          echo ""
-          echo "🚀 ${config.basic.name}"
-          echo "─────────────────────────────────"
-          echo "Environment ready!"
-          echo ""
-          echo "Quick start:"
-          echo "  Debug:   conan install . --profile=debug --build=missing && cmake --preset=conan-debug"
-          echo "  Release: conan install . --profile=release --build=missing && cmake --preset=conan-release"
-          echo ""
         '';
       };
     });

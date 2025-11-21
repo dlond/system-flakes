@@ -1,251 +1,42 @@
 cmake_minimum_required(VERSION 3.20)
 project(
-  MyProject
+  HelloWorld
   VERSION 0.1.0
-  DESCRIPTION "A C++ project template"
+  DESCRIPTION "A c++ project template"
   LANGUAGES CXX)
 
-# ============================================================================
-# Read configuration from environment (set by flake.nix) with fallbacks
-# ============================================================================
-
 # C++ Standard
-if(DEFINED ENV{CMAKE_CXX_STANDARD})
-  set(CMAKE_CXX_STANDARD $ENV{CMAKE_CXX_STANDARD})
-else()
-  set(CMAKE_CXX_STANDARD 20)
-endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Export compile commands (always ON for LSP support)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_custom_target(
+  link_latest_compile_commands ALL
+  COMMAND
+    ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${CMAKE_SOURCE_DIR}/compile_commands.json
+  DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json)
 
-# Note: Build type is set by Conan presets Note: Shared/static libraries are
-# configured via Conan
-
-# ============================================================================
-# Compiler flags based on environment configuration
-# ============================================================================
-
-# Helper function to get env var with default
-function(get_env_bool var default)
-  if(DEFINED ENV{${var}})
-    set(${var}
-        $ENV{${var}}
-        PARENT_SCOPE)
-  else()
-    set(${var}
-        ${default}
-        PARENT_SCOPE)
-  endif()
-endfunction()
-
-get_env_bool(ENABLE_LTO OFF)
-get_env_bool(ENABLE_EXCEPTIONS ON)
-get_env_bool(ENABLE_RTTI ON)
-get_env_bool(ENABLE_SANITIZERS OFF)
-get_env_bool(MARCH_NATIVE OFF)
-
-# Optimization level
-if(DEFINED ENV{OPTIMIZATION_LEVEL})
-  set(OPTIMIZATION_LEVEL $ENV{OPTIMIZATION_LEVEL})
-else()
-  set(OPTIMIZATION_LEVEL "2")
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  message(STATUS "Enabling ccache: ${CCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-# Warning level
-if(DEFINED ENV{WARNING_LEVEL})
-  set(WARNING_LEVEL $ENV{WARNING_LEVEL})
-else()
-  set(WARNING_LEVEL "all")
-endif()
-
-# Compiler-specific flags
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  # Warning flags
-  if(WARNING_LEVEL STREQUAL "all")
-    add_compile_options(-Wall -Wextra)
-  elseif(WARNING_LEVEL STREQUAL "extra")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-  elseif(WARNING_LEVEL STREQUAL "default")
-    add_compile_options(-Wall)
-  endif()
-
-  # Release optimization
-  if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(-O${OPTIMIZATION_LEVEL})
-
-    if(MARCH_NATIVE)
-      add_compile_options(-march=native -mtune=native)
-    endif()
-
-    if(NOT ENABLE_EXCEPTIONS)
-      add_compile_options(-fno-exceptions)
-    endif()
-
-    if(NOT ENABLE_RTTI)
-      add_compile_options(-fno-rtti)
-    endif()
-
-    # Link-time optimization
-    if(ENABLE_LTO)
-      set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-      add_compile_options(-flto)
-    endif()
-  endif()
-
-  # Debug flags
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(-O0 -g3)
-
-    if(ENABLE_SANITIZERS)
-      add_compile_options(-fsanitize=address -fsanitize=undefined)
-      add_link_options(-fsanitize=address -fsanitize=undefined)
-    endif()
-  endif()
-endif()
-
-# ============================================================================
-# Dependencies
-# ============================================================================
-
-# Find packages via Conan
 find_package(fmt REQUIRED)
 
-# ============================================================================
-# Testing configuration
-# ============================================================================
-
-get_env_bool(ENABLE_TESTING ON)
-get_env_bool(ENABLE_COVERAGE OFF)
-
-if(ENABLE_TESTING)
+if(TEST_FRAMEWORK)
   enable_testing()
-
-  # Determine test framework from environment
-  if(DEFINED ENV{TEST_FRAMEWORK})
-    set(TEST_FRAMEWORK $ENV{TEST_FRAMEWORK})
-  else()
-    set(TEST_FRAMEWORK "gtest")
-  endif()
-
-  # Find test framework
-  if(TEST_FRAMEWORK STREQUAL "gtest")
-    find_package(GTest REQUIRED)
-    include(GoogleTest)
-  elseif(TEST_FRAMEWORK STREQUAL "catch2")
-    find_package(Catch2 3 REQUIRED)
-    include(Catch)
-  endif()
-
-  if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(--coverage)
-    add_link_options(--coverage)
-  endif()
-endif()
-
-# ============================================================================
-# Project targets
-# ============================================================================
-
-# Main library
-add_library(myproject_core src/core.cpp src/calculator.cpp)
-target_include_directories(
-  myproject_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                        $<INSTALL_INTERFACE:include>)
-target_link_libraries(myproject_core PUBLIC fmt::fmt)
-
-# Main executable
-add_executable(myproject src/main.cpp)
-target_link_libraries(myproject PRIVATE myproject_core)
-
-# ============================================================================
-# Tests
-# ============================================================================
-
-if(ENABLE_TESTING)
   add_subdirectory(tests)
 endif()
 
-# ============================================================================
-# Documentation
-# ============================================================================
+add_library(HelloWorld_core src/core.cpp src/calculator.cpp)
+target_include_directories(
+  HelloWorld_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                         $<INSTALL_INTERFACE:include>)
+target_link_libraries(HelloWorld_core PUBLIC fmt::fmt)
 
-get_env_bool(ENABLE_DOCS OFF)
-
-if(ENABLE_DOCS)
-  find_package(Doxygen REQUIRED dot)
-  find_package(Sphinx REQUIRED)
-
-  if(DOXYGEN_FOUND)
-    # Configure Doxyfile
-    set(DOXYGEN_INPUT_DIR ${CMAKE_SOURCE_DIR})
-    set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen)
-    configure_file(${CMAKE_SOURCE_DIR}/docs/Doxyfile.in
-                   ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile @ONLY)
-
-    # Configure Sphinx
-    configure_file(${CMAKE_SOURCE_DIR}/docs/conf.py.in
-                   ${CMAKE_CURRENT_BINARY_DIR}/docs/conf.py @ONLY)
-
-    # Copy other documentation files
-    file(COPY ${CMAKE_SOURCE_DIR}/docs/index.rst
-         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docs)
-
-    # Create docs target
-    add_custom_target(
-      docs
-      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
-      COMMAND sphinx-build -b html ${CMAKE_CURRENT_BINARY_DIR}/docs
-              ${CMAKE_CURRENT_BINARY_DIR}/docs/html
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating documentation with Doxygen and Sphinx"
-      VERBATIM)
-
-    message(STATUS "Documentation: ON (target: docs)")
-    message(
-      STATUS "  Build with: cmake --build ${CMAKE_BINARY_DIR} --target docs")
-    message(
-      STATUS "  View at: ${CMAKE_CURRENT_BINARY_DIR}/docs/html/index.html")
-  else()
-    message(WARNING "Doxygen not found, documentation target not created")
-  endif()
-else()
-  message(STATUS "Documentation: OFF (set ENABLE_DOCS=ON to enable)")
-endif()
-
-# ============================================================================
-# Development tools
-# ============================================================================
-
-# Bring latest compile commands to project root
-if(CMAKE_EXPORT_COMPILE_COMMANDS)
-  add_custom_target(
-    link_latest_compile_commands ALL
-    COMMAND
-      ${CMAKE_COMMAND} -E create_symlink
-      ${CMAKE_BINARY_DIR}/compile_commands.json
-      ${CMAKE_SOURCE_DIR}/compile_commands.json
-    DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json)
-endif()
-
-# Print configuration summary
-message(STATUS "")
-message(STATUS "=== Build Configuration (from flake.nix) ===")
-message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "Testing: ${ENABLE_TESTING}")
-if(ENABLE_TESTING)
-  message(STATUS "Test Framework: ${TEST_FRAMEWORK}")
-  message(STATUS "Coverage: ${ENABLE_COVERAGE}")
-endif()
-message(STATUS "LTO: ${ENABLE_LTO}")
-message(STATUS "Exceptions: ${ENABLE_EXCEPTIONS}")
-message(STATUS "RTTI: ${ENABLE_RTTI}")
-message(STATUS "Sanitizers: ${ENABLE_SANITIZERS}")
-message(STATUS "Warning Level: ${WARNING_LEVEL}")
-message(STATUS "Optimization: -O${OPTIMIZATION_LEVEL}")
-message(STATUS "March Native: ${MARCH_NATIVE}")
-message(STATUS "==========================================")
-message(STATUS "")
+# Main executable
+add_executable(HelloWorld src/main.cpp)
+target_link_libraries(HelloWorld PRIVATE HelloWorld_core)

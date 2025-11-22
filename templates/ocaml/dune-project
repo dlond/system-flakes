@@ -18,14 +18,11 @@
  (synopsis "Short description of your project")
  (description "Longer description of your project")
  (depends
-   ocaml
-   dune
-   ;; Project dependencies
    cmdliner
 
    ;; Development tools (installed with --with-dev-setup)
    (ocaml-lsp-server :with-dev-setup)
-   (merlin :with-dev-setup)
+   (odoc :with-dev-setup)
    (ocamlformat :with-dev-setup)
    (utop :with-dev-setup)
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(
-  HelloWorld
+  hello_cpp
   VERSION 0.1.0
   DESCRIPTION "A c++ project template"
   LANGUAGES CXX)
@@ -26,17 +26,15 @@ endif()
 
 find_package(fmt REQUIRED)
 
-if(TEST_FRAMEWORK)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
-
-add_library(HelloWorld_core src/core.cpp src/calculator.cpp)
+add_library(hello_core src/core.cpp src/calculator.cpp)
 target_include_directories(
-  HelloWorld_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                         $<INSTALL_INTERFACE:include>)
-target_link_libraries(HelloWorld_core PUBLIC fmt::fmt)
+  hello_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                    $<INSTALL_INTERFACE:include>)
+target_link_libraries(hello_core PUBLIC fmt::fmt)
 
 # Main executable
-add_executable(HelloWorld src/main.cpp)
-target_link_libraries(HelloWorld PRIVATE HelloWorld_core)
+add_executable(hello_app src/main.cpp)
+target_link_libraries(hello_app PRIVATE hello_core)
+
+enable_testing()
+add_subdirectory(tests)

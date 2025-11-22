@@ -1,12 +1,9 @@
 # Build directories
 build/
-cmake-build-*/
-out/
 
 # Conan
 CMakeUserPresets.json
 conan.lock
-graph_info.json
 .conan2/
 
 # Nix
@@ -14,13 +11,6 @@ result
 
 # Compile commands
 compile_commands.json
-.cache/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
 
 # Direnv
 .direnv/
@@ -29,12 +19,3 @@ compile_commands.json
 .DS_Store
 Thumbs.db
 
-# Binaries
-*.exe
-*.out
-*.app
-*.o
-*.obj
-*.so
-*.dylib
-*.dll

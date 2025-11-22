@@ -76,6 +76,10 @@
           ./hosts/mbp/default.nix
           {
             users.users.${username}.home = "/Users/${username}";
+            nixpkgs.config = {
+              extraBuildFlags = ["-mmacosx-version-min=26.0"];
+              extraConfigureFlags = ["-mmacosx-version-min=26.0"];
+            };
           }
         ];
         specialArgs = {

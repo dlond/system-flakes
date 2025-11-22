@@ -12,6 +12,7 @@
       htop
       jq
       mosh
+      tree-sitter
       unzip
       wget
       yq-go

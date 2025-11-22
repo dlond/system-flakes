@@ -21,9 +21,7 @@
     };
 
     nvim-config = {
-      # url = "github:dlond/nvim";
-      # url = "path:/Users/dlond/dev/projects/nvim";
-      url = "path:/Users/dlond/dev/worktrees/nvim/nvim-maintenance-time-91";
+      url = "github:dlond/nvim";
       flake = false;
     };
 

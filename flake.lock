@@ -128,14 +128,17 @@
     "nvim-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1763807558,
-        "narHash": "sha256-Bllhz/7JqiP2FYvf5Tqsqzh5Ig1ygv/75atj80NFyHY=",
-        "path": "/Users/dlond/dev/worktrees/nvim/nvim-maintenance-time-91",
-        "type": "path"
+        "lastModified": 1763820651,
+        "narHash": "sha256-mR0bm/rOZEI2LFo23tf5mLKo4ZOo+Ogx0xzRmjeev7g=",
+        "owner": "dlond",
+        "repo": "nvim",
+        "rev": "50ec4045a5670db41bf8a70e20f4c3834af35c98",
+        "type": "github"
       },
       "original": {
-        "path": "/Users/dlond/dev/worktrees/nvim/nvim-maintenance-time-91",
-        "type": "path"
+        "owner": "dlond",
+        "repo": "nvim",
+        "type": "github"
       }
     },
     "root": {

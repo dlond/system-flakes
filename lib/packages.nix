@@ -40,16 +40,9 @@
     # Minimal dev tools for hacking
     development = {
       cpp = with pkgs; [
-        # clang-tools must come before clang to be wrapped properly
-        # https://blog.kotatsu.dev/posts/2024-04-10-nixpkgs-clangd-missing-headers/
-
-        llvmPackages.clang-tools
-        llvmPackages.clang
         cmake
         ninja
         conan
-        gnumake
-        gcc
         pkg-config
       ];
 
@@ -59,8 +52,6 @@
       ];
 
       ocaml = with pkgs; [
-        ocaml
-        dune_3
         opam
       ];
 
@@ -72,6 +63,7 @@
       ];
 
       misc = with pkgs; [
+        apple-sdk_26
         glow
         lua5_1
         luarocks

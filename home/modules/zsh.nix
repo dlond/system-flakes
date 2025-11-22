@@ -96,6 +96,8 @@
       FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept' --bind='ctrl-e:execute(echo {} | clip)+abort' --header='[history] | Ctrl-E: copy'";
       # Common FZF bindings for all custom functions
       FZF_CUSTOM_BINDS = "--bind='ctrl-e:execute(echo {} | clip)+abort' --bind='ctrl-w:become(nvim {})'";
+      # Use non-apple debuggers
+      LLDB_DEBUGSERVER_PATH = "/Library/Developer/CommandLineTools/Library/PrivateFrameworks/LLDB.framework/Versions/A/Resources/debugserver";
     };
 
     syntaxHighlighting = {
@@ -320,9 +322,13 @@
         }
 
       ''
-      # Initialize zoxide at the very end
+      # Initialize at the very end
       (lib.mkOrder 2000 ''
         eval "$(${pkgs.zoxide}/bin/zoxide init zsh --cmd cd)"
+
+        if [ -f "$HOME/.opam/opam-init/init.zsh" ]; then
+          source "$HOME/.opam/opam-init/init.zsh" > /dev/null 2>&1
+        fi
       '')
     ];
   };

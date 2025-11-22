@@ -5,20 +5,22 @@
   username,
   ...
 }: {
-  environment.systemPackages =
-    (with packages.system;
-      utils
-      ++ security
-      ++ apps
-      ++ development.cpp
-      ++ development.python
-      ++ development.ocaml
-      ++ development.rust
-      ++ development.misc
-      ++ development.neovim)
-    ++ [
-      pkgs.pam-reattach # macOS PAM module for Touch ID with tmux/sudo
-    ];
+  environment = {
+    systemPackages =
+      (with packages.system;
+        utils
+        ++ security
+        ++ apps
+        ++ development.cpp
+        ++ development.python
+        ++ development.ocaml
+        ++ development.rust
+        ++ development.misc
+        ++ development.neovim)
+      ++ [
+        pkgs.pam-reattach # macOS PAM module for Touch ID with tmux/sudo
+      ];
+  };
 
   nix.settings.experimental-features = "nix-command flakes";
 

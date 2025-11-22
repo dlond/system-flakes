@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }: {
   home = {
@@ -20,18 +21,38 @@
     ../../modules/neovim.nix
   ];
 
-  # This is to force me to not use the default switch
-  home.file.".opam/default/.read-only-placeholder".text = "Use local switches only";
+  home.activation = {
+    pythonBaseEnv = config.lib.dag.entryAfter ["writeBoundary"] ''
+      PY_BASE_ENV="${config.home.homeDirectory}/.local/share/python/venvs/base"
 
-  # Python base environment for Neovim LSP (basedpyright, ruff, debugpy)
-  # Used when not in a project-specific venv
-  home.activation.pythonBaseEnv = config.lib.dag.entryAfter ["writeBoundary"] ''
-    BASE_ENV="${config.home.homeDirectory}/.local/share/python/venvs/base"
+      if [ ! -d "$PY_BASE_ENV" ]; then
+        $DRY_RUN_CMD ${pkgs.uv}/bin/uv venv "$PY_BASE_ENV"
+      fi
 
-    $DRY_RUN_CMD ${pkgs.uv}/bin/uv venv --clear "$BASE_ENV"
-    $DRY_RUN_CMD ${pkgs.uv}/bin/uv pip install --python "$BASE_ENV/bin/python" \
-      basedpyright ruff debugpy
-  '';
+      $DRY_RUN_CMD ${pkgs.uv}/bin/uv pip install --python "$PY_BASE_ENV/bin/python" \
+        basedpyright ruff debugpy
+    '';
+
+    opamDefaultSwitch = config.lib.dag.entryAfter ["writeBoundary"] ''
+      OPAM_HOME="${config.home.homeDirectory}/.opam"
+
+      if [ ! -d "$OPAM_HOME" ]; then
+        PATH="/usr/bin:/bin:${lib.makeBinPath (with pkgs; [
+        git
+        gnumake
+        darwin.cctools
+      ])}"
+
+        $DRY_RUN_CMD ${pkgs.opam}/bin/opam init \
+          --disable-sandboxing \
+          -y
+
+        $DRY_RUN_CMD eval "$(${pkgs.opam}/bin/opam env --switch=default --set-switch)"
+        $DRY_RUN_CMD ${pkgs.opam}/bin/opam install --switch=default -y \
+          ocaml-lsp-server odoc ocamlformat utop
+      fi
+    '';
+  };
 
   programs = {
     direnv = {

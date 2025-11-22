@@ -49,6 +49,7 @@
           if [ ! -d ".venv" ]; then
             echo "Creating venv for Python $(python --version)..."
             uv venv
+            uv sync --all-extras
             echo ""
             echo "Install dependencies with: uv sync --all-extras"
             echo ""

@@ -43,10 +43,10 @@
       ];
       cFlags = {
         Base = [
-          "-isysroot=${sdkPath}"
+          # "-isysroot=${sdkPath}"
         ];
         Debug = [
-          "-fsanitize=address,undefined"
+          # "-fsanitize=address,undefined"
         ];
         Release = [];
       };
@@ -63,8 +63,8 @@
           "-O0"
           "-g"
           "-fno-omit-frame-pointer"
-          "-fsanitize=address,undefined"
-          "-fno-sanitize-recover=all"
+          # "-fsanitize=address,undefined"
+          # "-fno-sanitize-recover=all"
         ];
         Release = [
           "-O3"
@@ -91,9 +91,11 @@
       ldFlags = {
         Base = [
           "-fuse-ld=lld"
+          "-L${llvm.libcxx}/lib"
+          "-Wl,-rpath,${llvm.libcxx}/lib"
         ];
         Debug = [
-          "-fsanitize=address,undefined"
+          # "-fsanitize=address,undefined"
         ];
         Release = [
           "-flto=thin"
@@ -114,6 +116,7 @@
           build_type=${buildType}
 
           [conf]
+          tools.apple:sdk_path=${sdkPath}
           tools.build:compiler_executables={"c": "${llvm.clang-unwrapped}/bin/clang", "cpp": "${llvm.clang-unwrapped}/bin/clang++"}
 
           # sysroot + c++ stdlib headers
@@ -150,19 +153,21 @@
         lldb
       ];
       tools = with pkgs; [
-        appleSdk
+        ccache
         cmake
-        ninja
         cmake-format
         cmake-language-server
-        ccache
+        conan
         gtest
+        ninja
       ];
     in {
       devShells.default = pkgs.mkShell {
         name = "C++_LLVM_SDK26";
         nativeBuildInputs = llvmPackages ++ tools;
-        TESTING_FRAMEWORK = "gtest";
+        ENV_ICON = "❄️";
+
+        TEST_FRAMEWORK = "gtest";
         shellHook = ''
           echo "== Setting up LLVM toolchain with SDK 26 =="
 

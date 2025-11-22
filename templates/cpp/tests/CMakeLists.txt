@@ -1,17 +1,24 @@
-add_executable(test_HelloWorld test_core.cpp test_calculator.cpp)
+add_executable(test_hello test_core.cpp test_calculator.cpp)
+
+if(DEFINED ENV{TEST_FRAMEWORK})
+  set(TEST_FRAMEWORK $ENV{TEST_FRAMEWORK})
+else()
+  set(TEST_FRAMEWORK "gtest")
+endif()
 
 if(TEST_FRAMEWORK STREQUAL "gtest")
+  message(STATUS "Enabling gtest")
   find_package(GTest REQUIRED)
   include(GoogleTest)
-  target_link_libraries(test_HelloWorld PRIVATE HelloWorld_core GTest::gtest
-                                                GTest::gtest_main)
-  gtest_discover_tests(test_HelloWorld)
+  target_link_libraries(test_hello PRIVATE hello_core GTest::gtest
+                                           GTest::gtest_main)
+  gtest_discover_tests(test_hello)
 elseif(TEST_FRAMEWORK STREQUAL "catch2")
+  message(STATUS "Enabling catch2")
   find_package(Catch2 3 REQUIRED)
   include(Catch)
-  target_link_libraries(test_HelloWorld PRIVATE HelloWorld_core
-                                                Catch2::Catch2WithMain)
-  catch_discover_tests(test_HelloWorld)
+  target_link_libraries(test_hello PRIVATE hello_core Catch2::Catch2WithMain)
+  catch_discover_tests(test_hello)
 endif()
 
 if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")

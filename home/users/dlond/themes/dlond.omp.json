@@ -48,7 +48,7 @@
             "revert_icon": "\uf0e2 ",
             "tag_icon": "\uf412 "
           },
-          "template": "{{ .HEAD }} ",
+          "template": "{{ if .IsWorkTree }}{{ else }}{{ .Env.WT_ICON }}{{ end }} <b>{{.HEAD}}</b>",
           "foreground": "p:pink",
           "type": "git",
           "style": "plain"
@@ -60,12 +60,6 @@
       "type": "rprompt",
       "overflow": "hidden",
       "segments": [
-        {
-          "template": "{{ if .Env.MY_DIRSTACK_COUNT }}{{ if gt (int .Env.MY_DIRSTACK_COUNT) 0 }}📚{{ .Env.MY_DIRSTACK_COUNT }}{{ end }}{{ end }} ",
-          "foreground": "p:lavender",
-          "type": "text",
-          "style": "plain"
-        },
         {
           "properties": {
             "threshold": 5000

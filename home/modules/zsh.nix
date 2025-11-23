@@ -209,14 +209,19 @@
         zle -N edit-command-line
         bindkey '^x^e' edit-command-line  # Ctrl-X Ctrl-E to edit command in editor (standard emacs binding)
 
-        _update_dirstack() {
-          export MY_DIRSTACK_COUNT=$#dirstack
-        }
-
         if [[ -z "$precmd_functions" ]]; then
           precmd_functions=()
         fi
-        precmd_functions+=(_update_dirstack)
+
+        _update_worktrees() {
+          WT_ICON=""
+          while IFS= read -r line; do
+            WT_ICON+="🌴"
+          done< <(git worktree list 2>/dev/null)
+          export WT_ICON
+        }
+        precmd_functions+=(_update_worktrees)
+
 
         # Load FZF keybindings manually (Claude Code runs zsh with ZLE off)
         if command -v fzf &> /dev/null; then

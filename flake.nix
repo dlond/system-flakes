@@ -12,8 +12,9 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # url = "github:nix-community/home-manager";
+      url = "path:/Users/dlond/dev/projects/home-manager";
+      # inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-homebrew = {
@@ -88,6 +89,7 @@
 
     homeConfigurations."${username}@mbp" = let
       sysConfig = mkSystemConfig systems.darwin;
+      minimal = "";
     in
       inputs.home-manager.lib.homeManagerConfiguration {
         inherit (sysConfig) pkgs;
@@ -95,6 +97,7 @@
         extraSpecialArgs = {
           inherit (inputs) nix nvim-config catppuccin-bat;
           inherit (sysConfig) pkgs packages;
+          inherit minimal;
         };
       };
 

@@ -116,6 +116,7 @@
         "mullvad-vpn"
         "steam"
         "tor-browser"
+        "transmission"
         "vlc"
         "whatsapp"
       ];

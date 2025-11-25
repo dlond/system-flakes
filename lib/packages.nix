@@ -103,6 +103,7 @@
     homebrew = {
       taps = [];
       brews = [
+        "asciinema"
         "mas"
         "ollama"
       ];

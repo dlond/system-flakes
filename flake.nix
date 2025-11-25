@@ -12,9 +12,9 @@
     };
 
     home-manager = {
-      # url = "github:nix-community/home-manager";
-      url = "path:/Users/dlond/dev/projects/home-manager";
-      # inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:nix-community/home-manager";
+      # url = "path:/Users/dlond/dev/projects/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-homebrew = {
@@ -22,7 +22,8 @@
     };
 
     nvim-config = {
-      url = "github:dlond/nvim";
+      # url = "github:dlond/nvim";
+      url = "path:/Users/dlond/dev/projects/nvim";
       flake = false;
     };
 

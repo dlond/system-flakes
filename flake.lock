@@ -53,17 +53,22 @@
     },
     "home-manager": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1763889456,
-        "narHash": "sha256-tMSWi7WEmKTg50jVEOLDYe//O8grFOYPC0YXCzlc/3I=",
-        "path": "/Users/dlond/dev/projects/home-manager",
-        "type": "path"
+        "lastModified": 1763906693,
+        "narHash": "sha256-inm7paa3myo8gE4TzjM8OPvsEg8xocWreIZBgBPEKgo=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "3d6c1c8fa0bea3a1a7ba23d6fa5993116766073b",
+        "type": "github"
       },
       "original": {
-        "path": "/Users/dlond/dev/projects/home-manager",
-        "type": "path"
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
       }
     },
     "nix-darwin": {
@@ -106,22 +111,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1763678758,
-        "narHash": "sha256-+hBiJ+kG5IoffUOdlANKFflTT5nO3FrrR2CA3178Y5s=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "117cc7f94e8072499b0a7aa4c52084fa4e11cc9b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1763618868,
         "narHash": "sha256-v5afmLjn/uyD9EQuPBn7nZuaZVV9r+JerayK/4wvdWA=",
         "owner": "NixOS",
@@ -139,17 +128,14 @@
     "nvim-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1763820651,
-        "narHash": "sha256-mR0bm/rOZEI2LFo23tf5mLKo4ZOo+Ogx0xzRmjeev7g=",
-        "owner": "dlond",
-        "repo": "nvim",
-        "rev": "50ec4045a5670db41bf8a70e20f4c3834af35c98",
-        "type": "github"
+        "lastModified": 1763820777,
+        "narHash": "sha256-fZdCWG9ODeK6aFcMbpNH3RtKhIgSz6g/FobAqCwgyVA=",
+        "path": "/Users/dlond/dev/projects/nvim",
+        "type": "path"
       },
       "original": {
-        "owner": "dlond",
-        "repo": "nvim",
-        "type": "github"
+        "path": "/Users/dlond/dev/projects/nvim",
+        "type": "path"
       }
     },
     "root": {
@@ -159,7 +145,7 @@
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs",
         "nvim-config": "nvim-config",
         "sops-nix": "sops-nix"
       }

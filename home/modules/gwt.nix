@@ -581,12 +581,6 @@ in {
             __gwt_print_success "Worktree created successfully!"
             echo "📁 Path: $worktree"
             echo "🌿 Branch: $branch"
-
-            # Link main .envrc if exists
-            local main_envrc="$(__gwt_get_worktree "$(__gwt_get_main_branch)")/.envrc"
-            if [ -f "$main_envrc" ]; then
-              ln -s "$main_envrc" "$worktree/.envrc"
-            fi
           fi
 
           # Change to the new worktree unless --cwd was specified

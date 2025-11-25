@@ -215,9 +215,10 @@
 
         _update_worktrees() {
           WT_ICON=""
-          while IFS= read -r line; do
+          count=$(git worktree list | awk 'END{print NR-1}')
+          for (( i=1; i<= $count; i++ )); do
             WT_ICON+="🌴"
-          done< <(git worktree list 2>/dev/null)
+          done
           export WT_ICON
         }
         precmd_functions+=(_update_worktrees)

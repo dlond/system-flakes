@@ -48,7 +48,7 @@
             "revert_icon": "\uf0e2 ",
             "tag_icon": "\uf412 "
           },
-          "template": "{{ if .IsWorkTree }}{{ else }}{{ .Env.WT_ICON }}{{ end }} <b>{{.HEAD}}</b>",
+          "template": "{{ .Env.WT_ICON }} <b>{{ .HEAD}}</b>",
           "foreground": "p:pink",
           "type": "git",
           "style": "plain"

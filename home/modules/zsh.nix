@@ -215,10 +215,17 @@
 
         _update_worktrees() {
           WT_ICON=""
-          count=$(git worktree list | awk 'END{print NR-1}')
-          for (( i=1; i<= $count; i++ )); do
-            WT_ICON+="🌴"
-          done
+          top_level=$(git rev-parse --show-toplevel 2>/dev/null)
+          if [ -d "$top_level"/.git ]; then
+            count=$(git worktree list | awk 'END{print NR-1}')
+            if (( count > 0)); then
+              for (( i=1; i<= count; i++ )); do
+                WT_ICON+="🌴"
+              done
+            else
+              WT_ICON="🎯";
+            fi
+          fi
           export WT_ICON
         }
         precmd_functions+=(_update_worktrees)

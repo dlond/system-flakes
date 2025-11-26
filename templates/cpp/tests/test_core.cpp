@@ -1,8 +1,8 @@
-#include "hello/core.h"
+#include "__PROJECT_NAME__/core.h"
 #include <gtest/gtest.h>
 #include <vector>
 
-using namespace hello;
+using namespace __PROJECT_NAME__;
 
 // Test greet function
 TEST(CoreTest, GreetBasic) { EXPECT_EQ(greet("World"), "Hello, World!"); }

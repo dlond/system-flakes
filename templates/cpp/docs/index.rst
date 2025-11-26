@@ -51,7 +51,7 @@ Basic Usage
 
 .. code-block:: cpp
 
-   #include <myproject/calculator.hpp>
+   #include <__PROJECT_NAME__/calculator.hpp>
 
    int main() {
        Calculator calc;

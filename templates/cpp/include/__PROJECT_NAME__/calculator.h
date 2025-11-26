@@ -1,6 +1,6 @@
 #pragma once
 
-namespace myproject {
+namespace __PROJECT_NAME__ {
 
 /**
  * @brief A simple calculator class with fluent interface
@@ -51,4 +51,4 @@ private:
     double value_;
 };
 
-} // namespace myproject
+} // namespace __PROJECT_NAME__

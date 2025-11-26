@@ -1,9 +1,9 @@
-#include "hello/core.h"
+#include "__PROJECT_NAME__/core.h"
 #include <fmt/format.h>
 #include <numeric>
 #include <stdexcept>
 
-namespace hello {
+namespace __PROJECT_NAME__ {
 
 std::string greet(const std::string &name) {
   if (name.empty()) {
@@ -22,4 +22,4 @@ double calculate_mean(const std::vector<double> &values) {
   return sum / static_cast<double>(values.size());
 }
 
-} // namespace hello
+} // namespace __PROJECT_NAME__

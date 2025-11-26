@@ -1,5 +1,5 @@
-#include "hello/calculator.h"
-#include "hello/core.h"
+#include "__PROJECT_NAME__/calculator.h"
+#include "__PROJECT_NAME__/core.h"
 #include <cstdio>
 #include <exception>
 #include <fmt/base.h>
@@ -7,7 +7,7 @@
 #include <vector>
 
 int main() {
-  using namespace hello;
+  using namespace __PROJECT_NAME__;
 
   // Demonstrate greeting
   try {

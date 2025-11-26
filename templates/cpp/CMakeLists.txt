@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(
-  hello_cpp
+  __PROJECT_NAME__
   VERSION 0.1.0
-  DESCRIPTION "A c++ project template"
+  DESCRIPTION "A C++ project template"
   LANGUAGES CXX)
 
 # C++ Standard
@@ -26,15 +26,17 @@ endif()
 
 find_package(fmt REQUIRED)
 
-add_library(hello_core src/core.cpp src/calculator.cpp)
+add_library(${CMAKE_PROJECT_NAME}_lib src/core.cpp src/calculator.cpp)
 target_include_directories(
-  hello_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                    $<INSTALL_INTERFACE:include>)
-target_link_libraries(hello_core PUBLIC fmt::fmt)
+  ${CMAKE_PROJECT_NAME}_lib
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include>)
+target_link_libraries(${CMAKE_PROJECT_NAME}_lib PUBLIC fmt::fmt)
 
 # Main executable
-add_executable(hello_app src/main.cpp)
-target_link_libraries(hello_app PRIVATE hello_core)
+add_executable(${CMAKE_PROJECT_NAME}_app src/main.cpp)
+target_link_libraries(${CMAKE_PROJECT_NAME}_app
+                      PRIVATE ${CMAKE_PROJECT_NAME}_lib)
 
 enable_testing()
 add_subdirectory(tests)

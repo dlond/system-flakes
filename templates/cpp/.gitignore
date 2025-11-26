@@ -8,6 +8,7 @@ conan.lock
 
 # Nix
 result
+.projectName
 
 # Compile commands
 compile_commands.json

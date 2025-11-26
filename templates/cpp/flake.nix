@@ -163,32 +163,39 @@
       ];
     in {
       devShells.default = pkgs.mkShell {
-        name = "C++_LLVM_SDK26";
         nativeBuildInputs = llvmPackages ++ tools;
         ENV_ICON = "❄️";
 
         TEST_FRAMEWORK = "gtest";
         shellHook = ''
-          echo "== Setting up LLVM toolchain with SDK 26 =="
+          # set project name
+          if [ ! -f .projectName ]; then
+            NAME=''${PROJECT_NAME:-$(basename "$PWD")}
 
-          if [ -z "''${CONAN_HOME:-}" ]; then
-            echo "WARNING: CONAN_HOME is not set. Set in .envrc as:"
-            echo "  export CONAN_HOME=\$PWD/.conan2"
-            return
-          fi
-
-          echo "Linking $HOME/.conan2 cache to local CONAN_HOME"
-          mkdir -p "$CONAN_HOME/profiles"
-          if [ -d "$HOME/.conan2" ]; then
-            for dir in $(fd -td -d1 -Eprofiles . "$HOME/.conan2" 2>/dev/null || true); do
-              ln -sfn "$dir" "$CONAN_HOME/"
+            # using template c++ project?
+            rg -l __PROJECT_NAME__ | xargs sed -i "s/__PROJECT_NAME__/$NAME/g"
+            fd __PROJECT_NAME__ | sort -r | while read -r dir; do
+              newdir="''${dir//__PROJECT_NAME__/$NAME}"
+              mv "$dir" "$newdir"
             done
+
+            echo "PROJECT_NAME: $NAME" > .projectName
           fi
 
-          echo "Creating local conan profiles"
-          ln -sf ${releaseProfile} $CONAN_HOME/profiles/default
-          ln -sf ${releaseProfile} $CONAN_HOME/profiles/release
-          ln -sf ${debugProfile} $CONAN_HOME/profiles/debug
+          if [ ! -d "$CONAN_HOME" ]; then
+            echo "Linking $HOME/.conan2 cache to local $CONAN_HOME"
+            mkdir -p "$CONAN_HOME/profiles"
+            if [ -d "$HOME/.conan2" ]; then
+              for dir in $(fd -td -d1 -Eprofiles . "$HOME/.conan2" 2>/dev/null || true); do
+                ln -sfn "$dir" "$CONAN_HOME/"
+              done
+            fi
+
+            echo "Creating local conan profiles"
+            ln -sf ${releaseProfile} "$CONAN_HOME/profiles/default"
+            ln -sf ${releaseProfile} "$CONAN_HOME/profiles/release"
+            ln -sf ${debugProfile} "$CONAN_HOME/profiles/debug"
+          fi
         '';
       };
     });

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace myproject {
+namespace __PROJECT_NAME__ {
 
 /**
  * @brief Greet a person by name
@@ -27,4 +27,4 @@ double add_numbers(double a, double b);
  */
 double calculate_mean(const std::vector<double>& values);
 
-} // namespace myproject
+} // namespace __PROJECT_NAME__

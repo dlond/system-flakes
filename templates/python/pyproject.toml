@@ -1,5 +1,5 @@
 [project]
-name = "myproject"
+name = "PROJECT_NAME"
 version = "0.1.0"
 description = "A Python project template"
 readme = "README.md"
@@ -45,4 +45,3 @@ typeCheckingMode = "standard"
 pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
-

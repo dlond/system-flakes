@@ -20,7 +20,7 @@
       lib = pkgs.lib;
 
       config = {
-        name = "Python Development";
+        name = "my_py_proj";
 
         pythonVersion = "3.14"; # Change this to use different Python version (3.10, 3.11, 3.12, 3.13, 3.14)
       };
@@ -36,26 +36,32 @@
         ENV_ICON = "❄️";
 
         shellHook = ''
-          if [ ! -d ".git" ]; then
-            git init
+          # name the project
+          sed -i "s/name = $/name = \"${config.name}\"/" pyproject.toml
+
+          # local venv
+          if [ ! -d ".venv" ]; then
+            echo "🐍 No venv found. Creating ..."
+
+            # worktrees just link venvs
+            if [ -f ".git" ]; then
+              MAIN_WT=$(git worktree list | awk 'NR == 1 { print $1; exit }')
+              echo "   Linking venv at $MAIN_WT ..."
+              ln -s "$MAIN_WT"/.venv .
+
+              echo "✅ Project venv linked."
+            else
+              uv venv
+              uv sync --all-extras
+
+              echo "✅ Project venv created."
+            fi
           fi
           echo "🐍 Python development environment"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Python version: $(python --version)"
           echo "uv version: $(uv --version)"
           echo ""
-
-          # Create local venv
-          if [ ! -d ".venv" ]; then
-            echo "Creating venv for Python $(python --version)..."
-            uv venv
-            uv sync --all-extras
-            echo ""
-            echo "Install dependencies with: uv sync --all-extras"
-            echo ""
-          fi
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
         '';
       };
     });

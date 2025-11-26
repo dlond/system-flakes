@@ -1,3 +1,0 @@
-(test
- (name test_greet)
- (libraries myproject.lib alcotest))

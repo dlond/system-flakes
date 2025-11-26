@@ -19,7 +19,7 @@
 
       # More useful stuff here I guess
       config = {
-        name = "OCaml Development";
+        name = "${baseNameOf ./.}";
         withTest = true;
       };
 
@@ -37,34 +37,46 @@
         ENV_ICON = "❄️";
 
         shellHook = ''
+          # project switch init
           if [ ! -d "./_opam" ]; then
-            echo "🐪 No local opam switch found for this project."
-            echo "  Creating local switch '.' with ocaml-base-compiler.5.4.0 ..."
-            opam switch create . ocaml-base-compiler.5.4.0
+            echo "🐪 No project opam switches found. Creating ..."
 
-            # Prime the env for this first session only
-            eval "$(opam env --switch=. --set-switch)"
+            # worktrees just link switches
+            if [ -f ".git" ]; then
+              MAIN_WT=$(git worktree list | awk 'NR == 1 { print $1; exit }')
+              echo "   Linking project opam switch at $MAIN_WT ..."
+              opam switch link $MAIN_WT
 
-            opam install -y \
-              dune \
-              utop \
-              ocaml-lsp-server \
-              ocamlformat \
-              odoc
+              echo "✅ Project switch linked."
+            else
+              echo "  Creating project opam switch $PWD ..."
+              opam switch create "$PWD" \
+                ocaml \
+                dune \
+                ocaml-lsp-server \
+                ocamlformat \
+                merlin \
+                utop
 
-            echo "✅ Local switch create."
-            echo "  From now on, .envrc will auto load it when you cd here."
-            echo ""
+              echo "✅ Project switch created."
+            fi
+          fi
+
+          # project init
+          if [ ! -f "dune-project" ]; then
+            echo "  Initializing dune project ..."
+            dune init project ${config.name} "$PWD"
+
+            # update "${config.name}.opam"
+            # dune build >/dev/null 2>&1
+
+            echo "✅ dune project initiated."
           fi
 
           echo "🐫 OCaml Development Environment"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          if command -v ocaml >/dev/null 2>&1; then
-            echo "OCaml version: $(ocaml -vnum)"
-          fi
-          if command -v dune >/dev/null 2>&1; then
-            echo "Dune version: $(dune --version)"
-          fi
+          echo "OCaml version: $(ocaml -vnum)"
+          echo "Dune version: $(dune --version)"
           echo "Opam version: $(opam --version)"
           echo ""
         '';

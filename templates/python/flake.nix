@@ -20,8 +20,6 @@
       lib = pkgs.lib;
 
       config = {
-        name = "my_py_proj";
-
         pythonVersion = "3.14"; # Change this to use different Python version (3.10, 3.11, 3.12, 3.13, 3.14)
       };
 
@@ -31,13 +29,21 @@
       ];
     in {
       devShells.default = pkgs.mkShell {
-        name = config.name;
         nativeBuildInputs = packages;
         ENV_ICON = "❄️";
 
         shellHook = ''
-          # name the project
-          sed -i "s/name = $/name = \"${config.name}\"/" pyproject.toml
+          # set naming project
+          if [ ! -f .projectName ]; then
+            NAME=''${PROJECT_NAME:-$(basename "$PWD")}
+            rg -l __PROJECT_NAME__ | xargs sed -i "s/__PROJECT_NAME__/$NAME/g"
+            fd  __PROJECT_NAME__ | sort -r | while read -r dir; do
+            newdir="''${dir//__PROJECT_NAME__/$NAME}"
+            mv "$dir" "$newdir"
+            done
+
+            echo "PROJECT_NAME: $NAME" > .projectName
+          fi
 
           # local venv
           if [ ! -d ".venv" ]; then
@@ -47,7 +53,7 @@
             if [ -f ".git" ]; then
               MAIN_WT=$(git worktree list | awk 'NR == 1 { print $1; exit }')
               echo "   Linking venv at $MAIN_WT ..."
-              ln -s "$MAIN_WT"/.venv .
+              ln -s "$MAIN_WT/.venv" .venv
 
               echo "✅ Project venv linked."
             else

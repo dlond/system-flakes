@@ -22,9 +22,9 @@ cd your-project
 uv sync --all-extras
 
 # 3. Run your code
-python -m myproject
+python -m __PROJECT_NAME__
 # Or with an argument:
-python -m myproject Alice
+python -m __PROJECT_NAME__ Alice
 
 # 4. Run the tests
 pytest
@@ -38,7 +38,7 @@ pytest --cov
 ```
 .
 ├── src/
-│   └── myproject/
+│   └── __PROJECT_NAME__/
 │       ├── __init__.py
 │       ├── __main__.py   # CLI entry point
 │       └── core.py       # Core library functions
@@ -71,15 +71,18 @@ When you leave the directory, direnv automatically deactivates the venv!
 The template includes a simple CLI application to get you started:
 
 **Library** (`core.py`):
+
 - `greet(name)` - Returns a greeting string
 - `add_numbers(a, b)` - Adds two numbers
 - `Calculator` - A simple calculator class with method chaining
 
 **CLI** (`__main__.py`):
+
 - Simple command-line tool that greets a name
-- Run with: `python -m myproject Alice`
+- Run with: `python -m __PROJECT_NAME__ Alice`
 
 **Tests** (`test_core.py`):
+
 - pytest tests for all core functions
 - Run with: `pytest`
 
@@ -113,3 +116,4 @@ uv add numpy
 # Add a dev dependency
 uv add --dev ipython
 ```
+

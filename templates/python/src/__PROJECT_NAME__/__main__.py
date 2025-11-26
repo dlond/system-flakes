@@ -1,7 +1,8 @@
-"""CLI entry point for myproject."""
+"""CLI entry point for __PROJECT_NAME__."""
 
 import sys
-from myproject.core import greet
+
+from __PROJECT_NAME__.core import greet
 
 
 def main() -> int:

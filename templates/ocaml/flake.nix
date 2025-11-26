@@ -17,12 +17,6 @@
         config.allowUnfree = true;
       };
 
-      # More useful stuff here I guess
-      config = {
-        name = "${baseNameOf ./.}";
-        withTest = true;
-      };
-
       packages = with pkgs; [
         opam
 
@@ -32,7 +26,6 @@
       ];
     in {
       devShells.default = pkgs.mkShell {
-        name = config.name;
         nativeBuildInputs = packages;
         ENV_ICON = "❄️";
 
@@ -45,12 +38,12 @@
             if [ -f ".git" ]; then
               MAIN_WT=$(git worktree list | awk 'NR == 1 { print $1; exit }')
               echo "   Linking project opam switch at $MAIN_WT ..."
-              opam switch link $MAIN_WT
+              opam switch link $MAIN_WT .
 
               echo "✅ Project switch linked."
             else
-              echo "  Creating project opam switch $PWD ..."
-              opam switch create "$PWD" \
+              echo "  Creating project opam switch "$PWD" ..."
+              opam switch create . \
                 ocaml \
                 dune \
                 ocaml-lsp-server \
@@ -65,10 +58,8 @@
           # project init
           if [ ! -f "dune-project" ]; then
             echo "  Initializing dune project ..."
-            dune init project ${config.name} "$PWD"
-
-            # update "${config.name}.opam"
-            # dune build >/dev/null 2>&1
+            NAME=''${PROJECT_NAME:-$(basename "$PWD")}
+            dune init project "$NAME" .
 
             echo "✅ dune project initiated."
           fi

@@ -1,7 +1,7 @@
-#include "hello/calculator.h"
+#include "__PROJECT_NAME__/calculator.h"
 #include <stdexcept>
 
-namespace hello {
+namespace __PROJECT_NAME__ {
 
 Calculator::Calculator(double initial_value) : value_(initial_value) {}
 
@@ -30,4 +30,4 @@ Calculator &Calculator::reset() {
 
 double Calculator::result() const { return value_; }
 
-} // namespace hello
+} // namespace __PROJECT_NAME__

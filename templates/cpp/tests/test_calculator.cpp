@@ -1,7 +1,7 @@
-#include "hello/calculator.h"
+#include "__PROJECT_NAME__/calculator.h"
 #include <gtest/gtest.h>
 
-using namespace hello;
+using namespace __PROJECT_NAME__;
 
 class CalculatorTest : public ::testing::Test {
 protected:

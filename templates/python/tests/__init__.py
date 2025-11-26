@@ -1,1 +1,2 @@
-"""Tests for myproject."""
+"""Tests for __PROJECT_NAME__."""
+

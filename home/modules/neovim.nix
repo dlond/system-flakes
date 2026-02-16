@@ -38,6 +38,8 @@ in {
         with ps; [
           magick
         ];
+      # Prevent home-manager from creating init.lua - we manage it via home.file
+      initLua = lib.mkForce "";
     };
 
     home = {

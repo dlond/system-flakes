@@ -10,8 +10,10 @@
       gnused
       home-manager
       htop
+      imagemagick
       jq
       mosh
+      nmap
       tree-sitter
       unzip
       wget
@@ -31,7 +33,6 @@
 
     apps = with pkgs; [
       brave
-      chatgpt
       claude-code
       discord-ptb
       obsidian
@@ -105,15 +106,24 @@
       brews = [
         "asciinema"
         "mas"
-        "ollama"
+        {
+          name = "ollama";
+          start_service = true;
+          restart_service = true;
+        }
+        {
+          name = "tor";
+          start_service = true;
+          restart_service = "changed";
+        }
       ];
       casks = [
         "1password"
         "1password-cli"
         "anythingllm"
+        "balenaetcher"
         "claude"
         "ghostty"
-        "messenger"
         "mullvad-vpn"
         "steam"
         "tor-browser"

@@ -7,7 +7,10 @@
   home = {
     stateVersion = "25.05";
     username = "dlond";
-    homeDirectory = "/Users/dlond";
+    homeDirectory =
+      if pkgs.stdenv.isDarwin
+      then "/Users/dlond"
+      else "/home/dlond";
   };
 
   imports = [
@@ -40,6 +43,7 @@
         PATH="/usr/bin:/bin:${lib.makeBinPath (with pkgs; [
         git
         gnumake
+      ] ++ lib.optionals pkgs.stdenv.isDarwin [
         darwin.cctools
       ])}"
 

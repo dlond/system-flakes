@@ -6,13 +6,17 @@
   ...
 }: {
   # Shell enhancement packages
-  home.packages = with pkgs; [
-    zoxide # Smart cd replacement, manually initialized at end of zshrc for order control
-    fd # Better find
-    ripgrep # Better grep
-    eza # Better ls (includes --tree)
-    zsh-fzf-tab # Fuzzy tab completion plugin
-  ];
+  home.packages = with pkgs;
+    [
+      zoxide # Smart cd replacement, manually initialized at end of zshrc for order control
+      fd # Better find
+      ripgrep # Better grep
+      eza # Better ls (includes --tree)
+      zsh-fzf-tab # Fuzzy tab completion plugin
+    ]
+    ++ lib.optionals pkgs.stdenv.isLinux [
+      xclip # clipboard support (for clip alias)
+    ];
 
   # Bat - better cat for shell
   programs.bat = {
@@ -63,15 +67,18 @@
       nfc = "nix flake check";
       nfu = "nix flake update";
       nd = "nix develop";
-      drs = "sudo darwin-rebuild switch --flake .#mbp";
 
       # Quick navigation
       dev = "cd ~/dev";
       proj = "cd ~/dev/projects";
       wt = "cd ~/dev/worktrees";
-
-      # Other
+    }
+    // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      drs = "sudo darwin-rebuild switch --flake .#mbp";
       clip = "pbcopy";
+    }
+    // lib.optionalAttrs pkgs.stdenv.isLinux {
+      clip = "xclip -selection clipboard";
     };
 
     history = {
@@ -86,19 +93,21 @@
       findNoDups = true;
     };
 
-    sessionVariables = {
-      EDITOR = "nvim";
-      # Python base environment location
-      PYTHON_SHARED_VENVS = "${config.home.homeDirectory}/.local/share/python/venvs";
-      # FZF widget commands
-      FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
-      FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
-      FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept' --bind='ctrl-e:execute(echo {} | clip)+abort' --header='[history] | Ctrl-E: copy'";
-      # Common FZF bindings for all custom functions
-      FZF_CUSTOM_BINDS = "--bind='ctrl-e:execute(echo {} | clip)+abort' --bind='ctrl-w:become(nvim {})'";
-      # Use non-apple debuggers
-      LLDB_DEBUGSERVER_PATH = "/Library/Developer/CommandLineTools/Library/PrivateFrameworks/LLDB.framework/Versions/A/Resources/debugserver";
-    };
+    sessionVariables =
+      {
+        EDITOR = "nvim";
+        # Python base environment location
+        PYTHON_SHARED_VENVS = "${config.home.homeDirectory}/.local/share/python/venvs";
+        # FZF widget commands
+        FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
+        FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
+        FZF_CTRL_R_OPTS = "--height=40% --layout=reverse --border --preview='echo {}' --preview-window=down:3:wrap --bind='enter:accept' --bind='ctrl-e:execute(echo {} | clip)+abort' --header='[history] | Ctrl-E: copy'";
+        # Common FZF bindings for all custom functions
+        FZF_CUSTOM_BINDS = "--bind='ctrl-e:execute(echo {} | clip)+abort' --bind='ctrl-w:become(nvim {})'";
+      }
+      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+        LLDB_DEBUGSERVER_PATH = "/Library/Developer/CommandLineTools/Library/PrivateFrameworks/LLDB.framework/Versions/A/Resources/debugserver";
+      };
 
     syntaxHighlighting = {
       enable = true;

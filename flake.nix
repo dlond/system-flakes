@@ -22,8 +22,8 @@
     };
 
     nvim-config = {
-      # url = "github:dlond/nvim";
-      url = "path:/Users/dlond/dev/projects/nvim";
+      url = "github:dlond/nvim";
+      # url = "path:/Users/dlond/dev/projects/nvim"; # local dev override
       flake = false;
     };
 
@@ -88,36 +88,40 @@
         };
       };
 
-    homeConfigurations."${username}@mbp" = let
-      sysConfig = mkSystemConfig systems.darwin;
-      minimal = "";
-    in
-      inputs.home-manager.lib.homeManagerConfiguration {
-        inherit (sysConfig) pkgs;
-        modules = [./home/users/${username}];
-        extraSpecialArgs = {
-          inherit (inputs) nix nvim-config catppuccin-bat;
-          inherit (sysConfig) pkgs packages;
-          inherit minimal;
-        };
-      };
-
-    #### Linux standalone Home-Manager
-    homeConfigurations."${username}@linux" = let
-      system = systems.linux;
-      pkgs = mkPkg {inherit (inputs) nixpkgs;} system;
-    in
-      inputs.home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-        modules = [
-          ./home/users/${username}
-        ];
-        extraSpecialArgs = {
+    #### Home Manager configurations
+    homeConfigurations = let
+      mkLinuxHome = hostname: let
+        pkgs = mkPkg {inherit (inputs) nixpkgs;} systems.linux;
+      in
+        inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
-          inherit (inputs) sops-nix nvim-config catppuccin-bat;
-          packages = import ./lib/packages.nix {inherit pkgs;};
+          modules = [./home/users/${username}];
+          extraSpecialArgs = {
+            inherit pkgs hostname;
+            inherit (inputs) sops-nix nvim-config catppuccin-bat;
+            packages = import ./lib/packages.nix {inherit pkgs;};
+          };
         };
-      };
+      darwinHome = let
+        sysConfig = mkSystemConfig systems.darwin;
+        minimal = "";
+      in
+        inputs.home-manager.lib.homeManagerConfiguration {
+          inherit (sysConfig) pkgs;
+          modules = [./home/users/${username}];
+          extraSpecialArgs = {
+            inherit (inputs) nix nvim-config catppuccin-bat;
+            inherit (sysConfig) pkgs packages;
+            inherit minimal;
+          };
+        };
+    in {
+      "${username}@mbp" = darwinHome;
+      "${username}@lilbot" = mkLinuxHome "lilbot"; # Jetson Nano 1
+      "${username}@lilspy" = mkLinuxHome "lilspy"; # Jetson Nano 2
+      "${username}@rpi" = mkLinuxHome "rpi"; # Raspberry Pi
+      "${username}@linux" = mkLinuxHome "linux"; # generic fallback
+    };
 
     #### Development Templates
     templates = {

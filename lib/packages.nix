@@ -44,7 +44,7 @@
       cpp = with pkgs; [
         cmake
         ninja
-        conan
+        # conan
         pkg-config
       ];
 

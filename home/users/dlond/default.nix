@@ -24,7 +24,7 @@
     ../../modules/neovim.nix
   ];
 
-  home.activation = {
+  home.activation = lib.optionalAttrs pkgs.stdenv.isDarwin {
     pythonBaseEnv = config.lib.dag.entryAfter ["writeBoundary"] ''
       PY_BASE_ENV="${config.home.homeDirectory}/.local/share/python/venvs/base"
 
@@ -43,7 +43,6 @@
         PATH="/usr/bin:/bin:${lib.makeBinPath (with pkgs; [
         git
         gnumake
-      ] ++ lib.optionals pkgs.stdenv.isDarwin [
         darwin.cctools
       ])}"
 

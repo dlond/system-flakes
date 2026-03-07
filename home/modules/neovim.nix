@@ -35,9 +35,10 @@ in {
       extraPackages =
         cfg.extraLSPs;
       extraLuaPackages = ps:
-        with ps; [
-          magick
-        ];
+        with ps;
+          lib.optionals pkgs.stdenv.isDarwin [
+            magick
+          ];
       # Prevent home-manager from creating init.lua - we manage it via home.file
       initLua = lib.mkForce "";
     };

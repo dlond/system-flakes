@@ -2,7 +2,7 @@
   config,
   lib,
   nvim-config,
-  packages,
+  pkgs,
   ...
 }: let
   cfg = config.programs.neovim-cfg;

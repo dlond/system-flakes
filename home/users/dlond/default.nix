@@ -13,6 +13,8 @@
       else "/home/dlond";
   };
 
+  home.packages = [ pkgs.home-manager ];
+
   imports = [
     ../../modules/fzf.nix
     ../../modules/git.nix

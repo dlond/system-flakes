@@ -43,43 +43,44 @@
     enable = true;
     defaultKeymap = "emacs";
 
-    shellAliases = {
-      # Better ls aliases
-      ls = "eza --icons=always"; # Simple list with icons
-      ll = "eza -la --header --git --icons=always"; # List ALL including hidden
-      la = "eza -la --header --git --icons=always"; # Same as ll for muscle memory
-      lh = "eza -ld .* --icons=always"; # List ONLY hidden files/dirs
-      lt = "eza -l --header --git --icons=always --tree"; # Tree view with details
-      tree = "eza --tree";
+    shellAliases =
+      {
+        # Better ls aliases
+        ls = "eza --icons=always"; # Simple list with icons
+        ll = "eza -la --header --git --icons=always"; # List ALL including hidden
+        la = "eza -la --header --git --icons=always"; # Same as ll for muscle memory
+        lh = "eza -ld .* --icons=always"; # List ONLY hidden files/dirs
+        lt = "eza -l --header --git --icons=always --tree"; # Tree view with details
+        tree = "eza --tree";
 
-      # File tools
-      cat = "bat";
-      v = "nvim";
-      ndiff = "nvim -d";
+        # File tools
+        cat = "bat";
+        v = "nvim";
+        ndiff = "nvim -d";
 
-      # Safety aliases
-      rm = "rm -i"; # Interactive confirmation
+        # Safety aliases
+        rm = "rm -i"; # Interactive confirmation
 
-      # Fuzzy tools
-      fh = "fc -l 1 | fzf --tac --height=50% | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | sh";
+        # Fuzzy tools
+        fh = "fc -l 1 | fzf --tac --height=50% | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | sh";
 
-      # Nix shortcuts
-      nfc = "nix flake check";
-      nfu = "nix flake update";
-      nd = "nix develop";
+        # Nix shortcuts
+        nfc = "nix flake check";
+        nfu = "nix flake update";
+        nd = "nix develop";
 
-      # Quick navigation
-      dev = "cd ~/dev";
-      proj = "cd ~/dev/projects";
-      wt = "cd ~/dev/worktrees";
-    }
-    // lib.optionalAttrs pkgs.stdenv.isDarwin {
-      drs = "sudo darwin-rebuild switch --flake .#mbp";
-      clip = "pbcopy";
-    }
-    // lib.optionalAttrs pkgs.stdenv.isLinux {
-      clip = "xclip -selection clipboard";
-    };
+        # Quick navigation
+        dev = "cd ~/dev";
+        proj = "cd ~/dev/projects";
+        wt = "cd ~/dev/worktrees";
+      }
+      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+        drs = "sudo darwin-rebuild switch --flake .#mbp";
+        clip = "pbcopy";
+      }
+      // lib.optionalAttrs pkgs.stdenv.isLinux {
+        clip = "xclip -selection clipboard";
+      };
 
     history = {
       size = 5000;
@@ -96,8 +97,6 @@
     sessionVariables =
       {
         EDITOR = "nvim";
-        # Python base environment location
-        PYTHON_SHARED_VENVS = "${config.home.homeDirectory}/.local/share/python/venvs";
         # FZF widget commands
         FZF_CTRL_T_COMMAND = "fd --type f --hidden --follow --exclude .git";
         FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git";
@@ -127,11 +126,6 @@
       (lib.mkBefore ''
         # Add ~/.local/bin to PATH for user scripts
         export PATH="$HOME/.local/bin:$PATH"
-
-        # Auto-activate Python base environment if not in a project venv
-        if [[ -z "$VIRTUAL_ENV" && -d "$PYTHON_SHARED_VENVS/base" ]]; then
-          source "$PYTHON_SHARED_VENVS/base/bin/activate"
-        fi
 
         # Disable zoxide doctor warning as a safety net (though proper ordering should fix it)
         export _ZO_DOCTOR=0
